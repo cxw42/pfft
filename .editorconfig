@@ -1,0 +1,10 @@
+root=true
+
+[*]
+end_of_line = lf
+indent_size = 4
+indent_style = space
+
+[{Makefile,Makefile.*}]
+indent_size = 8
+indent_style = tab

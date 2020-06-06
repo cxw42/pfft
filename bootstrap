@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -xEeuo pipefail
+
+mkdir -p m4
+# || in case of "too many loops" errors
+aclocal -I m4 --install || aclocal -I m4 --install
+autoreconf -f -i -I m4 || autoreconf -f -i -I m4
