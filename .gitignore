@@ -68,6 +68,7 @@ conf*.dir/
 /config.status
 /configure
 .deps/
+.dirstamp
 /m4/
 Makefile
 Makefile.in
