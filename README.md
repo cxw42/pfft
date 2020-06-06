@@ -14,6 +14,11 @@ Pfft:
 ## Installing from a source tarball
 
     $ sudo apt install -y libpango1.0-dev   # Or equivalent on non-Ubuntu
+    $ sudo apt install -y --no-install-recommends libsnapd-glib1
+
+(Note the `--no-install-recommends` --- you don't need snapd installed.
+I am just using the Markdown parser in snapd-glib since it's there.)
+
     $ tar xvf pfft-VERSION.tar.gz
     $ cd pfft-VERSION
     $ ./configure && make -j4 && sudo make install
@@ -32,7 +37,11 @@ Install the latest stable [valac]:
 
 Install dependencies for pfft:
 
-    $ sudo apt install -y autotools-dev libpango1.0-dev
+    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev
+    $ sudo apt install -y --no-install-recommends libsnapd-glib1
+
+Build:
+
     $ ./bootstrap
     $ ./configure && make -j4
 

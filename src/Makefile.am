@@ -2,12 +2,19 @@ include $(top_srcdir)/rules.mk
 
 AM_VALAFLAGS = \
 	-H $(<:.vala=.h) \
-	--pkg pangocairo --pkg pango --pkg cairo --pkg gio-2.0 \
+	$(MY_VALA_PKGS) \
 	$(EOL)
 
-AM_CFLAGS = $(PANGO_CFLAGS) $(GLIB_CFLAGS)
-LIBS = $(PANGO_LIBS) $(GLIB_LIBS)
+AM_CFLAGS = $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS)
+LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS)
 
+# === Libraries ===========================================================
+noinst_LIBRARIES = libpfftcore.a
+
+# === Program =============================================================
 bin_PROGRAMS = pfft
 
-pfft_SOURCES = $(MY_VALA_VALA)
+pfft_SOURCES = $(MY_pgm_VALA)
+pfft_LDADD = libpfftcore.a
+
+libpfftcore_a_SOURCES = doc.vala reader.vala

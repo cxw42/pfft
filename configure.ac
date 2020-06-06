@@ -5,19 +5,21 @@ AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.11 foreign subdir-objects])
 AC_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
 AM_PROG_VALAC([0.45.0])
+AC_PROG_RANLIB
 
 dnl === Dependencies ======================================================
 
 PKG_PROG_PKG_CONFIG([0.24])
 
 dnl use fewer variables for terser Makefiles.
-PKG_CHECK_MODULES([GLIB],[gobject-2.0 gio-2.0 glib-2.0])
-PKG_CHECK_MODULES([PANGO],[pangocairo pango cairo])
+PKG_CHECK_MODULES([INPUT],[snapd-glib])
+PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
+PKG_CHECK_MODULES([BASE],[gobject-2.0 gio-2.0 glib-2.0])
 
 dnl === Docs ==============================================================
 
@@ -38,4 +40,5 @@ AC_CONFIG_FILES([
     src/Makefile
 ])
 
+AM_SILENT_RULES([yes])
 AC_OUTPUT
