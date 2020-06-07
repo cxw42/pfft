@@ -69,7 +69,6 @@ conf*.dir/
 /configure
 .deps/
 .dirstamp
-/m4/
 Makefile
 Makefile.in
 stamp-*

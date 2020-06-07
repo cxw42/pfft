@@ -8,6 +8,7 @@ doc:
 	+$(MAKE) -C doc html
 
 # Tests
+EXTRA_DIST = tap-driver.sh tap-test
 
 test: check
 
