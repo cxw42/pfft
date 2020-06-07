@@ -30,7 +30,7 @@ For the HTML documentation, run `make html`, then open
 
 ### Building from Git
 
-Tested on Lubuntu Eoan.
+Tested on Lubuntu Eoan, with additional CI builds on Ubuntu Bionic.
 
 Install the latest stable [valac]:
 

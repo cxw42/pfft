@@ -11,7 +11,7 @@ public class Doc {
     /**
      * The document
      */
-    public GenericArray<unowned Snapd.MarkdownNode> contents;
+    public GenericArray<unowned Snapd.MarkdownNode> content;
 
     /**
      * Basic constructor
@@ -19,7 +19,7 @@ public class Doc {
      */
     public Doc(GenericArray<unowned Snapd.MarkdownNode> document)
     {
-        contents = document;
+        content = document;
     }
 }
 

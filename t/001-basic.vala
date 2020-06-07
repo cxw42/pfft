@@ -18,7 +18,9 @@ public void loadfile()
         var md = new MarkdownSnapdReader();
         var fn = Test.build_filename(Test.FileType.DIST, "001-basic.md");
         Test.message("Loading filename %s", fn);
-        /* var doc_UNUSED = */ md.read_document(fn);
+        var doc = md.read_document(fn);
+        Test.message("Got %d nodes", doc.content.length);
+        assert_true(doc.content.length == 2);
         ok = true;
     } catch(FileError e) {
         warning("%s", e.message);
@@ -36,6 +38,7 @@ public static int main (string[] args)
 
     // run the tests
     Test.init (ref args);
+    Test.set_nonfatal_assertions();
     Test.add_func("/001-basic/sanity", sanity);
     Test.add_func("/001-basic/loadfile", loadfile);
 
