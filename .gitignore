@@ -74,3 +74,6 @@ Makefile
 Makefile.in
 stamp-*
 *.stamp
+
+# Generated Vala files
+*.vapi

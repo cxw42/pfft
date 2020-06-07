@@ -23,7 +23,9 @@ I am just using the Markdown parser in snapd-glib since it's there.)
     $ cd pfft-VERSION
     $ ./configure && make -j4 && sudo make install
 
-## Building from Git
+## Hacking on Pfft
+
+### Building from Git
 
 Tested on Lubuntu Eoan.
 
@@ -47,8 +49,17 @@ Build:
 
 Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
 
+### Notes on compiling Vala sources
+
+- All the .vala files are run through a single pass of `valac`.
+  However, the resulting C files are compiled by separate invocations of gcc.
+- Even if you `make clean` or `make distclean`, generated .c files will still
+  be left in the tree.  To remove the generated C files,
+  `make maintainer-clean`.
+
 ## Thanks
 
-- https://github.com/stefantalpalaru/vala-skeleton-autotools
+- <https://github.com/stefantalpalaru/vala-skeleton-autotools>
+- <https://github.com/D3Engineering/d3-jetson-bsp>
 
 [valac]: https://wiki.gnome.org/Projects/Vala

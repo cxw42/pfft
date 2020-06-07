@@ -38,6 +38,8 @@ AC_CONFIG_FILES([
     Makefile
     doc/Makefile
     src/Makefile
+    src/core/Makefile
+    src/reader/Makefile
 ])
 
 AM_SILENT_RULES([yes])

@@ -5,6 +5,6 @@ end_of_line = lf
 indent_size = 4
 indent_style = space
 
-[{Makefile,Makefile.*}]
+[{Makefile,Makefile.*,rules.mk}]
 indent_size = 8
 indent_style = tab
