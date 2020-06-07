@@ -32,13 +32,16 @@ For the HTML documentation, run `make html`, then open
 
 Tested on Lubuntu Eoan, with additional CI builds on Ubuntu Bionic.
 
-Install the latest stable [valac]:
+Install Vala:
 
     $ sudo apt install -y build-essential valac valadoc graphviz-dev help2man
-    $ git clone https://gitlab.gnome.org/GNOME/vala.git
-    $ cd vala
-    $ git checkout 0.48.6   # or whatever the latest stable is
-    $ ./autogen.sh && make -j4 && sudo make install
+
+(NOTE: you may be able to skip this step) Install the latest stable [valac]:
+
+    # $ git clone https://gitlab.gnome.org/GNOME/vala.git
+    # $ cd vala
+    # $ git checkout 0.48.6   # or whatever the latest stable is
+    # $ ./autogen.sh && make -j4 && sudo make install
 
 Install dependencies for pfft:
 

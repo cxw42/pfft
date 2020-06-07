@@ -1,14 +1,23 @@
 dist: bionic
 language: c
 
-before_install:
-    - sudo apt update
+addons:
+  apt:
+    update: true
+    packages:
+      - build-essential
+      - valac
+      - valadoc
+      - graphviz-dev
+      - help2man
+      - autotools-dev
+      - libpango1.0-dev
+      - libsnapd-glib-dev
 
 install:
-    - sudo apt install -y build-essential valac valadoc graphviz-dev help2man
-    - sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev
-    - sudo apt install -y --no-install-recommends libsnapd-glib1
-    - valac --version
+  - sudo apt install -y --no-install-recommends libsnapd-glib1
+  - valac --version
+  # Note: at present, it builds OK with Vala 0.40.19.
 
 before_script:
-    - ./bootstrap
+  - ./bootstrap
