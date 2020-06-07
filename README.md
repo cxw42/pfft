@@ -23,6 +23,9 @@ I am just using the Markdown parser in snapd-glib since it's there.)
     $ cd pfft-VERSION
     $ ./configure && make -j4 && sudo make install
 
+For the HTML documentation, run `make html`, then open
+`doc/valadoc/pfft/index.htm`.
+
 ## Hacking on Pfft
 
 ### Building from Git
@@ -48,6 +51,13 @@ Build:
     $ ./configure && make -j4
 
 Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
+
+### Testing
+
+`make test` or `make check` at the top level.
+
+In GLib 2.62+, the default output format is TAP.  Therefore, you can do
+`make build-tests && prove`.
 
 ### Notes on compiling Vala sources
 

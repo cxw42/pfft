@@ -2,7 +2,7 @@ include $(top_srcdir)/rules.mk
 
 .PHONY: valadoc clean-valadoc
 
-all-local: valadoc
+html-local: valadoc
 
 clean-local: clean-valadoc
 

@@ -40,6 +40,7 @@ AC_CONFIG_FILES([
     src/Makefile
     src/core/Makefile
     src/reader/Makefile
+    t/Makefile
 ])
 
 AM_SILENT_RULES([yes])

@@ -1,0 +1,8 @@
+*.trs
+*.log
+
+# Test executables
+*.t
+
+# Generated files
+[0-9]*.c
