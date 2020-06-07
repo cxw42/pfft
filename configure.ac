@@ -19,7 +19,9 @@ PKG_PROG_PKG_CONFIG([0.24])
 dnl use fewer variables for terser Makefiles.
 PKG_CHECK_MODULES([INPUT],[snapd-glib])
 PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
-PKG_CHECK_MODULES([BASE],[gobject-2.0 gio-2.0 glib-2.0])
+PKG_CHECK_MODULES([BASE],[gobject-2.0 gio-2.0
+                   glib-2.0 >= 2.38 dnl See g_test_build_filename()
+])
 
 dnl === Tests =============================================================
 
