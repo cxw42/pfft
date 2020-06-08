@@ -7,17 +7,17 @@
 # The type of line endings.
 #
 # Default: auto
-newlines                        = auto     # lf/crlf/cr/auto
+newlines                        = lf
 
 # The original size of tabs in the input.
 #
 # Default: 8
-input_tab_size                  = 8        # unsigned number
+input_tab_size                  = 4
 
 # The size of tabs in the output (only used if align_with_tabs=true).
 #
 # Default: 8
-output_tab_size                 = 8        # unsigned number
+output_tab_size                 = 4
 
 # The ASCII value of the string escape char, usually 92 (\) or (Pawn) 94 (^).
 #
@@ -52,14 +52,14 @@ enable_processing_cmt           = " *INDENT-ON*"     # string
 enable_digraphs                 = false    # true/false
 
 # Add or remove the UTF-8 BOM (recommend 'remove').
-utf8_bom                        = ignore   # ignore/add/remove/force
+utf8_bom                        = remove
 
 # If the file contains bytes with values between 128 and 255, but is not
 # UTF-8, then output as UTF-8.
 utf8_byte                       = false    # true/false
 
 # Force the output encoding to UTF-8.
-utf8_force                      = false    # true/false
+utf8_force                      = true
 
 #
 # Spacing options
@@ -276,7 +276,7 @@ sp_inside_sparen_close          = ignore   # ignore/add/remove/force
 sp_after_sparen                 = ignore   # ignore/add/remove/force
 
 # Add or remove space between ')' and '{' of of control statements.
-sp_sparen_brace                 = ignore   # ignore/add/remove/force
+sp_sparen_brace                 = add
 
 # (D) Add or remove space between 'invariant' and '('.
 sp_invariant_paren              = ignore   # ignore/add/remove/force
@@ -808,18 +808,18 @@ sp_extern_paren                 = ignore   # ignore/add/remove/force
 
 # Add or remove space after the opening of a C++ comment,
 # i.e. '// A' vs. '//A'.
-sp_cmt_cpp_start                = ignore   # ignore/add/remove/force
+sp_cmt_cpp_start                = add
 
 # If true, space is added with sp_cmt_cpp_start will be added after doxygen
 # sequences like '///', '///<', '//!' and '//!<'.
-sp_cmt_cpp_doxygen              = false    # true/false
+sp_cmt_cpp_doxygen              = true
 
 # If true, space is added with sp_cmt_cpp_start will be added after Qt
 # translator or meta-data comments like '//:', '//=', and '//~'.
 sp_cmt_cpp_qttr                 = false    # true/false
 
 # Add or remove space between #else or #endif and a trailing comment.
-sp_endif_cmt                    = ignore   # ignore/add/remove/force
+sp_endif_cmt                    = add
 
 # Add or remove space after 'new', 'delete' and 'delete[]'.
 sp_after_new                    = ignore   # ignore/add/remove/force
@@ -874,7 +874,7 @@ force_tab_after_define          = false    # true/false
 # The number of columns to indent per level. Usually 2, 3, 4, or 8.
 #
 # Default: 8
-indent_columns                  = 8        # unsigned number
+indent_columns                  = 4        # unsigned number
 
 # The continuation indent. If non-zero, this overrides the indent of '(', '['
 # and '=' continuation indents. Negative values are OK; negative value is
@@ -902,7 +902,7 @@ indent_param                    = 0        # unsigned number
 # 2: Indent and align with tabs, using spaces when not on a tabstop
 #
 # Default: 1
-indent_with_tabs                = 1        # unsigned number
+indent_with_tabs                = 0        # unsigned number
 
 # Whether to indent comments that are not at a brace level with tabs on a
 # tabstop. Requires indent_with_tabs=2. If false, will use spaces.
@@ -919,7 +919,7 @@ indent_xml_string               = 0        # unsigned number
 indent_brace                    = 0        # unsigned number
 
 # Whether braces are indented to the body level.
-indent_braces                   = false    # true/false
+indent_braces                   = false
 
 # Whether to disable indenting function braces if indent_braces=true.
 indent_braces_no_func           = false    # true/false
@@ -946,7 +946,7 @@ indent_cs_delegate_brace        = false    # true/false
 indent_cs_delegate_body         = false    # true/false
 
 # Whether to indent the body of a 'namespace'.
-indent_namespace                = false    # true/false
+indent_namespace                = true
 
 # Whether to indent only the first namespace, and not any nested namespaces.
 # Requires indent_namespace=true.
@@ -964,7 +964,7 @@ indent_namespace_limit          = 0        # unsigned number
 indent_extern                   = false    # true/false
 
 # Whether the 'class' body is indented.
-indent_class                    = false    # true/false
+indent_class                    = true
 
 # Whether to indent the stuff after a leading base class colon.
 indent_class_colon              = false    # true/false

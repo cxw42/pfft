@@ -21,4 +21,5 @@ build-tests:
 # Misc.
 
 prettyprint:
-	-$(AM_V_GEN)uncrustify -c $(top_srcdir)/.uncrustifyrc --replace $(MY_all_VALA)
+	-$(AM_V_GEN)uncrustify -c $(top_srcdir)/.uncrustifyrc --replace \
+		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
