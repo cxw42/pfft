@@ -11,6 +11,8 @@
 *.ilk
 *.map
 *.exp
+pfft-*/
+pfft-*.tar.gz
 
 # Precompiled Headers
 *.gch

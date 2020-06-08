@@ -5,7 +5,7 @@ EOL =
 
 # All the Vala files, and the corresponding C files.
 MY_pgm_VALA = pfft.vala
-MY_core_VALA = doc.vala reader.vala
+MY_core_VALA = doc.vala reader.vala markdown-element.vala
 MY_reader_VALA = markdown-snapd.vala
 
 MY_all_VALA = \
