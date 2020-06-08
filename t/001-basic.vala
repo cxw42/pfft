@@ -15,16 +15,6 @@ void sanity()
     assert_true(true);
 }
 
-void dumpnode(MarkdownNode node, string indent = "")
-{
-        Test.message("%sNode: type %d, text -%s-",
-                     indent, (int)node.get_node_type(), node.get_text());
-        var kids = node.get_children();
-        if(kids != null) {
-            kids.foreach( (kid)=>{ dumpnode(kid, indent+"  "); });
-        }
-}
-
 void loadfile()
 {
     bool did_load = false;
@@ -35,12 +25,10 @@ void loadfile()
         var md = new MarkdownSnapdReader();
         var doc = md.read_document(fn);
         did_load = true;
-
-        Test.message("Got %d nodes", doc.content.length);
+        Test.message("Got doc:\n%s\n", doc.as_string());
         assert_true(doc.content.length == 2);
 
         var node0 = doc.content.get(0);
-        dumpnode(node0);
         assert_true(node0.get_node_type() == MarkdownNodeType.PARAGRAPH);
         var kids0 = node0.get_children();
         assert_nonnull(kids0);
@@ -52,7 +40,6 @@ void loadfile()
         }
 
         var node1 = doc.content.get(1);
-        dumpnode(node1);
         assert_true(node1.get_node_type() == MarkdownNodeType.PARAGRAPH);
         var kids1 = node1.get_children();
         assert_nonnull(kids1);

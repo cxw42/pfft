@@ -19,6 +19,7 @@ public class MarkdownSnapdReader {
         string contents;
         FileUtils.get_contents(filename, out contents);
         var parser = new MarkdownParser(MarkdownVersion.@0);
+        parser.set_preserve_whitespace(false);
         return new Doc(parser.parse(contents));
     }
 }
