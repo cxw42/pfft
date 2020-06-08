@@ -43,9 +43,9 @@ Install Vala:
     # $ git checkout 0.48.6   # or whatever the latest stable is
     # $ ./autogen.sh && make -j4 && sudo make install
 
-Install dependencies for pfft:
+Install development dependencies for pfft:
 
-    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev
+    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev uncrustify
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
 
 Build:
@@ -61,6 +61,11 @@ Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
 
 In GLib 2.62+, the default output format is TAP.  Therefore, you can do
 `make build-tests && prove`.
+
+### Pull requests
+
+Are welcome!  Before submitting a PR, please run `make prettyprint`,
+`make check`, and `make distcheck`.
 
 ### Notes on compiling Vala sources
 
