@@ -7,5 +7,7 @@ LOCAL_VALA_FLAGS = \
 
 LOCAL_CFLAGS = -I../core
 
+EXTRA_DIST = pfft-reader.h pfft-reader.vapi
+
 noinst_LIBRARIES = libpfft-reader.a
 libpfft_reader_a_SOURCES = $(MY_reader_VALA)

@@ -37,12 +37,12 @@ public class Doc {
 
     private static void dump_node(StringBuilder sb, Snapd.MarkdownNode node, string indent = "")
     {
-            sb.append_printf("%sNode: type %s, text -%s-\n",
+        sb.append_printf("%sNode: type %s, text -%s-\n",
                          indent, node.get_node_type().to_string(), node.get_text());
-            var kids = node.get_children();
-            if(kids != null) {
-                kids.foreach( (kid)=>{ dump_node(sb, kid, indent+"  "); });
-            }
+        var kids = node.get_children();
+        if(kids != null) {
+            kids.foreach( (kid)=>{ dump_node(sb, kid, indent+"  "); });
+        }
     }
 
 }
