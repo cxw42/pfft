@@ -38,14 +38,14 @@ Install Vala:
 
 (NOTE: you may be able to skip this step) Install the latest stable [valac]:
 
-    # $ git clone https://gitlab.gnome.org/GNOME/vala.git
-    # $ cd vala
-    # $ git checkout 0.48.6   # or whatever the latest stable is
-    # $ ./autogen.sh && make -j4 && sudo make install
+    $ git clone https://gitlab.gnome.org/GNOME/vala.git
+    $ cd vala
+    $ git checkout 0.48.6   # or whatever the latest stable is
+    $ ./autogen.sh && make -j4 && sudo make install
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev uncrustify
+    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev uncrustify perl
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
 
 Build:
@@ -64,13 +64,23 @@ In GLib 2.62+, the default output format is TAP.  Therefore, you can do
 
 ### Pull requests
 
-Are welcome!  Before submitting a PR, please run `make prettyprint`,
-`make check`, and `make distcheck`.
+PRs are welcome!  I prefer PRs with one commit that adds tests and a subsequent
+commit that adds the code (TDD).  However, that is not required.
+
+Before submitting a PR, please run `make prep`.  This will:
+
+- `make prettyprint` (conform to the coding style)
+- `make check` (must pass the tests!)
+- `make all build-tests && prove -v` (runs the tests a different way)
+- `make distcheck` (make sure the tarball will build)
 
 ### Notes on compiling Vala sources
 
 - All the .vala files are run through a single pass of `valac`.
   However, the resulting C files are compiled by separate invocations of gcc.
+- The valac invocation happens in the _source_ tree.  I think this is because
+  the dist tarball includes the generated C files.  Therefore, references
+  to the generated .h and .vapi files require `$(srcdir)`.
 - Even if you `make clean` or `make distclean`, generated .c files will still
   be left in the tree.  To remove the generated C files,
   `make maintainer-clean`.

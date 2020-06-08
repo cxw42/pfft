@@ -2,7 +2,7 @@ include $(top_srcdir)/rules.mk
 
 SUBDIRS = src t doc
 
-.PHONY: doc test build-tests
+.PHONY: doc test build-tests prettyprint prep
 
 # Docs
 
@@ -23,3 +23,10 @@ build-tests:
 prettyprint:
 	-$(AM_V_GEN)uncrustify -c $(top_srcdir)/.uncrustifyrc --replace \
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
+
+prep:
+	uncrustify -c $(top_srcdir)/.uncrustifyrc --check \
+		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
+	+$(MAKE) check
+	+$(MAKE) all build-tests && prove -v
+	+$(MAKE) distcheck
