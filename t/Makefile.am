@@ -7,14 +7,9 @@ build-tests: $(check_PROGRAMS)
 
 # === Flags ===============================================================
 
-LOCAL_VALA_FLAGS = \
-	--vapidir ../src/core --pkg pfft-core \
-	--vapidir ../src/reader --pkg pfft-reader \
-	$(EOL)
-
-LOCAL_CFLAGS = -I../src/core -I../src/reader
-
-LDADD = ../src/core/libpfft-core.a ../src/reader/libpfft-reader.a
+LOCAL_VALA_FLAGS = $(MY_use_all_valaflags)
+LOCAL_CFLAGS = $(MY_use_all_cflags)
+LDADD = $(MY_use_all_ldadd)
 
 # === Programs ============================================================
 

@@ -38,3 +38,20 @@ AM_VALAFLAGS = \
 # by each Makefile.am.
 AM_CFLAGS = $(LOCAL_CFLAGS) $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS)
 LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS)
+
+# Flags used by both the program and the tests --- anything that links
+# against all the libraries
+MY_use_all_valaflags = \
+	--vapidir $(top_srcdir)/src/core --pkg pfft-core \
+	--vapidir $(top_srcdir)/src/reader --pkg pfft-reader \
+	$(EOL)
+
+MY_use_all_cflags = \
+	-I$(top_srcdir)/src/core \
+	-I$(top_srcdir)/src/reader \
+	$(EOL)
+
+MY_use_all_ldadd = \
+	$(top_builddir)/src/core/libpfft-core.a \
+	$(top_builddir)/src/reader/libpfft-reader.a \
+	$(EOL)

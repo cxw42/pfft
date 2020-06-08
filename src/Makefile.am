@@ -2,15 +2,11 @@ include $(top_srcdir)/rules.mk
 
 SUBDIRS = core reader
 
-LOCAL_VALA_FLAGS = \
-	--vapidir core --pkg pfft-core \
-	--vapidir reader --pkg pfft-reader \
-	$(EOL)
-
-LOCAL_CFLAGS = -Icore -Ireader
+LOCAL_VALA_FLAGS = $(MY_use_all_valaflags)
+LOCAL_CFLAGS = $(MY_use_all_cflags)
+LDADD = $(MY_use_all_ldadd)
 
 # === Program =============================================================
 bin_PROGRAMS = pfft
 
 pfft_SOURCES = $(MY_pgm_VALA)
-pfft_LDADD = core/libpfft-core.a reader/libpfft-reader.a
