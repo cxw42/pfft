@@ -28,6 +28,7 @@ For the HTML documentation, run `make html`, then open
 
 ## Hacking on Pfft
 
+All files are UTF-8, no BOM.
 ### Building from Git
 
 Tested on Lubuntu Eoan, with additional CI builds on Ubuntu Bionic.

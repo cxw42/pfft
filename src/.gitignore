@@ -1,2 +1,5 @@
 # generated source files
 pfft.[ch]
+
+# generated manpage
+pfft.1
