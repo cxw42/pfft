@@ -3,6 +3,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 /**
+ * Format a string as TAP diagnostic output.
+ *
+ * TODO Move this to a util.vala file
+ */
+public string as_diag(string ins)
+{
+    string prefix = (ins[0] == '#') ? "" : "# ";
+    return prefix + ins.replace("\n", "\n# ");
+}
+
+/**
  * A document to be rendered.
  *
  * This class holds the contents of a parsed document.

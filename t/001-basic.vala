@@ -25,7 +25,7 @@ void loadfile()
         var md = new MarkdownSnapdReader();
         var doc = md.read_document(fn);
         did_load = true;
-        Test.message("Got doc:\n%s\n", doc.as_string());
+        Test.message("Got doc:\n%s\n", "# " + as_diag(doc.as_string()));
         assert_true(doc.content.length == 2);
 
         var node0 = doc.content.get(0);
