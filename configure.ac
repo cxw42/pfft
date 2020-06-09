@@ -9,8 +9,14 @@ AM_INIT_AUTOMAKE([1.11 foreign subdir-objects])
 AC_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
+
 AM_PROG_VALAC
 dnl Known to work with valac 0.40.19
+
+dnl TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
+dnl isn't being passed through.
+AC_ARG_VAR([USER_VALAFLAGS], [extra options for valac(1)])
+
 AC_PROG_RANLIB
 
 dnl === Dependencies ======================================================

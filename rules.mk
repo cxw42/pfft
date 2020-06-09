@@ -5,7 +5,7 @@ EOL =
 
 # All the Vala files, and the corresponding C files.
 MY_pgm_VALA = pfft.vala
-MY_core_VALA = doc.vala reader.vala markdown-element.vala
+MY_core_VALA = el.vala reader.vala util.vala
 MY_reader_VALA = markdown-snapd.vala
 
 MY_all_VALA = \
@@ -26,9 +26,12 @@ MY_VALA_PKGS = \
 
 # Vala settings.  LOCAL_VALA_FLAGS is filled in by each Makefile.am with
 # any other valac options that Makefile.am needs.
+# TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
+# isn't being passed through.
 AM_VALAFLAGS = \
 	$(LOCAL_VALA_FLAGS) \
 	$(MY_VALA_PKGS) \
+	$(USER_VALAFLAGS) \
 	$(EOL)
 
 # not this => -H $(<:.vala=.h)

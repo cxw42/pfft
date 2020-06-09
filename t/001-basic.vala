@@ -2,6 +2,7 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+using My;
 using Snapd;
 /**
  * argv[0], for use by sanity()
@@ -23,32 +24,23 @@ void loadfile()
         Test.message("Loading filename %s", fn);
 
         var md = new MarkdownSnapdReader();
-        var doc = md.read_document(fn);
+        Doc doc = md.read_document(fn);
+        assert_nonnull(doc);
         did_load = true;
         Test.message("Got doc:\n%s\n", "# " + as_diag(doc.as_string()));
-        assert_true(doc.content.length == 2);
+        assert_true(doc.root.n_children() == 2);
 
-        var node0 = doc.content.get(0);
-        assert_true(node0.get_node_type() == MarkdownNodeType.PARAGRAPH);
-        var kids0 = node0.get_children();
-        assert_nonnull(kids0);
-        if(kids0 != null) {
-            assert_true(kids0.length == 1);
-            var kid = kids0.get(0);
-            assert_true(kid.get_node_type() == MarkdownNodeType.TEXT);
-            assert_true(kid.get_text() == "# Header");
-        }
+        unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
+        assert_true(node0.n_children() == 0);
+        unowned Elem el0 = node0.data;
+        assert_true(el0.ty == Elem.Type.BLOCK_HEADER);
+        assert_true(el0.text == "Header");
 
-        var node1 = doc.content.get(1);
-        assert_true(node1.get_node_type() == MarkdownNodeType.PARAGRAPH);
-        var kids1 = node1.get_children();
-        assert_nonnull(kids1);
-        if(kids1 != null) {
-            assert_true(kids1.length == 1);
-            var kid = kids1.get(0);
-            assert_true(kid.get_node_type() == MarkdownNodeType.TEXT);
-            assert_true(kid.get_text() == "Body");
-        }
+        unowned GLib.Node<Elem> node1 = doc.root.nth_child(1);
+        assert_true(node1.n_children() == 0);
+        unowned Elem el1 = node1.data;
+        assert_true(el1.ty == Elem.Type.BLOCK_COPY);
+        assert_true(el1.text == "Body");
     } catch(FileError e) {
         warning("%s", e.message);
     }

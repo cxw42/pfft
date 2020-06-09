@@ -1,3 +1,5 @@
+# TODO update per
+# https://tecnocode.co.uk/2013/12/14/notes-on-vala-and-automake/
 include $(top_srcdir)/rules.mk
 
 SUBDIRS = src t doc
