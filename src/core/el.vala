@@ -54,7 +54,7 @@ namespace My {
          *
          * All elements have text, even if it's empty (e.g., {{{``}}}).
          */
-        public string text { get; set; }
+        public string text { get; set; default = ""; }
 
         // --- Properties for specific types of nodes ---
 

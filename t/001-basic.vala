@@ -27,7 +27,7 @@ void loadfile()
         Doc doc = md.read_document(fn);
         assert_nonnull(doc);
         did_load = true;
-        Test.message("Got doc:\n%s\n", "# " + as_diag(doc.as_string()));
+        Test.message("Got doc:\n%s\n", as_diag(doc.as_string()));
         assert_true(doc.root.n_children() == 2);
 
         unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);

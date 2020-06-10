@@ -18,15 +18,28 @@ namespace My
          * @param mkid      The child on which to base the new node.
          * @return The new child node, if any
          */
-        private static GLib.Node<Elem>? make_and_attach(GLib.Node<Elem> parent, MarkdownNode mkid)
+        private static unowned GLib.Node<Elem>? make_and_attach(
+            /*unowned*/ GLib.Node<Elem> parent, MarkdownNode mkid)
         {
-            GLib.Node<Elem>? retval;
+            Test.message("%s", as_diag("> parent %p, mkid %p".printf(parent, mkid)));
+            unowned GLib.Node<Elem>? retval;
             string mtext = (mkid.get_text() != null) ? mkid.get_text() : "";
             var mty = mkid.get_node_type();
 
+            Test.message("%s", as_diag(
+                    "Node ty %s text -%s-".printf(mty.to_string(),
+                    mtext)));
             if(mty == MarkdownNodeType.TEXT) {
                 retval = null;
-                parent.data.text += mtext;  // TODO add whitespace?
+                // TODO add whitespace?
+
+                // XXX HACK - promote parents to headers
+                if(mtext[0 : 2]=="# " && parent.data.text == "" && parent.data.ty == Elem.Type.BLOCK_COPY) {
+                    parent.data.ty = Elem.Type.BLOCK_HEADER;
+                    mtext = mtext[2 : mtext.length];
+                }
+                parent.data.text += mtext;
+                Test.message("%s", as_diag("Appended -%s-; now -%s-".printf(mtext, parent.data.text)));
 
             } else if(  // Handle block elements
                 mty == MarkdownNodeType.CODE_BLOCK ||
@@ -35,15 +48,17 @@ namespace My
                 mty == MarkdownNodeType.UNORDERED_LIST ||
                 parent == null // Promote top-level inline to block
             ) {
-                retval = node_of_ty(Elem.Type.BLOCK_COPY);
-                retval.data.text = mtext;
-                parent.append((owned)retval);
+                var newnode = node_of_ty(Elem.Type.BLOCK_COPY);
+                newnode.data.text = mtext;
+                retval = newnode;
+                parent.append((owned)newnode);  // now newnode is null
 
             } else { // Handle inline elements
                 retval = null;
                 parent.data.text += mtext;
             }
 
+            Test.message("%s", as_diag("< parent %p, mkid %p, retval %p".printf(parent, mkid, retval)));
             return retval;
         } // make_and_attach()
 
@@ -61,11 +76,13 @@ namespace My
 
             for(int i=0; i<newkids.length; ++i) {
                 MarkdownNode mkid = newkids.get(i);
-                var kid = make_and_attach(parent, mkid);
+                Test.message("%s", as_diag("] parent %p, mkid %p, no. %d".printf(parent, mkid, i)));
+                unowned GLib.Node<Elem> kid = make_and_attach(parent, mkid);
                 // If mkid didn't need a new node, attach children of
                 // mkid to the parent of mkid.
                 build_tree(kid ?? parent,
                     (GenericArray<unowned MarkdownNode>)mkid.get_children());
+                Test.message("%s", as_diag("[ parent %p, mkid %p, no. %d, kid %p".printf(parent, mkid, i, kid)));
             }
         } // build_tree()
 
