@@ -1,5 +1,8 @@
 # generated source files
 pfft.[ch]
 
+# generated VAPI for config.h
+myconfig.vapi
+
 # generated manpage
 pfft.1

@@ -1,5 +1,5 @@
 dnl === Basic setup =======================================================
-AC_INIT([pfft], [0.0.1], [], [pfft], [https://github.com/cxw42/pfft])
+AC_INIT([pfft markdown-to-PDF converter], [0.0.1], [], [pfft], [https://github.com/cxw42/pfft])
 AC_PREREQ([2.65])
 AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
 AC_CONFIG_AUX_DIR([build-aux])
