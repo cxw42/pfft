@@ -9,7 +9,7 @@ namespace My {
      * Write a document by generating Pango markup for it.
      * Can write the Pango markup or the PDF.
      */
-    public class PangoMarkupWriter: Object, Writer {
+    public class PangoMarkupWriter : Object, Writer {
         /**
          * Whether to write the PDF.
          *

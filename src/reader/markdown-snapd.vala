@@ -10,7 +10,7 @@ namespace My
     /**
      * Markdown reader using snapd-glib.
      */
-    public class MarkdownSnapdReader: Object, Reader {
+    public class MarkdownSnapdReader : Object, Reader {
 
         /**
          * Create and attach a My.GLib.Node<Elem> representing a Snapd.MarkdownNode.
