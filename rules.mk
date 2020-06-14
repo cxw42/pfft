@@ -3,15 +3,19 @@
 # for convenience at the ends of lists
 EOL =
 
-# All the Vala files, and the corresponding C files.
+# All the Vala files, and the corresponding C files.  One variable per
+# directory under src/
 MY_pgm_VALA = pfft.vala
-MY_core_VALA = el.vala reader.vala util.vala
+MY_core_VALA = el.vala reader.vala util.vala writer.vala
 MY_reader_VALA = markdown-snapd.vala
+MY_writer_VALA = pango-markup.vala
+MY_subdirs = core reader writer
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \
-	$(foreach fn, $(MY_core_VALA), core/$(fn)) \
-	$(foreach fn, $(MY_reader_VALA), reader/$(fn)) \
+	$(foreach dir, $(MY_subdirs), \
+		$(foreach fn, $(MY_$(dir)_VALA), $(dir)/$(fn)) \
+	) \
 	$(EOL)
 
 MY_VALA_C = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.c))
@@ -45,16 +49,19 @@ LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS)
 # Flags used by both the program and the tests --- anything that links
 # against all the libraries
 MY_use_all_valaflags = \
-	--vapidir $(top_srcdir)/src/core --pkg pfft-core \
-	--vapidir $(top_srcdir)/src/reader --pkg pfft-reader \
+	$(foreach dir, $(MY_subdirs), \
+		--vapidir $(top_srcdir)/src/$(dir) --pkg pfft-$(dir) \
+	) \
 	$(EOL)
 
 MY_use_all_cflags = \
-	-I$(top_srcdir)/src/core \
-	-I$(top_srcdir)/src/reader \
+	$(foreach dir, $(MY_subdirs), \
+		-I$(top_srcdir)/src/$(dir) \
+	) \
 	$(EOL)
 
 MY_use_all_ldadd = \
-	$(top_builddir)/src/core/libpfft-core.a \
-	$(top_builddir)/src/reader/libpfft-reader.a \
+	$(foreach dir, $(MY_subdirs), \
+		$(top_builddir)/src/$(dir)/libpfft-$(dir).a \
+	) \
 	$(EOL)

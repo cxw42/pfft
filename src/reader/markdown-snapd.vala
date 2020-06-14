@@ -10,7 +10,7 @@ namespace My
     /**
      * Markdown reader using snapd-glib.
      */
-    public class MarkdownSnapdReader {
+    public class MarkdownSnapdReader: Object, Reader {
 
         /**
          * Create and attach a My.GLib.Node<Elem> representing a Snapd.MarkdownNode.
@@ -96,6 +96,9 @@ namespace My
             return new Doc((owned)root);
         }
 
+        /**
+         * Read a file and build a node tree for it.
+         */
         private GLib.Node<Elem> tree_for(string filename) throws FileError
         {
             // Read it in

@@ -57,6 +57,7 @@ AC_CONFIG_FILES([
     src/Makefile
     src/core/Makefile
     src/reader/Makefile
+    src/writer/Makefile
     t/Makefile
 ])
 
