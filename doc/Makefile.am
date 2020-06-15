@@ -10,7 +10,7 @@ if HAVE_VALADOC
 
 valadoc:
 	$(AM_V_GEN)valadoc -o valadoc -b $(top_srcdir)/src --verbose --force \
-		--package-name='@PACKAGE_NAME@' \
+		--package-name='@PACKAGE_TARNAME@' \
 		--package-version='@PACKAGE_VERSION@' \
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn)) \
 		--doclet=html \
