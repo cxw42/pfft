@@ -23,6 +23,7 @@ namespace My {
          *
          * In the system filename encoding.
          */
+        [CCode(array_length = false)]
         private string[]? opt_infns;
 
         /**
@@ -76,9 +77,11 @@ namespace My {
         }
 
         /**
-         * print a friendly message
+         * Main routine.
+         * @param   args    A strv of the input arguments.  NOT the exact args[]
+         *                  passed to main().
          */
-        public int run(string[] args)
+        public int run(owned string[] args)
         {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
 
@@ -93,10 +96,22 @@ namespace My {
                     ("Processes FILENAME and outputs a PDF.\n" +
                     "Visit %s for more information.\n").printf(
                         PACKAGE_URL));
-                opt_context.parse (ref args);
+                opt_context.parse_strv (ref args);
             } catch (OptionError e) {
                 printerr ("error: %s\n", e.message);
                 return 1;
+            }
+
+            if(false) {
+                // Random example of object introspection -
+                // modified from
+                // https://valadoc.org/gobject-2.0/GLib.ObjectClass.html to
+                // inspect an instance rather than a type.
+                var wtr = new PangoMarkupWriter();
+                unowned ObjectClass ocl =  wtr.get_class ();
+                foreach (ParamSpec spec in ocl.list_properties ()) {
+                    print ("%s\n", spec.get_name ());
+                }
             }
 
             if (opt_version) {
@@ -104,17 +119,19 @@ namespace My {
                 return 0;
             }
 
-            if(opt_infns == null || opt_infns.length < 1) {
+            var num_infns = (opt_infns == null) ? 0 : strv_length(opt_infns);
+            if(num_infns < 1) {
                 printerr("Usage: %s FILENAME\n", args[0]);
                 return 2;
             }
 
-            if(opt_infns.length > 1 && opt_outfn.length != 0) {
+            if(num_infns > 1 && opt_outfn.length != 0) {
                 printerr("-o FILENAME cannot be used with more than one input filename.\n");
                 return 2;
             }
 
-            foreach(var infn in opt_infns) {
+            for(uint i=0; i<num_infns; ++i) {
+                var infn = opt_infns[i];
                 try {
                     process_file(infn);
                 } catch (FileError e) {
@@ -131,6 +148,8 @@ namespace My {
 
         void process_file(string infn) throws FileError, RegexError
         {
+            print("Processing %s\n", infn);
+
             var infh = File.new_for_path(infn);
             File outfh;
 
@@ -161,7 +180,8 @@ namespace My {
 public static int main(string[] args)
 {
     var app = new My.App();
-    var status = app.run(strdupv(args));
+    var arg_copy = strdupv(args);
+    var status = app.run((owned)arg_copy);
     if(status != 0) {
         printerr ("Run '%s --help' to see a full list of available command line options.\n", args[0]);
     }

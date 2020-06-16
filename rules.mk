@@ -9,7 +9,8 @@ MY_pgm_VALA = pfft.vala
 MY_core_VALA = el.vala reader.vala util.vala writer.vala
 MY_reader_VALA = markdown-snapd.vala
 MY_writer_VALA = pango-markup.vala
-MY_subdirs = core reader writer
+# subdirs.  Core is listed last since it needs to be last in link lines.
+MY_subdirs = reader writer core
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \
