@@ -35,6 +35,7 @@ MY_VALA_PKGS = \
 # TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
 # isn't being passed through.
 AM_VALAFLAGS = \
+	--cc=$(CXX) \
 	$(LOCAL_VALA_FLAGS) \
 	$(MY_VALA_PKGS) \
 	$(USER_VALAFLAGS) \
