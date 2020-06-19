@@ -33,4 +33,9 @@ namespace My {
     [CCode(cheader_filename = "registry.h")]
     public extern void register_type(string name, GLib.Type type,
         string filename, uint lineno);
+
+    /**
+     * A property of this name holds a nick and blurb for the class itself.
+     */
+    public const string CLASS_META_PROPERTY_NAME = "meta";
 } // My

@@ -194,30 +194,65 @@ namespace My {
             print("Registry has %u keys\n", registry.size());
 
             registry.foreach( (name, type) => {
-                ObjectClass ocl = (ObjectClass) type.class_ref ();
-                //print("Class %s is registered\n", name);
-
                 if(type.is_a(typeof(Reader))) {
-                    //print("  Is a reader\n");
                     readers_.set(name, type);
                 }
 
                 if(type.is_a(typeof(Writer))) {
-                    //print("  Is a writer\n");
                     writers_.set(name, type);
                 }
 
-                //foreach (ParamSpec spec in ocl.list_properties ()) {
-                //    print ("  has prop %s\n", spec.get_name ());
-                //}
             });
         } // load_from_registry()
 
         /** Retrieve information about the available readers and writers */
         string get_rw_help()
         {
-            return "TODO";
-        } //get_rw_help()
+            var sb = new StringBuilder();
+            if(!readers_.is_empty) {
+                sb.append("Available readers:\n");
+                sb.append(get_classmap_help(readers_));
+            }
+            if(!writers_.is_empty) {
+                if(!readers_.is_empty) {
+                    sb.append_c('\n');
+                }
+                sb.append("Available writers:\n");
+                sb.append(get_classmap_help(writers_));
+            }
+            return sb.str;
+        } // get_rw_help()
+
+        /** Pretty-print information from a ClassMap */
+        string get_classmap_help(ClassMap m)
+        {
+            var sb = new StringBuilder();
+
+            foreach(string name in m.ascending_keys) {
+                var type = m.get(name);
+                ObjectClass ocl = (ObjectClass) type.class_ref ();
+
+                var class_meta = ocl.find_property(CLASS_META_PROPERTY_NAME);
+                if(class_meta != null) {
+                    sb.append_printf("  %s - %s\n", name, class_meta.get_blurb());
+                } else {
+                    sb.append_printf("  %s\n", name);
+                }
+                var props = ocl.list_properties();
+                if( props.length>1 || (props.length>0 && class_meta == null) ) {
+                    sb.append("    Properties:\n");
+                    foreach (ParamSpec spec in ocl.list_properties ()) {
+                        if(spec.get_name() != CLASS_META_PROPERTY_NAME) {
+                            sb.append_printf("      %s - %s\n",
+                                spec.get_name(),
+                                spec.get_blurb());
+                        }
+                    }
+                }
+            }
+
+            return sb.str;
+        } // get_classmap_help
 
         // }}}1
     } // class App

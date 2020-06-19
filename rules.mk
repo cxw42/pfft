@@ -22,7 +22,7 @@ MY_all_VALA = \
 	$(foreach dir, $(MY_subdirs), \
 		$(foreach fn, $(MY_$(dir)_VALA), $(dir)/$(fn)) \
 	) \
-	$(top_srcdir)/src/myconfig.vapi \
+	myconfig.vapi \
 	$(EOL)
 
 MY_VALA_C = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.c))

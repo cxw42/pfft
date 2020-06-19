@@ -10,11 +10,16 @@ namespace My {
      * Can write the Pango markup or the PDF.
      */
     public class PangoMarkupWriter : Object, Writer {
+        /** Metadata for this class */
+        [Description(blurb = "Write PDFs using the Pango rendering library")]
+        public bool meta {get; default = false; }
+
         /**
          * Whether to write the Pango markup instead of the PDF.
          *
          * If true, write the Pango markup instead.  Useful for debugging.
          */
+        [Description(nick = "write Pango markup", blurb = "If true, write Pango markup instead of the PDF.  For debugging.")]
         public bool write_markup { get; set; default = false; }
 
         /**

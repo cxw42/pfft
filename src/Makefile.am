@@ -14,7 +14,7 @@ LDADD = $(wholearchive) $(MY_use_all_ldadd) $(nowholearchive)
 myconfig.vapi: $(top_srcdir)/config.h
 	$(srcdir)/gen-myconfig.pl $< > $@
 
-EXTRA_DIST += myconfig.vapi
+EXTRA_DIST += myconfig.vapi gen-myconfig.pl
 DISTCLEANFILES += myconfig.vapi
 
 # === Program =============================================================

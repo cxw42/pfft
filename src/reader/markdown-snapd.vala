@@ -11,6 +11,9 @@ namespace My
      * Markdown reader using snapd-glib.
      */
     public class MarkdownSnapdReader : Object, Reader {
+        /** Metadata for this class */
+        [Description(blurb = "Read simple Markdown files")]
+        public bool meta {get; default = false; }
 
         /**
          * Create and attach a My.GLib.Node<Elem> representing a Snapd.MarkdownNode.
