@@ -6,7 +6,7 @@ DISTCLEANFILES =
 
 LOCAL_VALA_FLAGS = $(MY_use_all_valaflags)
 LOCAL_CFLAGS = $(MY_use_all_cflags)
-LDADD = $(MY_use_all_ldadd)
+LDADD = $(wholearchive) $(MY_use_all_ldadd) $(nowholearchive)
 
 # === myconfig package ====================================================
 # Gives access to config.h

@@ -11,11 +11,11 @@ namespace My {
      */
     public class PangoMarkupWriter : Object, Writer {
         /**
-         * Whether to write the PDF.
+         * Whether to write the Pango markup instead of the PDF.
          *
-         * If false, write the Pango markup instead.  Useful for debugging.
+         * If true, write the Pango markup instead.  Useful for debugging.
          */
-        public bool write_pdf { get; set; default = true; }
+        public bool write_markup { get; set; default = false; }
 
         /**
          * Write a document to a file.
@@ -25,7 +25,7 @@ namespace My {
         public void write_document(string filename, Doc doc) throws FileError
         {
             string markup = make_markup(doc);
-            if(!write_pdf) {
+            if(write_markup) {
                 FileUtils.set_contents(filename, markup);
                 return;
             }

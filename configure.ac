@@ -13,7 +13,6 @@ AC_PROG_CXX
 
 AM_PROG_VALAC
 dnl Known to work with valac 0.40.19
-dnl rules.mk tells Vala to use C++ to compile everything.
 
 dnl TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
 dnl isn't being passed through.
@@ -30,6 +29,7 @@ PKG_CHECK_MODULES([INPUT],[snapd-glib >= 1.48])
     dnl v1.48+ for markdown parser
 PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
 PKG_CHECK_MODULES([BASE],[
+    gee-0.8
     gobject-2.0
     gio-2.0
     glib-2.0 >= 2.38
@@ -50,6 +50,14 @@ GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
 ],[
 AM_CONDITIONAL([ENABLE_GTK_DOC], false)
 ])
+
+dnl === Hacks =============================================================
+
+# Workaround for automake's prohibiting switches in LDADD.
+# Thanks to Gavin Smith,
+# https://lists.gnu.org/archive/html/automake/2015-03/msg00004.html
+AC_SUBST([wholearchive], [-Wl,--whole-archive])
+AC_SUBST([nowholearchive], [-Wl,--no-whole-archive])
 
 dnl === Output ============================================================
 

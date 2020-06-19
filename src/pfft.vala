@@ -4,9 +4,20 @@
 
 namespace My {
     /**
+     * Map from friendly names to GTypes.
+     *
+     * Used to store and sort readers and writers.
+     * This is a typedef.
+     */
+    private class ClassMap : Gee.TreeMap<string, GLib.Type> { }
+
+    /**
      * Main application class for pfft
      */
     public class App {
+
+        // Command-line parsing {{{1
+
         /** Whether to print the version info */
         private bool opt_version = false;
 
@@ -76,6 +87,14 @@ namespace My {
             };
         }
 
+        // }}}1
+        // Instance data {{{1
+        ClassMap readers_;
+        ClassMap writers_;
+
+        // }}}1
+        // Main routines {{{1
+
         /**
          * Main routine.
          * @param   args    A strv of the input arguments.  NOT the exact args[]
@@ -86,6 +105,9 @@ namespace My {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
 
             // TODO get available readers and writers
+            readers_ = new ClassMap();
+            writers_ = new ClassMap();
+            load_from_registry();
 
             try {
                 var opt_context = new OptionContext ("- produce a PDF from each FILENAME");
@@ -94,24 +116,12 @@ namespace My {
                 // TODO add entries from available readers and writers
                 opt_context.set_description(
                     ("Processes FILENAME and outputs a PDF.\n" +
-                    "Visit %s for more information.\n").printf(
-                        PACKAGE_URL));
+                    "Visit %s for more information.\n" +
+                    "\n%s\n").printf(PACKAGE_URL, get_rw_help()));
                 opt_context.parse_strv (ref args);
             } catch (OptionError e) {
                 printerr ("error: %s\n", e.message);
                 return 1;
-            }
-
-            if(false) {
-                // Random example of object introspection -
-                // modified from
-                // https://valadoc.org/gobject-2.0/GLib.ObjectClass.html to
-                // inspect an instance rather than a type.
-                var wtr = new PangoMarkupWriter();
-                unowned ObjectClass ocl =  wtr.get_class ();
-                foreach (ParamSpec spec in ocl.list_properties ()) {
-                    print ("%s\n", spec.get_name ());
-                }
             }
 
             if (opt_version) {
@@ -173,10 +183,47 @@ namespace My {
             }
 
         } // process_file()
+
+        // }}}1
+        // Registry functions {{{1
+
+        /** Retrieve readers and writers from the registry */
+        void load_from_registry()
+        {
+            var registry = get_registry();
+            print("Registry has %u keys\n", registry.size());
+
+            registry.foreach( (name, type) => {
+                ObjectClass ocl = (ObjectClass) type.class_ref ();
+                //print("Class %s is registered\n", name);
+
+                if(type.is_a(typeof(Reader))) {
+                    //print("  Is a reader\n");
+                    readers_.set(name, type);
+                }
+
+                if(type.is_a(typeof(Writer))) {
+                    //print("  Is a writer\n");
+                    writers_.set(name, type);
+                }
+
+                //foreach (ParamSpec spec in ocl.list_properties ()) {
+                //    print ("  has prop %s\n", spec.get_name ());
+                //}
+            });
+        } // load_from_registry()
+
+        /** Retrieve information about the available readers and writers */
+        string get_rw_help()
+        {
+            return "TODO";
+        } //get_rw_help()
+
+        // }}}1
     } // class App
 } // My
 
-/** main() */
+/** main() */ // {{{1
 public static int main(string[] args)
 {
     var app = new My.App();
@@ -188,3 +235,5 @@ public static int main(string[] args)
     return status;
 }
 
+// }}}1
+// vi: set fdm=marker: //

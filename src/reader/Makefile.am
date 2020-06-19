@@ -10,4 +10,4 @@ LOCAL_CFLAGS = -I$(top_srcdir)/src/core
 EXTRA_DIST = pfft-reader.h pfft-reader.vapi
 
 noinst_LIBRARIES = libpfft-reader.a
-libpfft_reader_a_SOURCES = $(MY_reader_VALA)
+libpfft_reader_a_SOURCES = $(MY_reader_VALA) $(MY_reader_EXTRASOURCES)

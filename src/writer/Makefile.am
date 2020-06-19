@@ -10,4 +10,4 @@ LOCAL_CFLAGS = -I$(top_srcdir)/src/core
 EXTRA_DIST = pfft-writer.h pfft-writer.vapi
 
 noinst_LIBRARIES = libpfft-writer.a
-libpfft_writer_a_SOURCES = $(MY_writer_VALA)
+libpfft_writer_a_SOURCES = $(MY_writer_VALA) $(MY_writer_EXTRASOURCES)

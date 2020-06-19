@@ -13,7 +13,9 @@ Pfft:
 
 ## Installing from a source tarball
 
-    $ sudo apt install -y libpango1.0-dev   # Or equivalent on non-Ubuntu
+(Package names may differ --- these are for Ubuntu)
+
+    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
 
 (Note the `--no-install-recommends` --- you don't need snapd installed.
@@ -46,8 +48,9 @@ Install Vala:
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y autotools-dev libpango1.0-dev libsnapd-glib-dev uncrustify perl
+    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
+    $ sudo apt install -y autotools-dev uncrustify perl
 
 Build:
 

@@ -59,6 +59,7 @@ dkms.conf
 *.tmp
 *~
 ~*
+*.e
 
 # autotools
 /aclocal.m4
@@ -76,6 +77,7 @@ Makefile.in
 stamp-*
 *.stamp
 *.stamp-*
+.Tpo
 
 # Generated Vala files
 *.vapi
