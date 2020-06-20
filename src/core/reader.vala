@@ -8,7 +8,7 @@ namespace My {
      *
      * Implementations of this class read input documents.
      */
-    public interface Reader {
+    public interface Reader : Object {
         /**
          * Read a document.
          * @return A node tree of the document

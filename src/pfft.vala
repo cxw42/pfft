@@ -38,10 +38,11 @@ namespace My {
         private string[]? opt_infns;
 
         /** Which reader to use */
-        private string reader_name;
+        private string opt_reader_name;
 
         /** reader options */
-        private string[]? reader_options;
+        [CCode(array_length = false)]
+        private string[]? opt_reader_options;
 
         /**
          * Where to output.
@@ -52,10 +53,11 @@ namespace My {
         private string opt_outfn = "";
 
         /** Which writer to use */
-        private string writer_name;
+        private string opt_writer_name;
 
         /** writer options */
-        private string[]? writer_options;
+        [CCode(array_length = false)]
+        private string[]? opt_writer_options;
 
         /**
          * Make command-line option descriptors
@@ -74,19 +76,19 @@ namespace My {
                        { "verbose", 'v', OptionFlags.NO_ARG, OptionArg.CALLBACK,
                          (void *)cb_verbose, "Verbosity (can be given multiple times)", null },
                        // --reader, -R READER
-                       { "reader", 'R', 0, OptionArg.STRING, &reader_name, "Which reader to use", "READER" },
+                       { "reader", 'R', 0, OptionArg.STRING, &opt_reader_name, "Which reader to use", "READER" },
 
                        // --ro NAME=VALUE: reader options
-                       { "ro", 0, 0, OptionArg.STRING_ARRAY, &reader_options, "Set a reader option", "NAME=VALUE" },
+                       { "ro", 0, 0, OptionArg.STRING_ARRAY, &opt_reader_options, "Set a reader option", "NAME=VALUE" },
 
                        // --output, -o FIlENAME
                        { "output", 'o', 0, OptionArg.FILENAME, &opt_outfn, "Output filename (provided only one input filename is given)", "FILENAME" },
 
                        // --writer, -W WRITER
-                       { "writer", 'W', 0, OptionArg.STRING, &writer_name, "Which writer to use", "WRITER" },
+                       { "writer", 'W', 0, OptionArg.STRING, &opt_writer_name, "Which writer to use", "WRITER" },
 
                        // --wo NAME=VALUE: writer options
-                       { "wo", 0, 0, OptionArg.STRING_ARRAY, &writer_options, "Set a writer option", "NAME=VALUE" },
+                       { "wo", 0, 0, OptionArg.STRING_ARRAY, &opt_writer_options, "Set a writer option", "NAME=VALUE" },
 
                        // FILENAME* (non-option arg(s) - inputs)
                        { OPTION_REMAINING, 0, 0, OptionArg.FILENAME_ARRAY, &opt_infns, "Filename(s) to process", "FILENAME..." },
@@ -133,6 +135,8 @@ namespace My {
             readers_ = new ClassMap();
             writers_ = new ClassMap();
             load_from_registry();
+            assert_true(!readers_.is_empty);
+            assert_true(!writers_.is_empty);
 
             try {
                 var opt_context = new OptionContext ("- produce a PDF from each FILENAME");
@@ -165,10 +169,36 @@ namespace My {
                 return 2;
             }
 
+            /* Create the plugins */
+            Reader reader;
+            Writer writer;
+            try {
+                reader = create_instance(
+                    readers_, opt_reader_name ?? reader_default_, opt_reader_options) as Reader;
+                writer = create_instance(
+                    writers_, opt_writer_name ?? writer_default_, opt_writer_options) as Writer;
+            } catch(KeyFileError e) {
+                printerr ("Could not create plugin: %s\n", e.message);
+                return 1;
+            }
+
+            if(reader == null) {
+                printerr("Could not create reader %s\n",
+                    opt_reader_name ?? reader_default_);
+                return 1;
+            }
+
+            if(writer == null) {
+                printerr("Could not create writer %s\n",
+                    opt_writer_name ?? writer_default_);
+                return 1;
+            }
+
+            /* Do the work */
             for(uint i=0; i<num_infns; ++i) {
                 var infn = opt_infns[i];
                 try {
-                    process_file(infn);
+                    process_file(infn, reader, writer);
                 } catch (FileError e) {
                     printerr ("file error while processing %s: %s\n", infn, e.message);
                     return 1;
@@ -181,7 +211,8 @@ namespace My {
             return 0;
         } // run()
 
-        void process_file(string infn) throws FileError, RegexError
+        void process_file(string infn, Reader reader, Writer writer)
+        throws FileError, RegexError
         {
             print("Processing %s\n", infn);
 
@@ -216,7 +247,7 @@ namespace My {
         void load_from_registry()
         {
             var registry = get_registry();
-            print("Registry has %u keys\n", registry.size());
+            // print("Registry has %u keys\n", registry.size());
 
             registry.foreach( (name, type) => {
                 if(type.is_a(typeof(Reader))) {
@@ -260,7 +291,7 @@ namespace My {
                 ObjectClass ocl = (ObjectClass) type.class_ref ();
                 var class_meta = ocl.find_property(CLASS_META_PROPERTY_NAME);
                 if(class_meta != null &&
-                   (class_meta.get_nick() == CLASS_META_NICK_DEFAULT))
+                    (class_meta.get_nick() == CLASS_META_NICK_DEFAULT))
                 {
                     default_class = name;
                     break;
@@ -277,10 +308,10 @@ namespace My {
 
                 var class_meta = ocl.find_property(CLASS_META_PROPERTY_NAME);
                 sb.append_printf("  %c %s%s%s\n",
-                                 (name == default_class) ? '*' : ' ',
-                                 name,
-                                 (class_meta != null) ? " - " : "",
-                                 (class_meta != null) ? class_meta.get_blurb() : "");
+                    (name == default_class) ? '*' : ' ',
+                    name,
+                    (class_meta != null) ? " - " : "",
+                    (class_meta != null) ? class_meta.get_blurb() : "");
 
                 var props = ocl.list_properties();
                 if( props.length>1 || (props.length>0 && class_meta == null) ) {
@@ -297,6 +328,40 @@ namespace My {
 
             return sb.str;
         } // get_classmap_help
+
+        /** Create an instance and set its properties */
+        Object create_instance(ClassMap m, string class_name,
+            string[]? options) throws KeyFileError
+        {
+            if(!m.has_key(class_name)) {
+                throw new KeyFileError.KEY_NOT_FOUND(class_name);
+            }
+
+            var type = m.get(class_name);
+            Object retval = Object.new(type);
+
+            if(options == null) {
+                return retval;  // *** EXIT POINT ***
+            }
+
+            // Assign the properties
+            // TODO ObjectClass ocl = (ObjectClass) type.class_ref ();
+            var num_opts = (options == null) ? 0 : strv_length(options);
+            for(int i=0; i<num_opts; ++i) {
+                var opt = options[i];
+                var nv = opt.split("=", 2);
+                if(nv.length != 2) {
+                    printerr("%s: Invalid option %s --- skipping\n", class_name, opt);
+                    continue;
+                }
+
+                // TODO check for property, create gvalue, deserialize,
+                // set property
+            } // foreach option
+
+            return retval;
+        }
+
 
         // }}}1
     } // class App

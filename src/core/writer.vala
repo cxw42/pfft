@@ -9,7 +9,7 @@ namespace My {
      * Implementations of this class produce output files from
      * documents read by a My.Reader implementation.
      */
-    public interface Writer {
+    public interface Writer : Object {
         /**
          * Write a document to a file.
          * @param filename  The name of the file to write
