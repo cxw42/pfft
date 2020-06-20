@@ -38,4 +38,11 @@ namespace My {
      * A property of this name holds a nick and blurb for the class itself.
      */
     public const string CLASS_META_PROPERTY_NAME = "meta";
+
+    /**
+     * A class whose meta property has this nick is the default class to use.
+     *
+     * Out of all classes that implement a particular interface, that is.
+     */
+    public const string CLASS_META_NICK_DEFAULT = "default";
 } // My

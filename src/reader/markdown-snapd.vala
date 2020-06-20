@@ -12,7 +12,7 @@ namespace My
      */
     public class MarkdownSnapdReader : Object, Reader {
         /** Metadata for this class */
-        [Description(blurb = "Read simple Markdown files")]
+        [Description(nick = "default", blurb = "Read simple Markdown files")]
         public bool meta {get; default = false; }
 
         /**

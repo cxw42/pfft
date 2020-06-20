@@ -11,7 +11,7 @@ namespace My {
      */
     public class PangoMarkupWriter : Object, Writer {
         /** Metadata for this class */
-        [Description(blurb = "Write PDFs using the Pango rendering library")]
+        [Description(nick = "default", blurb = "Write PDFs using the Pango rendering library")]
         public bool meta {get; default = false; }
 
         /**

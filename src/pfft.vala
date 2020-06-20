@@ -37,6 +37,12 @@ namespace My {
         [CCode(array_length = false)]
         private string[]? opt_infns;
 
+        /** Which reader to use */
+        private string reader_name;
+
+        /** reader options */
+        private string[]? reader_options;
+
         /**
          * Where to output.
          *
@@ -44,6 +50,12 @@ namespace My {
          * auto-generate the output name.
          */
         private string opt_outfn = "";
+
+        /** Which writer to use */
+        private string writer_name;
+
+        /** writer options */
+        private string[]? writer_options;
 
         /**
          * Make command-line option descriptors
@@ -61,11 +73,22 @@ namespace My {
                        // --verbose
                        { "verbose", 'v', OptionFlags.NO_ARG, OptionArg.CALLBACK,
                          (void *)cb_verbose, "Verbosity (can be given multiple times)", null },
+                       // --reader, -R READER
+                       { "reader", 'R', 0, OptionArg.STRING, &reader_name, "Which reader to use", "READER" },
 
-                       // --output FIlENAME || -o FILENAME
+                       // --ro NAME=VALUE: reader options
+                       { "ro", 0, 0, OptionArg.STRING_ARRAY, &reader_options, "Set a reader option", "NAME=VALUE" },
+
+                       // --output, -o FIlENAME
                        { "output", 'o', 0, OptionArg.FILENAME, &opt_outfn, "Output filename (provided only one input filename is given)", "FILENAME" },
 
-                       // FILENAME* (non-option arg(s))
+                       // --writer, -W WRITER
+                       { "writer", 'W', 0, OptionArg.STRING, &writer_name, "Which writer to use", "WRITER" },
+
+                       // --wo NAME=VALUE: writer options
+                       { "wo", 0, 0, OptionArg.STRING_ARRAY, &writer_options, "Set a writer option", "NAME=VALUE" },
+
+                       // FILENAME* (non-option arg(s) - inputs)
                        { OPTION_REMAINING, 0, 0, OptionArg.FILENAME_ARRAY, &opt_infns, "Filename(s) to process", "FILENAME..." },
 
                        /*
@@ -90,7 +113,9 @@ namespace My {
         // }}}1
         // Instance data {{{1
         ClassMap readers_;
+        string reader_default_;
         ClassMap writers_;
+        string writer_default_;
 
         // }}}1
         // Main routines {{{1
@@ -117,7 +142,7 @@ namespace My {
                 opt_context.set_description(
                     ("Processes FILENAME and outputs a PDF.\n" +
                     "Visit %s for more information.\n" +
-                    "\n%s\n").printf(PACKAGE_URL, get_rw_help()));
+                    "\n%s").printf(PACKAGE_URL, get_rw_help()));
                 opt_context.parse_strv (ref args);
             } catch (OptionError e) {
                 printerr ("error: %s\n", e.message);
@@ -210,40 +235,59 @@ namespace My {
         {
             var sb = new StringBuilder();
             if(!readers_.is_empty) {
-                sb.append("Available readers:\n");
-                sb.append(get_classmap_help(readers_));
+                sb.append("Available readers (* = default):\n");
+                sb.append(get_classmap_help(readers_, out reader_default_));
             }
             if(!writers_.is_empty) {
                 if(!readers_.is_empty) {
                     sb.append_c('\n');
                 }
-                sb.append("Available writers:\n");
-                sb.append(get_classmap_help(writers_));
+                sb.append("Available writers (* = default):\n");
+                sb.append(get_classmap_help(writers_, out writer_default_));
             }
             return sb.str;
         } // get_rw_help()
 
         /** Pretty-print information from a ClassMap */
-        string get_classmap_help(ClassMap m)
+        string get_classmap_help(ClassMap m, out string default_class)
         {
             var sb = new StringBuilder();
+            default_class = "";
+
+            // Pass 1: get the default, if there is one.
+            foreach(string name in m.ascending_keys) {
+                var type = m.get(name);
+                ObjectClass ocl = (ObjectClass) type.class_ref ();
+                var class_meta = ocl.find_property(CLASS_META_PROPERTY_NAME);
+                if(class_meta != null &&
+                   (class_meta.get_nick() == CLASS_META_NICK_DEFAULT))
+                {
+                    default_class = name;
+                    break;
+                }
+            }
 
             foreach(string name in m.ascending_keys) {
+                if(default_class == "") {   // in case we didn't find one before
+                    default_class = name;
+                }
+
                 var type = m.get(name);
                 ObjectClass ocl = (ObjectClass) type.class_ref ();
 
                 var class_meta = ocl.find_property(CLASS_META_PROPERTY_NAME);
-                if(class_meta != null) {
-                    sb.append_printf("  %s - %s\n", name, class_meta.get_blurb());
-                } else {
-                    sb.append_printf("  %s\n", name);
-                }
+                sb.append_printf("  %c %s%s%s\n",
+                                 (name == default_class) ? '*' : ' ',
+                                 name,
+                                 (class_meta != null) ? " - " : "",
+                                 (class_meta != null) ? class_meta.get_blurb() : "");
+
                 var props = ocl.list_properties();
                 if( props.length>1 || (props.length>0 && class_meta == null) ) {
-                    sb.append("    Properties:\n");
+                    sb.append("      Properties:\n");
                     foreach (ParamSpec spec in ocl.list_properties ()) {
                         if(spec.get_name() != CLASS_META_PROPERTY_NAME) {
-                            sb.append_printf("      %s - %s\n",
+                            sb.append_printf("          %s - %s\n",
                                 spec.get_name(),
                                 spec.get_blurb());
                         }

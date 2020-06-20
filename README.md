@@ -15,7 +15,7 @@ Pfft:
 
 (Package names may differ --- these are for Ubuntu)
 
-    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev
+    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev libgstreamer1.0-dev
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
 
 (Note the `--no-install-recommends` --- you don't need snapd installed.
@@ -31,6 +31,7 @@ For the HTML documentation, run `make html`, then open
 ## Hacking on Pfft
 
 All files are UTF-8, no BOM.
+
 ### Building from Git
 
 Tested on Lubuntu Eoan, with additional CI builds on Ubuntu Bionic.
@@ -48,7 +49,7 @@ Install Vala:
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev
+    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev libgstreamer1.0-dev
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
     $ sudo apt install -y autotools-dev uncrustify perl
 
