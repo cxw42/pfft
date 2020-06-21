@@ -130,6 +130,9 @@ namespace My {
         public int run(owned string[] args)
         {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
+            string[] dummy_args = {""};
+            unowned var dargs = dummy_args;
+            Gst.init(ref dargs);
 
             // TODO get available readers and writers
             readers_ = new ClassMap();
@@ -334,7 +337,8 @@ namespace My {
             string[]? options) throws KeyFileError
         {
             if(!m.has_key(class_name)) {
-                throw new KeyFileError.KEY_NOT_FOUND(class_name);
+                throw new KeyFileError.KEY_NOT_FOUND(
+                    "Class %s not registered".printf(class_name));
             }
 
             var type = m.get(class_name);
@@ -345,19 +349,35 @@ namespace My {
             }
 
             // Assign the properties
-            // TODO ObjectClass ocl = (ObjectClass) type.class_ref ();
+            ObjectClass ocl = (ObjectClass) type.class_ref ();
             var num_opts = (options == null) ? 0 : strv_length(options);
             for(int i=0; i<num_opts; ++i) {
-                var opt = options[i];
-                var nv = opt.split("=", 2);
+                var optspec = options[i];
+                var nv = optspec.split("=", 2);
                 if(nv.length != 2) {
-                    printerr("%s: Invalid option %s --- skipping\n", class_name, opt);
-                    continue;
+                    throw new KeyFileError.INVALID_VALUE(
+                        "%s: Invalid option %s".printf(class_name, optspec));
                 }
 
+                print("Trying %p->%s := %s\n", retval, nv[0], nv[1]);
                 // TODO check for property, create gvalue, deserialize,
-                // set property
-            } // foreach option
+                var prop = ocl.find_property(nv[0]);
+                if(prop == null) {
+                    throw new KeyFileError.KEY_NOT_FOUND(
+                        "%s: %s is not an option I understand".printf(
+                            class_name, nv[0]));
+                }
+
+                var val = GLib.Value(prop.value_type);
+                if(!Gst.Value.deserialize(ref val, nv[1])) {
+                    throw new KeyFileError.INVALID_VALUE(
+                        "%s: Invalid value %s for option %s".printf(
+                            class_name, nv[1], nv[0]));
+                }
+
+                print("  value = %s\n", Gst.Value.serialize(val));
+                retval.set_property(nv[0], val);
+            } //foreach option
 
             return retval;
         }

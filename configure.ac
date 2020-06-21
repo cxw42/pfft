@@ -30,6 +30,7 @@ PKG_CHECK_MODULES([INPUT],[snapd-glib >= 1.48])
 PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
 PKG_CHECK_MODULES([BASE],[
     gee-0.8
+    gstreamer-1.0
     gobject-2.0
     gio-2.0
     glib-2.0 >= 2.38

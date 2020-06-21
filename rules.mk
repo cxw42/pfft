@@ -33,7 +33,9 @@ MY_VALA_PKGS = \
 	--pkg snapd-glib \
 	--pkg pangocairo --pkg pango --pkg cairo \
 	--pkg gee-0.8 \
-	--pkg gio-2.0 --pkg gobject-2.0 \
+	--pkg gstreamer-1.0 \
+	--pkg gobject-2.0 \
+	--pkg gio-2.0 \
 	$(EOL)
 
 # Vala settings.  LOCAL_VALA_FLAGS is filled in by each Makefile.am with
