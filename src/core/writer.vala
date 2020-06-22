@@ -15,6 +15,7 @@ namespace My {
          * @param filename  The name of the file to write
          * @param doc       The document to write
          */
-        public abstract void write_document(string filename, Doc doc) throws FileError;
+        public abstract void write_document(string filename, Doc doc)
+        throws FileError, My.Error;
     }
 } // My

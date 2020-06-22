@@ -3,6 +3,16 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 namespace My {
+    // Types {{{1
+    /**
+     * Our own definition for gst_value_deserialize().
+     *
+     * Per <https://gitlab.gnome.org/GNOME/vala/-/issues/1014>, older
+     * valac versions have an incorrect binding for gst_value_deserialize().
+     */
+    [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
+    extern bool deserialize_value (ref GLib.Value dest, string src);
+
     /**
      * Map from friendly names to GTypes.
      *
@@ -10,6 +20,8 @@ namespace My {
      * This is a typedef.
      */
     private class ClassMap : Gee.TreeMap<string, GLib.Type> { }
+
+    // }}}1
 
     /**
      * Main application class for pfft
@@ -178,10 +190,16 @@ namespace My {
             try {
                 reader = create_instance(
                     readers_, opt_reader_name ?? reader_default_, opt_reader_options) as Reader;
+            } catch(KeyFileError e) {
+                printerr ("Could not create reader: %s\n", e.message);
+                return 1;
+            }
+
+            try {
                 writer = create_instance(
                     writers_, opt_writer_name ?? writer_default_, opt_writer_options) as Writer;
             } catch(KeyFileError e) {
-                printerr ("Could not create plugin: %s\n", e.message);
+                printerr ("Could not create writer: %s\n", e.message);
                 return 1;
             }
 
@@ -208,6 +226,9 @@ namespace My {
                 } catch(RegexError e) {
                     printerr ("regex error while processing %s: %s\n", infn, e.message);
                     return 1;
+                } catch(My.Error e) {
+                    printerr ("error while processing %s: %s\n", infn, e.message);
+                    return 1;
                 }
             }
 
@@ -215,7 +236,7 @@ namespace My {
         } // run()
 
         void process_file(string infn, Reader reader, Writer writer)
-        throws FileError, RegexError
+        throws FileError, RegexError, My.Error
         {
             print("Processing %s\n", infn);
 
@@ -240,6 +261,9 @@ namespace My {
             if(opt_verbose > 0) {
                 print("Processing %s to %s\n", infh.get_path(), outfh.get_path());
             }
+
+            var doc = reader.read_document(infh.get_path());
+            writer.write_document(outfh.get_path(), doc);
 
         } // process_file()
 
@@ -338,7 +362,7 @@ namespace My {
         {
             if(!m.has_key(class_name)) {
                 throw new KeyFileError.KEY_NOT_FOUND(
-                    "Class %s not registered".printf(class_name));
+                          "%s: Class not registered".printf(class_name));
             }
 
             var type = m.get(class_name);
@@ -356,28 +380,27 @@ namespace My {
                 var nv = optspec.split("=", 2);
                 if(nv.length != 2) {
                     throw new KeyFileError.INVALID_VALUE(
-                        "%s: Invalid option %s".printf(class_name, optspec));
+                              "%s: Invalid option %s".printf(class_name, optspec));
                 }
 
-                print("Trying %p->%s := %s\n", retval, nv[0], nv[1]);
-                // TODO check for property, create gvalue, deserialize,
+                // print("Trying %p->%s := %s\n", retval, nv[0], nv[1]);
                 var prop = ocl.find_property(nv[0]);
                 if(prop == null) {
                     throw new KeyFileError.KEY_NOT_FOUND(
-                        "%s: %s is not an option I understand".printf(
-                            class_name, nv[0]));
+                              "%s: %s is not an option I understand".printf(
+                                  class_name, nv[0]));
                 }
 
                 var val = GLib.Value(prop.value_type);
-                if(!Gst.Value.deserialize(ref val, nv[1])) {
+                if(!deserialize_value(ref val, nv[1])) {
                     throw new KeyFileError.INVALID_VALUE(
-                        "%s: Invalid value %s for option %s".printf(
-                            class_name, nv[1], nv[0]));
+                              "%s: Invalid value %s for option %s".printf(
+                                  class_name, nv[1], nv[0]));
                 }
 
-                print("  value = %s\n", Gst.Value.serialize(val));
+                // print("  value = %s\n", Gst.Value.serialize(val));
                 retval.set_property(nv[0], val);
-            } //foreach option
+            } // foreach option
 
             return retval;
         }

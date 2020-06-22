@@ -27,7 +27,7 @@ namespace My {
          * @param filename  The name of the file to write
          * @param doc       The document to write
          */
-        public void write_document(string filename, Doc doc) throws FileError
+        public void write_document(string filename, Doc doc) throws FileError, My.Error
         {
             string markup = make_markup(doc);
             if(write_markup) {
@@ -36,7 +36,7 @@ namespace My {
             }
 
             // TODO Make the PDF
-            error("PDF writing not yet implemented");
+            throw new My.Error.UNIMPL("PDF writing not yet implemented");
         }
 
         /**

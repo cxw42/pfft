@@ -5,6 +5,14 @@
 namespace My {
 
     /**
+     * Custom errors produced by pfft
+     */
+    public errordomain Error {
+        /** Function not implemented */
+        UNIMPL,
+    }
+
+    /**
      * Format a string as TAP diagnostic output.
      */
     public string as_diag(string ins)

@@ -81,3 +81,6 @@ stamp-*
 
 # Generated Vala files
 *.vapi
+
+# Other
+*.pdf
