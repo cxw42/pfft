@@ -10,6 +10,12 @@ namespace My {
     public errordomain Error {
         /** Function not implemented */
         UNIMPL,
+
+        /** Error while reading */
+        READER,
+
+        /** Error while writing */
+        WRITER,
     }
 
     /**
