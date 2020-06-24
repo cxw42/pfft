@@ -54,7 +54,7 @@ namespace My {
             layout.set_width((int)(6.5*72*Pango.SCALE));    // 6.5" wide text column
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
-            layout.set_text(markup, -1);
+            layout.set_markup(markup, -1);
 
             cr.move_to(1*72, 2*72);     // 1" over, 2" down from the UL corner
             Pango.cairo_show_layout(cr, layout);
@@ -74,7 +74,9 @@ namespace My {
          */
         private string make_markup(Doc doc)
         {
-            return "Not yet implemented!  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+            var retval = "<markup>Not yet implemented!  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\nAfter a newline.\n\nSpan: <span fgcolor=\"blue\" size=\"x-large\">Blue text</span> is <i>cool</i>!</markup>";
+            //print(@"---$retval---\n");    // debug
+            return retval;
         }
 
     }
@@ -85,3 +87,5 @@ namespace My {
 //   by Dov Grobgeld <dov.grobgeld@gmail.com>
 // - https://gist.github.com/bert/262331/9dcb6a35460f2eb84571164bf84cbb2a6fc8d367
 //   by Bert Timmerman
+// - https://developer.gnome.org/pygtk/stable/pango-markup-language.html
+// - https://developer.gnome.org/pango/stable/pango-Markup.html
