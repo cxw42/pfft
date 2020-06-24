@@ -41,7 +41,7 @@ namespace My {
             var surf = new Cairo.PdfSurface(filename, 8.5*72, 11*72);   // Letter paper
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not create surface: " +
-                                       surf.status().to_string());
+                          surf.status().to_string());
             }
 
             var cr = new Cairo.Context(surf);
@@ -64,19 +64,74 @@ namespace My {
 
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not save PDF: " +
-                                       surf.status().to_string());
+                          surf.status().to_string());
             }
 
+        }
+
+        /** Markup for header levels */
+        private string[] header_attributes = {
+            "", // level 0
+            "size=\"xx-large\" font_weight=\"bold\"",
+            "size=\"x-large\" font_weight=\"bold\"",
+            "size=\"large\" font_weight=\"bold\"",
+            "size=\"large\"",
+            "font_variant=\"smallcaps\" font_weight=\"bold\"",
+            "font_variant=\"smallcaps\"",
+        };
+
+        /**
+         * Generate the markup for a single node, not including its children.
+         *
+         * Helper for make_markup().
+         */
+        private void stringify_node(StringBuilder sb, GLib.Node node)
+        {
+            unowned GLib.Node<Elem> ne = (GLib.Node<Elem>)node;
+            unowned Elem el = ne.data;
+
+            string text = Markup.escape_text(el.text);
+
+            switch(el.ty) {
+            case ROOT:
+                // Nothing to do
+                break;
+            case BLOCK_HEADER:
+                sb.append_printf("<span %s>%s</span>\n\n",
+                    header_attributes[el.header_level],
+                    text);
+                break;
+            case BLOCK_COPY:
+                sb.append_printf("%s\n\n", text);
+                break;
+
+            default:
+                printerr("Unknown node type for node %p\n", node);
+                break;
+            }
         }
 
         /**
          * Make Pango markup for a document.
          */
-        private string make_markup(Doc doc)
+        private string make_markup(Doc doc) throws Error
         {
-            var retval = "<markup>Not yet implemented!  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\nAfter a newline.\n\nSpan: <span fgcolor=\"blue\" size=\"x-large\">Blue text</span> is <i>cool</i>!</markup>";
-            //print(@"---$retval---\n");    // debug
-            return retval;
+            if(doc.root == null) {
+                throw new Error.WRITER("No document to write!");
+            }
+
+            var sb = new StringBuilder();
+
+            GLib.NodeTraverseFunc cb =
+                (node)=>{
+                stringify_node(sb, node);
+                return false;
+            };
+
+            doc.root.traverse(TraverseType.PRE_ORDER, TraverseFlags.ALL, -1, cb);
+
+            print(@"---$(sb.str)---\n");    // debug
+            return sb.str;
         }
 
     }

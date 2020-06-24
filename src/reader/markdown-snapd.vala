@@ -39,6 +39,7 @@ namespace My
                 // XXX HACK - promote parents to headers
                 if(mtext[0 : 2]=="# " && parent.data.text == "" && parent.data.ty == Elem.Type.BLOCK_COPY) {
                     parent.data.ty = Elem.Type.BLOCK_HEADER;
+                    parent.data.header_level = 1;   // XXX
                     mtext = mtext[2 : mtext.length];
                 }
                 parent.data.text += mtext;

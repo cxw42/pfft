@@ -113,7 +113,7 @@ namespace My {
          * @return always {{{false}}}, so it can be used in a
          *          GLib.NodeTraverseFunc.
          */
-        private bool dump_node(StringBuilder sb, GLib.Node node)
+        public static bool dump_node_into(StringBuilder sb, GLib.Node node)
         {
             unowned GLib.Node<Elem> ne = (GLib.Node<Elem>)node;
             unowned Elem el = ne.data;
@@ -133,7 +133,7 @@ namespace My {
             sb.append("Document:\n");
             GLib.NodeTraverseFunc cb =
                 (node)=>{
-                return dump_node(sb, node);
+                return dump_node_into(sb, node);
             };
             root.traverse(TraverseType.PRE_ORDER, TraverseFlags.ALL, -1, cb);
             return sb.str;
