@@ -223,6 +223,9 @@ namespace My {
                 } catch (FileError e) {
                     printerr ("file error while processing %s: %s\n", infn, e.message);
                     return 1;
+                } catch(MarkupError e) {
+                    printerr ("markup error while processing %s: %s\n", infn, e.message);
+                    return 1;
                 } catch(RegexError e) {
                     printerr ("regex error while processing %s: %s\n", infn, e.message);
                     return 1;
@@ -236,7 +239,7 @@ namespace My {
         } // run()
 
         void process_file(string infn, Reader reader, Writer writer)
-        throws FileError, RegexError, My.Error
+        throws FileError, MarkupError, RegexError, My.Error
         {
             print("Processing %s\n", infn);
 

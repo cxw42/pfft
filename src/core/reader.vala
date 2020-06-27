@@ -13,6 +13,6 @@ namespace My {
          * Read a document.
          * @return A node tree of the document
          */
-        public abstract Doc read_document(string filename) throws FileError;
+        public abstract Doc read_document(string filename) throws FileError, MarkupError;
     }
 } // My
