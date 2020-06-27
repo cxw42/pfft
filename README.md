@@ -53,6 +53,10 @@ Install development dependencies for pfft:
     $ sudo apt install -y --no-install-recommends libsnapd-glib1
     $ sudo apt install -y autotools-dev uncrustify perl
 
+Initialize submodules:
+
+    $ git submodule update --init --recursive
+
 Build:
 
     $ ./bootstrap

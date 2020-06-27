@@ -2,6 +2,7 @@ dnl === Basic setup =======================================================
 AC_INIT([pfft markdown-to-PDF converter], [0.0.1], [], [pfft], [https://github.com/cxw42/pfft])
 AC_PREREQ([2.65])
 AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
+AC_CONFIG_SRCDIR([rules.mk])    dnl make sure the srcdir is correctly specified
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -19,6 +20,14 @@ dnl isn't being passed through.
 AC_ARG_VAR([USER_VALAFLAGS], [extra options for valac(1)])
 
 AC_PROG_RANLIB
+
+dnl === Sanity checks =====================================================
+
+AC_MSG_CHECKING([for local md4c])
+AS_IF([test -f src/md4c/src/md4c.c && test -r src/md4c/src/md4c.c],
+      [AC_MSG_RESULT([found])],
+      [AC_MSG_ERROR([md4c.c not found --- have you run 'git submodule update --init --recursive'?])]
+)
 
 dnl === Dependencies ======================================================
 
