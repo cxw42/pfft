@@ -5,7 +5,7 @@ LOCAL_VALA_FLAGS = \
 	--vapidir $(top_srcdir)/src/core --pkg pfft-core \
 	$(EOL)
 
-LOCAL_CFLAGS = -I$(top_srcdir)/src/core
+LOCAL_CFLAGS = -I$(top_srcdir)/src/core -I$(top_srcdir)/src/md4c/src
 
 EXTRA_DIST = pfft-reader.h pfft-reader.vapi
 

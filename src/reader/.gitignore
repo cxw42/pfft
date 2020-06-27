@@ -1,1 +1,4 @@
 *.[ch]
+!md4c-shim.[ch]
+!md4c.vapi
+!register.c
