@@ -17,20 +17,26 @@ namespace My
 
         /**
          * Create and attach a My.GLib.Node<Elem> representing a Snapd.MarkdownNode.
+         * @param depth     Current depth, for debugging
          * @param parent    The node to attach to
          * @param mkid      The child on which to base the new node.
          * @return The new child node, if any
          */
         private static unowned GLib.Node<Elem>? make_and_attach(
+            int depth,
             /*unowned*/ GLib.Node<Elem> parent, MarkdownNode mkid)
         {
+#if EXTRA_VERBOSE
             Test.message("%s", as_diag("> parent %p, mkid %p".printf(parent, mkid)));
+#endif
             unowned GLib.Node<Elem>? retval;
             string mtext = (mkid.get_text() != null) ? mkid.get_text() : "";
             var mty = mkid.get_node_type();
 
             Test.message("%s", as_diag(
-                    "Node ty %s text -%s-".printf(mty.to_string(),
+                    "%sNode ty %s text -%s-".printf(
+                    string.nfill(depth*2, ' '),
+                    mty.to_string(),
                     mtext)));
             if(mty == MarkdownNodeType.TEXT) {
                 retval = null;
@@ -43,7 +49,9 @@ namespace My
                     mtext = mtext[2 : mtext.length];
                 }
                 parent.data.text += mtext;
+#if EXTRA_VERBOSE
                 Test.message("%s", as_diag("Appended -%s-; now -%s-".printf(mtext, parent.data.text)));
+#endif
 
             } else if(  // Handle block elements
                 mty == MarkdownNodeType.CODE_BLOCK ||
@@ -62,16 +70,19 @@ namespace My
                 parent.data.text += mtext;
             }
 
+#if EXTRA_VERBOSE
             Test.message("%s", as_diag("< parent %p, mkid %p, retval %p".printf(parent, mkid, retval)));
+#endif
             return retval;
         } // make_and_attach()
 
         /**
          * Traverse a MarkdownNode and build a GLib.Node<Elem>.
+         * @param depth     Current depth, for debugging
          * @param parent    The parent node, which must exist
          * @param newkids   Array of child node(s) to add to the parent
          */
-        private static void build_tree(GLib.Node<Elem> parent,
+        private static void build_tree(int depth, GLib.Node<Elem> parent,
             GenericArray<unowned MarkdownNode>? newkids)
         {
             if(newkids == null || newkids.length == 0) {
@@ -80,13 +91,17 @@ namespace My
 
             for(int i=0; i<newkids.length; ++i) {
                 MarkdownNode mkid = newkids.get(i);
+#if EXTRA_VERBOSE
                 Test.message("%s", as_diag("] parent %p, mkid %p, no. %d".printf(parent, mkid, i)));
-                unowned GLib.Node<Elem> kid = make_and_attach(parent, mkid);
+#endif
+                unowned GLib.Node<Elem> kid = make_and_attach(depth+1, parent, mkid);
                 // If mkid didn't need a new node, attach children of
                 // mkid to the parent of mkid.
-                build_tree(kid ?? parent,
+                build_tree(depth+1, kid ?? parent,
                     (GenericArray<unowned MarkdownNode>)mkid.get_children());
+#if EXTRA_VERBOSE
                 Test.message("%s", as_diag("[ parent %p, mkid %p, no. %d, kid %p".printf(parent, mkid, i, kid)));
+#endif
             }
         } // build_tree()
 
@@ -114,7 +129,7 @@ namespace My
 
             // Build a GLib.Node<Elem> tree
             var root = node_of_ty(Elem.Type.ROOT);
-            build_tree(root, parsed);
+            build_tree(0, root, parsed);
             return root;
         }
     }
