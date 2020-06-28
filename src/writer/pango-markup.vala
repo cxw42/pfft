@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 namespace My {
+
     /**
      * Pango-markup Document writer.
      *
@@ -38,7 +39,7 @@ namespace My {
             }
 
             // TODO Make the PDF
-            var surf = new Cairo.PdfSurface(filename, 8.5*72, 11*72);   // Letter paper
+            var surf = new Cairo.PdfSurface(filename, 8.5*72, 22*72);   // TODO 22->11 for Letter paper
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not create surface: " +
                           surf.status().to_string());
@@ -56,7 +57,7 @@ namespace My {
 
             layout.set_markup(markup, -1);
 
-            cr.move_to(1*72, 2*72);     // 1" over, 2" down from the UL corner
+            cr.move_to(1*72, 1*72);     // 1" over, 1" down (respectively) from the UL corner
             Pango.cairo_show_layout(cr, layout);
             cr.show_page();
 
@@ -90,26 +91,75 @@ namespace My {
             unowned GLib.Node<Elem> ne = (GLib.Node<Elem>)node;
             unowned Elem el = ne.data;
 
-            string text = Markup.escape_text(el.text);
+            StringBuilder child_sb = new StringBuilder();
+            child_sb.append(Markup.escape_text(el.text));
+
+            ne.children_foreach(TraverseFlags.ALL,  (child) => {
+                stringify_node(child_sb, child);
+            });
 
             switch(el.ty) {
             case ROOT:
-                // Nothing to do
+                sb.append_printf("%s", child_sb.str);
                 break;
+
             case BLOCK_HEADER:
                 sb.append_printf("<span %s>%s</span>\n\n",
                     header_attributes[el.header_level],
-                    text);
+                    child_sb.str);
                 break;
+
             case BLOCK_COPY:
-                sb.append_printf("%s\n\n", text);
+                sb.append_printf("%s\n\n", child_sb.str);
+                break;
+
+            // TODO manage the blocks - Pango markup won't do them for us
+            case BLOCK_QUOTE:
+                sb.append_printf("QUOTH THE RAVEN: [%s]\n\n", child_sb.str);
+                break;
+            case BLOCK_BULLET_LIST:
+                sb.append_printf("BULLETS: [%s]\n\n", child_sb.str);
+                break;
+            case BLOCK_NUMBER_LIST:
+                sb.append_printf("NUMBERS: [%s]\n\n", child_sb.str);
+                break;
+            case BLOCK_LIST_ITEM:
+                sb.append_printf("* [%s]\n", child_sb.str);
+                break;
+            case BLOCK_HR:
+                sb.append_printf("-----------[%s]\n\n", child_sb.str);  // TODO
+                break;
+            case BLOCK_CODE:
+                sb.append_printf("<tt>\n%s\n</tt>\n\n", child_sb.str);
+                break;
+
+            case SPAN_PLAIN:
+                sb.append_printf("%s", child_sb.str);
+                break;
+            case SPAN_EM:
+                sb.append_printf("<span font_style=\"italic\">%s</span>",
+                    child_sb.str);
+                break;
+            case SPAN_STRONG:
+                sb.append_printf("<span font_weight=\"bold\">%s</span>",
+                    child_sb.str);
+                break;
+            case SPAN_CODE:
+                sb.append_printf("<tt>%s</tt>", child_sb.str);
+                break;
+            case SPAN_STRIKE:
+                sb.append_printf("<s>%s<s>", child_sb.str);
+                break;
+            case SPAN_UNDERLINE:
+                sb.append_printf("<u>%s<u>", child_sb.str);
                 break;
 
             default:
-                printerr("Unknown node type for node %p\n", node);
+                printerr("I don't know how to handle node type %s for node %p\n",
+                    el.ty.to_string(), node);
                 break;
             }
-        }
+        } // stringify_node
 
         /**
          * Make Pango markup for a document.
@@ -121,14 +171,7 @@ namespace My {
             }
 
             var sb = new StringBuilder();
-
-            GLib.NodeTraverseFunc cb =
-                (node)=>{
-                stringify_node(sb, node);
-                return false;
-            };
-
-            doc.root.traverse(TraverseType.PRE_ORDER, TraverseFlags.ALL, -1, cb);
+            stringify_node(sb, doc.root);
 
             print(@"---$(sb.str)---\n");    // debug
             return sb.str;

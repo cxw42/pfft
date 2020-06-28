@@ -71,6 +71,12 @@ Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
 In GLib 2.62+, the default output format is TAP.  Therefore, you can do
 `make build-tests && prove`.
 
+### Making a release
+
+    $ make distcheck
+
+This will build `pfft-VERSION.tar.gz` and check it.
+
 ### Pull requests
 
 PRs are welcome!  I prefer PRs with one commit that adds tests and a subsequent

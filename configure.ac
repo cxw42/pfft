@@ -7,6 +7,9 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.11 foreign subdir-objects])
+
+dnl NOTE: If you add any variables to config.h, make sure to add them
+dnl to src/myconfig.vapi as well.
 AC_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
@@ -24,7 +27,7 @@ AC_PROG_RANLIB
 dnl === Sanity checks =====================================================
 
 AC_MSG_CHECKING([for local md4c])
-AS_IF([test -f src/md4c/src/md4c.c && test -r src/md4c/src/md4c.c],
+AS_IF([test -f "${srcdir}/src/md4c/src/md4c.c" && test -r "${srcdir}/src/md4c/src/md4c.c"],
       [AC_MSG_RESULT([found])],
       [AC_MSG_ERROR([md4c.c not found --- have you run 'git submodule update --init --recursive'?])]
 )
