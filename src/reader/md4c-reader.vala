@@ -6,6 +6,13 @@ using Md4c;
 
 namespace My
 {
+    /**
+     * g_strndup() available to the public!
+     *
+     * The VAPI for GLib doesn't currently expose this function directly.
+     */
+    [CCode (cheader_filename = "reader-shim.h", cname = "g_strndup_shim")]
+    public extern string strndup (char* str, size_t n);
 
     /**
      * Markdown reader using md4c
@@ -36,9 +43,9 @@ namespace My
 
             Test.message("%s", as_diag(
                     "%sNode ty %s text -%s-".printf(
-                    string.nfill(depth*2, ' '),
-                    mty.to_string(),
-                    mtext)));
+                        string.nfill(depth*2, ' '),
+                        mty.to_string(),
+                        mtext)));
             if(mty == MarkdownNodeType.TEXT) {
                 retval = null;
                 // TODO add whitespace?
@@ -118,6 +125,71 @@ namespace My
         }
 
         /**
+         * Indentation based on depth_.
+         *
+         * A string with four spaces per depth_.  Updated by the setter
+         * for depth_.
+         */
+        private string indent_ = "";
+
+        /** Storage of the current indentation level */
+        private int depth_value_ = 0;
+
+        /** Helper for tree_for() since I don't have a closure at present */
+        private int depth_ {
+            get { return depth_value_; }
+            set {
+                depth_value_ = value;
+                indent_ = string.nfill(depth_*4, ' ');
+            }
+        }
+
+        /** md4c callback */
+        private static int enter_block_(BlockType block_type, void *detail, void *userdata)
+        {
+            var self = (MarkdownMd4cReader)userdata;
+            print("%sGot block %s\n",
+                self.indent_, block_type.to_string());
+            ++self.depth_;
+            return 0;
+        }
+
+        /** md4c callback */
+        private static int leave_block_(BlockType block_type, void *detail, void *userdata)
+        {
+            var self = (MarkdownMd4cReader)userdata;
+            --self.depth_;
+            print("%sLeaving block %s\n",
+                self.indent_, block_type.to_string());
+            return 0;
+        }
+
+        /** md4c callback */
+        private static int enter_span_(SpanType span_type, void *detail, void *userdata)
+        {
+            var self = (MarkdownMd4cReader)userdata;
+            print("%sGot span %s ... ",
+                self.indent_, span_type.to_string());
+            return 0;
+        }
+
+        /** md4c callback */
+        private static int leave_span_(SpanType span_type, void *detail, void *userdata)
+        {
+            var self = (MarkdownMd4cReader)userdata;
+            print("left span %s\n", span_type.to_string());
+            return 0;
+        }
+
+        private static int text_(TextType text_type, /*const*/ Char? text, Size size, void *userdata)
+        {
+            var self = (MarkdownMd4cReader)userdata;
+            var data = strndup((char *)text, size);
+            print("%s<<%s>>\n", self.indent_, data);
+            return 0;
+        }
+
+        /**
          * Read a file and build a node tree for it.
          */
         private GLib.Node<Elem> tree_for(string filename) throws FileError, MarkupError
@@ -126,17 +198,22 @@ namespace My
             string contents;
             FileUtils.get_contents(filename, out contents);
             // TODO var parser = new MarkdownParser(MarkdownVersion.@0);
-            //parser.set_preserve_whitespace(false);
-            //var parsed = parser.parse(contents);
+            // parser.set_preserve_whitespace(false);
+            // var parsed = parser.parse(contents);
             Md4c.Parser parser = new Parser();
 
+            // Processing functions
             // NOTE: no closure
-            parser.enter_block = (block_type, detail, userdata) => {
-                print("Got block %s\n", block_type.to_string());
-                return 0;
-            };
 
-            var ok = Md4c.parse((Char?)contents, contents.length, parser, null);
+            parser.enter_block = enter_block_;
+            parser.leave_block = leave_block_;
+            parser.enter_span = enter_span_;
+            parser.leave_span = leave_span_;
+            parser.text = text_;
+            parser.debug_log = null;
+
+            depth_ = 0;
+            var ok = Md4c.parse((Char?)contents, contents.length, parser, this);
             if(ok != 0) {
                 throw new MarkupError.PARSE("parse failed (%d)".printf(ok));
             }

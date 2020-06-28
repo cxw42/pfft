@@ -388,6 +388,7 @@ namespace Md4c {
      * Renderer structure.
      *
      * TODO figure out how to use delegates for this.
+     * The constructor and free_function are defined in md4c-shim.c.
      */
     [CCode(cname="MD_PARSER", free_function="md4c_free_parser_", cheader_filename="md4c-shim.h")]
     [Compact]

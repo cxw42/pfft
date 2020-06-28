@@ -35,9 +35,9 @@ namespace My
 
             Test.message("%s", as_diag(
                     "%sNode ty %s text -%s-".printf(
-                    string.nfill(depth*2, ' '),
-                    mty.to_string(),
-                    mtext)));
+                        string.nfill(depth*2, ' '),
+                        mty.to_string(),
+                        mtext)));
             if(mty == MarkdownNodeType.TEXT) {
                 retval = null;
                 // TODO add whitespace?

@@ -11,7 +11,10 @@ MY_pgm_VALA = pfft.vala
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
 MY_reader_VALA = markdown-snapd.vala md4c-reader.vala
-MY_reader_EXTRASOURCES = register.c ../md4c/src/md4c.c md4c.vapi md4c-shim.c md4c-shim.h
+MY_reader_EXTRASOURCES = register.c ../md4c/src/md4c.c md4c.vapi \
+			 md4c-shim.c md4c-shim.h \
+			 reader-shim.c reader-shim.h \
+			 $(EOL)
 MY_writer_VALA = pango-markup.vala
 MY_writer_EXTRASOURCES = register.c
 # subdirs.  Core is listed last since it needs to be last in link lines.
