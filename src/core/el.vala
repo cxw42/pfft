@@ -121,7 +121,7 @@ namespace My {
         public string as_string()
         {
             return "%s: -%s-".printf(ty.to_string(), text);
-        } // to_string
+        } // as_string
 
     } // Elem
 

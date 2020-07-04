@@ -18,7 +18,8 @@ MY_reader_EXTRASOURCES = register.c \
 			 md4c-shim.c md4c-shim.h \
 			 reader-shim.c reader-shim.h \
 			 $(EOL)
-MY_writer_VALA = pango-markup.vala pango-blocks.vala
+MY_writer_VALA = pango-markup.vala pango-blocks.vala \
+		 dumper.vala
 MY_writer_EXTRASOURCES = register.c
 # subdirs.  Core is listed last since it needs to be last in link lines.
 MY_subdirs = reader writer core
