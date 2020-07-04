@@ -244,29 +244,39 @@ namespace My {
             print("Processing %s\n", infn);
 
             var infh = File.new_for_path(infn);
-            File outfh;
+            string outfn;
 
-            if(opt_outfn.length != 0) { // Make outfn
-                outfh = File.new_for_path(opt_outfn);
+            if(opt_outfn.length != 0) { // User provided outfn
 
-            } else {
+                if(opt_outfn == "-") {  // stdout
+                    outfn = "-";
+                } else {
+                    var outfh = File.new_for_path(opt_outfn);
+                    outfn = outfh.get_path();
+                }
+
+            } else {                    // Generate outfn
                 var basename = infh.get_basename();
                 var re = new Regex("""^(.+)\.(\S+)$""");
                 MatchInfo matches;
+                File outfh;
+
                 if(!re.match(basename, 0, out matches)) {   // just add .pdf
                     outfh = infh.get_parent().get_child(basename + ".pdf");
                 } else {
                     var newname = matches.fetch(1) + ".pdf";
                     outfh = infh.get_parent().get_child(newname);
                 }
+
+                outfn = outfh.get_path();
             }
 
             if(opt_verbose > 0) {
-                print("Processing %s to %s\n", infh.get_path(), outfh.get_path());
+                print("Processing %s to %s\n", infh.get_path(), outfn);
             }
 
             var doc = reader.read_document(infh.get_path());
-            writer.write_document(outfh.get_path(), doc);
+            writer.write_document(outfn, doc);
 
         } // process_file()
 

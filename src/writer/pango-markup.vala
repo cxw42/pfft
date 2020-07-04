@@ -5,7 +5,15 @@
 namespace My {
 
     /**
-     * Pango-markup Document writer.
+     * Visitor that builds My.Blocks.Blk instances from a Doc
+     */
+    class BlkBuildingVisitor: ElemVisitor<Blocks.Blk>, Object
+    {
+
+    } // class BlkBuildingVisitor
+
+    /**
+     * Pango-markup document writer.
      *
      * Write a document by generating Pango markup for it.
      * Can write the Pango markup or the PDF.
@@ -34,7 +42,7 @@ namespace My {
         {
             string markup = make_markup(doc);
             if(write_markup) {
-                FileUtils.set_contents(filename, markup);
+                emit(filename, markup);
                 return;
             }
 
