@@ -186,33 +186,37 @@ namespace My {
 
             /* Create the plugins */
             Reader reader;
-            Writer writer;
+            var reader_name = opt_reader_name ?? reader_default_;
             try {
                 reader = create_instance(
-                    readers_, opt_reader_name ?? reader_default_, opt_reader_options) as Reader;
+                    readers_, reader_name, opt_reader_options) as Reader;
             } catch(KeyFileError e) {
                 printerr ("Could not create reader: %s\n", e.message);
                 return 1;
             }
 
+            Writer writer;
+            var writer_name = opt_writer_name ?? writer_default_;
             try {
                 writer = create_instance(
-                    writers_, opt_writer_name ?? writer_default_, opt_writer_options) as Writer;
+                    writers_, writer_name, opt_writer_options) as Writer;
             } catch(KeyFileError e) {
                 printerr ("Could not create writer: %s\n", e.message);
                 return 1;
             }
 
             if(reader == null) {
-                printerr("Could not create reader %s\n",
-                    opt_reader_name ?? reader_default_);
+                printerr("Could not create reader %s\n", reader_name);
                 return 1;
             }
 
             if(writer == null) {
-                printerr("Could not create writer %s\n",
-                    opt_writer_name ?? writer_default_);
+                printerr("Could not create writer %s\n", writer_name);
                 return 1;
+            }
+
+            if(opt_verbose > 0) {
+                print("Using reader %s, writer %s\n", reader_name, writer_name);
             }
 
             /* Do the work */

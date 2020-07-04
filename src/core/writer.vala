@@ -22,13 +22,13 @@ namespace My {
          * Convenience function to map filename "-" to stdout
          */
         public void emit(string filename, string contents)
-            throws FileError
+        throws FileError
         {
             if(filename == "-") {
                 print(contents);
             } else {
                 FileUtils.set_contents(filename, contents);
             }
-        } //emit()
+        } // emit()
     }
 } // My

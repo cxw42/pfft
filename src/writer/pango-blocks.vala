@@ -17,6 +17,24 @@ namespace My { namespace Blocks {
     }
 
     /**
+     * Create a layout with 12-pt text.
+     * @param cr The Cairo context with which this layout will be used
+     *
+     * Here for convenience.
+     */
+    public static Pango.Layout new_layout_12pt(Cairo.Context cr)
+    {
+        var layout = Pango.cairo_create_layout(cr);
+
+        var font_description = new Pango.FontDescription();
+        font_description.set_family("Serif");
+        font_description.set_size((int)(12 * Pango.SCALE)); // 12-pt text
+        layout.set_wrap(Pango.WrapMode.WORD_CHAR);
+
+        return layout;
+    } // new_layout_12pt()
+
+    /**
      * Block of content to be written.
      *
      * Blk itself knows how to render body paragraphs.  It also serves as the
@@ -32,18 +50,48 @@ namespace My { namespace Blocks {
          * NOTE: Pango obeys `\n`s in the markup, so the caller must remove
          * them for automatically-wrapped text.
          */
-        public string markup { get; set; }
+        public string markup { get; set; default = ""; }
+
+        /**
+         * Additional markup to be added to the end of the block before rendering.
+         * A child class is not obliged to use this.
+         */
+        public string post_markup { get; set; default = ""; }
+
+        /**
+         * A layout instance to use.
+         *
+         * This is so the font and wrap can be consistent between blocks.
+         */
+        protected Pango.Layout layout;
+
+        /**
+         * Helper to add a paragraph to markup
+         *
+         * No-op if new_markup is empty.  Otherwise. adds a newline before
+         * new_markup if there is already any content in markup.
+         */
+        public void append_paragraph_markup(string new_markup)
+        {
+            markup += new_markup;
+        }
 
         /**
          * Render a markup block with no decorations.
          *
-         * This is a helper for child classes.
+         * This is a helper for child classes.  If final_markup is empty,
+         * this is a no-op.
          */
         protected static RenderResult render_simple(Cairo.Context cr,
+            Pango.Layout layout,
             double rightP, double bottomP, string final_markup)
         {
-
             double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
+
+            if(final_markup == "") {
+                return RenderResult.COMPLETE;
+            }
+
             cr.get_current_point(out xC, out yC);
 
             // Out of range
@@ -51,15 +99,7 @@ namespace My { namespace Blocks {
                 return RenderResult.ERROR;
             }
 
-            var layout = Pango.cairo_create_layout(cr);
-
-            var font_description = new Pango.FontDescription();
-            font_description.set_family("Serif");
-            font_description.set_size((int)(12 * Pango.SCALE)); // 12-pt text
-
             layout.set_width((int)(rightP - xC*Pango.SCALE));
-            layout.set_wrap(Pango.WrapMode.WORD_CHAR);
-
             layout.set_markup(final_markup, -1);
 
             // TODO check metrics and see if we are at risk of running
@@ -67,6 +107,23 @@ namespace My { namespace Blocks {
 
             Pango.cairo_show_layout(cr, layout);
 
+            // Move down the page
+            Pango.Rectangle inkP, logicalP;
+            layout.get_extents(out inkP, out logicalP);
+
+            // XXX DEBUG
+            print("ink: %dx%d@(%d,%d)\n", inkP.width/Pango.SCALE,
+                  inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
+                  inkP.y/Pango.SCALE);
+            print("log: %dx%d@(%d,%d)\n", logicalP.width/Pango.SCALE,
+                  logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
+                  logicalP.y/Pango.SCALE);
+
+            // TODO figure out how to use X and Y, which may be nonzero
+            cr.rel_move_to(0, (logicalP.y + logicalP.height)/Pango.SCALE);
+
+            // XXX DEBUG
+            print("Render block: <[%s]>\n", final_markup);
             return RenderResult.COMPLETE;
         } // render_simple()
 
@@ -88,69 +145,38 @@ namespace My { namespace Blocks {
         public virtual RenderResult render(Cairo.Context cr,
             double rightP, double bottomP)
         {
-            return render_simple(cr, rightP, bottomP, markup);
+            return render_simple(cr, layout, rightP, bottomP,
+                       markup + post_markup);
+        }
+
+        public Blk(Pango.Layout layout)
+        {
+            this.layout = layout;
         }
 
     } // class Blk
 
-    /** Header */
-    public class Header : Blk
+    /**
+     * A block that renders a bullet and a text block
+     */
+    public class BulletBlk : Blk
     {
-        /** Header level (1..6) */
-        public int level { get; set; }
+        /** The markup for the bullet */
+        private string bullet_markup;
 
-        public Header(int level, string text = "")
+        public BulletBlk(Pango.Layout layout, string bullet_markup)
         {
-            this.level = level;
-            if(text != "") {
-                this.markup = Markup.escape_text(text);
-            }
+            base(layout);
+            this.bullet_markup = bullet_markup;
         }
 
-        /** Markup for header levels */
-        private string[] header_attributes = {
-            "", // level 0
-            "size=\"xx-large\" font_weight=\"bold\"",
-            "size=\"x-large\" font_weight=\"bold\"",
-            "size=\"large\" font_weight=\"bold\"",
-            "size=\"large\"",
-            "font_variant=\"smallcaps\" font_weight=\"bold\"",
-            "font_variant=\"smallcaps\"",
-        };
-
-        /**
-         * Render the header.
-         *
-         * Reads the text of the header from its markup property.
-         */
         public override RenderResult render(Cairo.Context cr,
             double rightP, double bottomP)
         {
-            string final_markup = "<span %s>%s</span>".printf(
-                header_attributes[level], markup
-            );
-
-            return render_simple(cr, rightP, bottomP, final_markup);
+            // TODO render the bullet, then render the markup
+            return render_simple(cr, layout, rightP, bottomP,
+                       GLib.Log.METHOD + ": not yet implemented\n" + markup + post_markup);
         }
+    } // class BulletBlk
 
-    } // class Header
-
-#if 0
-    /**
-     * A factory class that creates blocks to hold paragraph-level elements.
-     */
-    class Factory : Blk
-    {
-        protected override Blk accept_root(Elem el) {
-            return this;
-        }
-
-        protected override Blk accept_block_header(Elem el) {
-            // return new Header(el.
-            // var blk = new Header(
-            return unhandled_elem(el);
-        }
-    } // class Factory
-#endif
-
-}}
+}} //namespaces

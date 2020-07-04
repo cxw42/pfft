@@ -106,6 +106,7 @@ namespace My
                 break;
 
             case CODE:
+                newnode = node_of_ty(BLOCK_CODE);
                 break;
 
             case P:

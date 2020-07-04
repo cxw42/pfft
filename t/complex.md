@@ -5,7 +5,7 @@ Body paragraph 1.
 Body paragraph 2.
 Second line, para. 2.
 
-Text with some **bold and _bold italic_ text** here.
+Text with some **bold and _bold italic_ words** (and now back to normal).
 
 On separate lines:
 
@@ -44,6 +44,12 @@ A paragraph ending with `code.`
 > continues on this line
 
 ### H3
+
+```
+A fenced code block.
+Line 2
+Line 3
+```
 
 #### H4
 

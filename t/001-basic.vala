@@ -42,7 +42,11 @@ void loadfile()
         assert_true(el1.ty == Elem.Type.BLOCK_COPY);
         assert_true(el1.text == "Body");
     } catch(FileError e) {
+        warning("file error: %s", e.message);
+        assert_true(false); // make sure the test doesn't pass
+    } catch(GLib.MarkupError e) {
         warning("%s", e.message);
+        assert_true(false); // make sure the test doesn't pass
     }
     assert_true(did_load);
 }
