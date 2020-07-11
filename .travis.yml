@@ -13,6 +13,8 @@ addons:
       - autotools-dev
       - libpango1.0-dev
       - libsnapd-glib-dev
+      - libgee-0.8-dev
+      - libgstreamer1.0-dev
 
 install:
   - sudo apt install -y --no-install-recommends libsnapd-glib1

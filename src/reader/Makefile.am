@@ -11,3 +11,6 @@ EXTRA_DIST = pfft-reader.h pfft-reader.vapi
 
 noinst_LIBRARIES = libpfft-reader.a
 libpfft_reader_a_SOURCES = $(MY_reader_VALA) $(MY_reader_EXTRASOURCES)
+
+# register.c must be compiled after the valac run.
+register.$(OBJEXT): libpfft_reader_a_vala.stamp

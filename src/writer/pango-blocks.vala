@@ -18,9 +18,10 @@ namespace My { namespace Blocks {
 
     /**
      * Create a layout with 12-pt text.
-     * @param cr The Cairo context with which this layout will be used
      *
      * Here for convenience.
+     *
+     * @param cr The Cairo context with which this layout will be used
      */
     public static Pango.Layout new_layout_12pt(Cairo.Context cr)
     {
@@ -129,9 +130,6 @@ namespace My { namespace Blocks {
 
         /**
          * Render this block at the current position on the context.
-         * @param cr        The context to render into
-         * @param rightP    The right limit, in Pango units
-         * @param bottomP   The bottom limit, in Pango units
          *
          * The caller must set the current position to the left margin
          * of this block before calling this method.
@@ -141,6 +139,12 @@ namespace My { namespace Blocks {
          * * Text rendered to the right of rightP is in the right margin.
          * * Text rendered below bottomP is in the bottom margin.
          *
+         * This function must not be called on two blocks at the same time
+         * if those blocks share a layout instance.
+         *
+         * @param cr        The context to render into
+         * @param rightP    The right limit, in Pango units
+         * @param bottomP   The bottom limit, in Pango units
          */
         public virtual RenderResult render(Cairo.Context cr,
             double rightP, double bottomP)

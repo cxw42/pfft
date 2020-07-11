@@ -12,3 +12,6 @@ EXTRA_DIST = pfft-writer.h pfft-writer.vapi
 
 noinst_LIBRARIES = libpfft-writer.a
 libpfft_writer_a_SOURCES = $(MY_writer_VALA) $(MY_writer_EXTRASOURCES)
+
+# register.c must be compiled after the valac run.
+register.$(OBJEXT): libpfft_writer_a_vala.stamp

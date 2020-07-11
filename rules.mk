@@ -10,11 +10,12 @@ EOL =
 MY_pgm_VALA = pfft.vala myconfig.vapi
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
-MY_reader_VALA = markdown-snapd.vala md4c-reader.vala
+MY_reader_VALA = markdown-snapd.vala md4c-reader.vala \
+		 md4c.vapi \
+		 $(EOL)
 MY_reader_EXTRASOURCES = register.c \
 			 $(top_srcdir)/src/md4c/src/md4c.c \
 			 $(top_srcdir)/src/md4c/src/md4c.h \
-			 md4c.vapi \
 			 md4c-shim.c md4c-shim.h \
 			 reader-shim.c reader-shim.h \
 			 $(EOL)
