@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 namespace My {
+
+    extern void init_gstreamer();   // from pfft-shim.c
+
     // Types {{{1
     /**
      * Our own definition for gst_value_deserialize().
@@ -142,9 +145,7 @@ namespace My {
         public int run(owned string[] args)
         {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
-            string[] dummy_args = {""};
-            unowned var dargs = dummy_args;
-            Gst.init(ref dargs);
+            init_gstreamer();
 
             // TODO get available readers and writers
             readers_ = new ClassMap();

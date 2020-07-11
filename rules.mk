@@ -8,6 +8,7 @@ EOL =
 # corresponding subdirectory.  The subdirectories are added by the variables
 # that use these.
 MY_pgm_VALA = pfft.vala
+MY_pgm_EXTRASOURCES = pfft-shim.c
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
 MY_reader_VALA = markdown-snapd.vala md4c-reader.vala

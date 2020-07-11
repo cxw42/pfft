@@ -20,7 +20,7 @@ DISTCLEANFILES += myconfig.vapi
 # === Program =============================================================
 
 bin_PROGRAMS = pfft
-pfft_SOURCES = nop.cpp $(MY_pgm_VALA) myconfig.vapi
+pfft_SOURCES = nop.cpp $(MY_pgm_VALA) myconfig.vapi $(MY_pgm_EXTRASOURCES)
 # nop.cpp is listed first so the C++ linker will be used.
 
 # === manpage =============================================================
