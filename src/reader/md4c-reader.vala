@@ -121,14 +121,6 @@ namespace My
             if(newnode != null) {
                 self.node_.append((owned)newnode);  // clears newnode
                 self.node_ = self.node_.last_child();
-
-                // Always create a plain-text span to hold text, for regularity,
-                // unless we've done otherwise above.
-                if(self.node_.n_children() == 0) {
-                    var span = node_of_ty(SPAN_PLAIN);
-                    self.node_.append((owned)span);
-                    self.node_ = self.node_.last_child();
-                }
             }
 
             return 0;
@@ -185,8 +177,8 @@ namespace My
             }
 
             if(newnode != null) {
-                self.node_.parent.append((owned)newnode);  // clears newnode
-                self.node_ = (GLib.Node<Elem>)self.node_.parent.last_child();
+                self.node_.append((owned)newnode);  // clears newnode
+                self.node_ = (GLib.Node<Elem>)self.node_.last_child();
             }
             return 0;
         }
@@ -197,21 +189,29 @@ namespace My
             var self = (MarkdownMd4cReader)userdata;
             print("left span %s\n", span_type.to_string());
 
-            // Add a SPAN_PLAIN at the end to absorb additional text
-            var newnode = node_of_ty(SPAN_PLAIN);
-            self.node_.parent.append((owned)newnode);  // clears newnode
-            self.node_ = (GLib.Node<Elem>)self.node_.parent.last_child();
+            // Move back into the parent span
+            self.node_ = self.node_.parent;
 
             return 0;
         }
 
+        /**
+         * md4c callback to accept text content.
+         *
+         * Every text chunk gets its own Elem.Type.SPAN_PLAIN.  This is so
+         * that text after a child span will not be merged with text
+         * before the child span.
+         */
         private static int text_(TextType text_type, /*const*/ Char? text, Size size, void *userdata)
         {
             var self = (MarkdownMd4cReader)userdata;
             var data = strndup((char *)text, size);
             print("%s<<%s>>\n", self.indent_, data);
-            assert(self.node_.data.is_span);
-            self.node_.data.text += data;
+
+            var newnode = node_of_ty(SPAN_PLAIN);
+            newnode.data.text = data;
+            self.node_.append((owned)newnode);  // clears newnode
+
             return 0;
         }
 

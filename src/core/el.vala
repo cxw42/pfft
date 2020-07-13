@@ -62,7 +62,13 @@ namespace My {
             // Spans: character-level elements.
             // Constraint: spans cannot be the children of other spans.
 
-            /** Plain text */
+            /**
+             * Text that does not carry any formatting of its own.
+             *
+             * A SPAN_PLAIN may inherit formatting from its parent, so may
+             * not be plain text.  Regardless, SPAN_PLAIN does not impose
+             * any formatting on its text.
+             */
             SPAN_PLAIN,
             /** Italic */
             SPAN_EM,
