@@ -7,6 +7,141 @@
 
 namespace My { namespace Blocks {
 
+    /** Types of bullets/numbers */
+    private enum IndentType {
+        /* --- Bullets --- */
+        BLACK_CIRCLE,
+        WHITE_CIRCLE,
+        BLACK_SQUARE,
+        WHITE_SQUARE,
+        BLACK_DIAMOND,
+        WHITE_DIAMOND,
+        BLACK_TRIANGLE,
+
+        /* --- Numbers --- */
+        /** 0..9 */
+        ENGLISH_DIGITS,
+        /** a..z */
+        LOWERCASE_ALPHA,
+        /** i, ii, ... */
+        LOWERCASE_ROMAN,
+        /** A..Z */
+        UPPERCASE_ALPHA,
+        /** I, II, ... */
+        UPPERCASE_ROMAN,
+
+        LAST_BULLET = BLACK_TRIANGLE;
+
+        public bool is_bullet()
+        {
+            return this <= LAST_BULLET;
+        }
+
+        private static string U(uint codepoint)
+        {
+            return ((unichar)codepoint).to_string();
+        }
+
+        private string alpha(uint num) requires(num >= 1)
+        {
+            // TODO FIXME: after z comes ba rather than aa.
+
+            if(num==1) {
+                return "a";
+            }
+
+            uint n = num - 1;
+            var sb = new StringBuilder();
+            while(n>0) {
+                sb.prepend(
+                    ((unichar)((int)'a' + n%26)).to_string()
+                );
+                n /= 26;
+            }
+            return sb.str;
+        }
+
+        private string roman(uint num)
+        {
+            // Knuth's algorithm for Roman numerals, from TeX.  Quoted by
+            // Hans Wennborg at https://www.hanshq.net/roman-numerals.html.
+            // Converted to Vala by Chris White (github.com/cxw42)
+
+            var sb = new StringBuilder();
+
+            string control = "m2d5c2l5x2v5i";
+            int j, k;   // mysterious indices into `control`
+            uint u, v;  // mysterious numbers
+            j = 0;
+            v = 1000;
+
+            while(true) {
+                while(num >= v) {
+                    sb.append_c(control[j]);
+                    num -= v;
+                }
+                if(num <= 0) {  // nonpositive input produces no output
+                    break;
+                }
+
+                k = j+2;
+                u = v / control[k-1].digit_value();
+                if(control[k-1] == '2') {
+                    k += 2;
+                    u /= control[k-1].digit_value();
+                }
+
+                if(num+u >= v) {
+                    sb.append_c(control[k]);
+                    num += u;
+                } else {
+                    j += 2;
+                    v /= control[j-1].digit_value();
+                }
+            }
+
+            return sb.str;
+        } // roman()
+
+        public string render(uint num)
+        {
+
+            switch(this) {
+            case BLACK_CIRCLE:
+                return U(0x25cf);
+            case WHITE_CIRCLE:
+                return U(0x25cb);
+            case BLACK_SQUARE:
+                return U(0x25a0);
+            case WHITE_SQUARE:
+                return U(0x25a1);
+            case BLACK_DIAMOND:
+                return U(0x25c6);
+            case WHITE_DIAMOND:
+                return U(0x25c7);
+            case BLACK_TRIANGLE:
+                return U(0x2023);
+
+            /* --- Numbers --- */
+            /* a..z */
+            case LOWERCASE_ALPHA:
+                return alpha(num);
+            /* i... */
+            case LOWERCASE_ROMAN:
+                return roman(num);
+            /* A..Z */
+            case UPPERCASE_ALPHA:
+                return alpha(num).ascii_up();
+            /* I... */
+            case UPPERCASE_ROMAN:
+                return roman(num).ascii_up();
+            case ENGLISH_DIGITS:
+            default:
+                return num.to_string();
+            }
+        }
+    } // enum IndentType
+
     /** Results of a Blk.render() call */
     public enum RenderResult {
         ERROR,
@@ -29,7 +164,9 @@ namespace My { namespace Blocks {
 
         var font_description = new Pango.FontDescription();
         font_description.set_family("Serif");
-        font_description.set_size((int)(12 * Pango.SCALE)); // 12-pt text
+        font_description.set_size((int)(12 * Pango.SCALE));
+        // 12-pt text on a Cairo surface that uses points as its units,
+        // e.g., PDFs.
         layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
         return layout;
@@ -114,14 +251,16 @@ namespace My { namespace Blocks {
 
             // XXX DEBUG
             print("ink: %dx%d@(%d,%d)\n", inkP.width/Pango.SCALE,
-                  inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
-                  inkP.y/Pango.SCALE);
+                inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
+                inkP.y/Pango.SCALE);
             print("log: %dx%d@(%d,%d)\n", logicalP.width/Pango.SCALE,
-                  logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
-                  logicalP.y/Pango.SCALE);
+                logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
+                logicalP.y/Pango.SCALE);
 
             // TODO figure out how to use X and Y, which may be nonzero
-            cr.rel_move_to(0, (logicalP.y + logicalP.height)/Pango.SCALE);
+            cr.get_current_point(out xC, out yC);
+            cr.rel_move_to(-xC + 72, (logicalP.y + logicalP.height)/Pango.SCALE);
+            // 72 = left margin. XXX HACK
 
             // XXX DEBUG
             print("Render block: <[%s]>\n", final_markup);
@@ -168,19 +307,68 @@ namespace My { namespace Blocks {
         /** The markup for the bullet */
         private string bullet_markup;
 
-        public BulletBlk(Pango.Layout layout, string bullet_markup)
+        /** The left edge of the bullet */
+        private int bullet_leftP;
+
+        /**
+         * The left edge of the text.
+         *
+         * Must be less than bullet_leftP.
+         */
+        private int text_leftP;
+
+        public BulletBlk(Pango.Layout layout, string bullet_markup,
+            int bullet_leftP, int text_leftP)
+        requires(text_leftP > bullet_leftP)
         {
             base(layout);
+
             this.bullet_markup = bullet_markup;
+            this.bullet_leftP = bullet_leftP;
+            this.text_leftP = text_leftP;
         }
 
+        /**
+         * Render the bullet and the text.
+         *
+         * This function ignores the current Cairo X position.
+         */
         public override RenderResult render(Cairo.Context cr,
             double rightP, double bottomP)
         {
-            // TODO render the bullet, then render the markup
-            return render_simple(cr, layout, rightP, bottomP,
-                       GLib.Log.METHOD + ": not yet implemented\n" + markup + post_markup);
+            string final_markup = markup + post_markup;
+
+            if(final_markup == "") {
+                return RenderResult.COMPLETE;
+            }
+
+            double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
+            double xP, yP;
+            cr.get_current_point(out xC, out yC);
+            xP = xC * Pango.SCALE;
+            yP = yC * Pango.SCALE;
+
+            // Out of range
+            if(xP >= rightP || yP >= bottomP || bullet_leftP >= rightP ||
+                text_leftP >= rightP) {
+                return RenderResult.ERROR;
+            }
+
+            // TODO check metrics and see if we are at risk of running
+            // off the page
+
+            // TODO render the bullet
+            cr.move_to((double)bullet_leftP/Pango.SCALE, yC);
+            layout.set_width(text_leftP - bullet_leftP);
+            layout.set_markup(bullet_markup, -1);
+            Pango.cairo_show_layout(cr, layout);
+
+            // Render the markup
+            cr.move_to((double)text_leftP/Pango.SCALE, yC);
+            return render_simple(cr, layout, rightP, bottomP, final_markup);
         }
     } // class BulletBlk
 
-}} //namespaces
+    // TODO block quotes, rules
+
+}} // namespaces

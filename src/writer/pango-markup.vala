@@ -18,14 +18,6 @@ namespace My {
         [Description(nick = "default", blurb = "Write PDFs using the Pango rendering library")]
         public bool meta {get; default = false; }
 
-        /**
-         * Whether to write the Pango markup instead of the PDF.
-         *
-         * If true, write the Pango markup instead.  Useful for debugging.
-         */
-        [Description(nick = "write Pango markup", blurb = "If true, write Pango markup instead of the PDF.  For debugging.")]
-        public bool write_markup { get; set; default = false; }
-
         // TODO make paper size a property
 
         /** The Cairo context for the document we are writing */
@@ -34,6 +26,19 @@ namespace My {
         /** The Pango layout for the document we are writing */
         Pango.Layout layout = null;
 
+        /** Used in process_node_into() */
+        private Regex re_newline = null;
+
+        // Not a ctor since we create instances through g_object_new() --- see
+        // https://gitlab.gnome.org/GNOME/vala/-/issues/650
+        construct {
+            try {
+                re_newline = new Regex("\\R+");
+            } catch(RegexError e) {
+                assert(false);  // die horribly --- something is very wrong!
+            }
+        }
+
         /**
          * Write a document to a file.
          * @param filename  The name of the file to write
@@ -41,13 +46,7 @@ namespace My {
          */
         public void write_document(string filename, Doc doc) throws FileError, My.Error
         {
-            //string markup = make_markup(doc);
-            if(write_markup) {
-                //emit(filename, markup);
-                throw new Error.WRITER("Not implemented");
-            }
-
-            // TODO Make the PDF
+            // Set up the drawing space
             var surf = new Cairo.PdfSurface(filename, 8.5*72, 50*72);   // TODO 50->11 for Letter paper
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not create surface: " +
@@ -58,12 +57,14 @@ namespace My {
             layout = Blocks.new_layout_12pt(cr);
 
             layout.set_width((int)(6.5*72*Pango.SCALE));    // 6.5" wide text column
-            //layout.set_markup(markup, -1);
+            // layout.set_markup(markup, -1);
 
             cr.move_to(1*72, 1*72);     // 1" over, 1" down (respectively) from the UL corner
-            //Pango.cairo_show_layout(cr, layout);
 
+            // Break the text into individually-rendered blocks
             var blocks = make_blocks(doc);
+
+            // Render
             foreach(var blk in blocks) {
                 // TODO handle pagination
                 blk.render(cr, 6.5*72*Pango.SCALE, 50*72*Pango.SCALE);  // TODO 50->10 for letter
@@ -71,14 +72,14 @@ namespace My {
 
             cr.show_page();
 
+            // Save the PDF
             surf.finish();
-
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not save PDF: " +
                           surf.status().to_string());
             }
 
-        } //write_document
+        } // write_document
 
         /** Markup for header levels */
         private string[] header_attributes = {
@@ -86,14 +87,74 @@ namespace My {
             "size=\"xx-large\" font_weight=\"bold\"",
             "size=\"x-large\" font_weight=\"bold\"",
             "size=\"large\" font_weight=\"bold\"",
-            "size=\"large\"",
-            "font_variant=\"smallcaps\" font_weight=\"bold\"",
-            "font_variant=\"smallcaps\"",
+            "size=\"large\" font_weight=\"bold\" font_style=\"italic\"",
+            "font_weight=\"bold\"",
+            "font_weight=\"bold\" font_style=\"italic\"",
         };
 
         ///////////////////////////////////////////////////////////////////
-        // Generate blocks of markup from a Doc
-        // The functions in this section assume cr and layout members are valid
+        // Generate blocks of markup from a Doc.
+        // The methods in this section assume cr and layout members are valid
+
+        // === Bulleted/numbered list support =============================
+
+        /** Which bullet types to use as a function of level */
+        private IndentType[] indentation_levels_bullets = {
+            BLACK_CIRCLE,
+            WHITE_CIRCLE,
+            BLACK_SQUARE,
+            WHITE_SQUARE,
+            BLACK_DIAMOND,
+            WHITE_DIAMOND,
+            BLACK_TRIANGLE,
+        };
+
+        /** Which numbering types to use as a function of level */
+        private IndentType[] indentation_levels_numbers = {
+            ENGLISH_DIGITS,
+            LOWERCASE_ALPHA,
+            LOWERCASE_ROMAN,
+            UPPERCASE_ALPHA,
+            UPPERCASE_ROMAN,
+        };
+
+        /** Get the type to use for a list item at a particular level */
+        private IndentType get_indent_for_level(uint level, bool is_bullet)
+        {
+            unowned IndentType[] defns = is_bullet ? indentation_levels_bullets :
+                indentation_levels_numbers;
+            level %= defns.length;  // Cycle through the definitions
+            return defns[level];
+        }
+
+        /** The rendering state */
+        private class State {
+            /** Do not change \n to ' ' if true */
+            public bool obeylines = false;
+
+            /**
+             * Indentation levels.
+             *
+             * An array used as a stack.  Levels are numbered from 0,
+             * so the last used level is levels.length-1.
+             */
+            public IndentType[] levels = {};
+
+            /**
+             * The last number used in each level, or 0 if none.
+             */
+            public uint[] last_numbers = {};
+
+            public State clone() {
+                var retval = new State();
+                retval.obeylines = obeylines;
+                retval.levels = levels;     // duplicates the array
+                retval.last_numbers = last_numbers;
+                return retval;
+            }
+        } // class State
+
+        // === Algorithm ==================================================
 
         /**
          * Make Pango markup blocks for a document
@@ -111,13 +172,24 @@ namespace My {
             }
 
             var retval = new LinkedList<Blk>();
+            var state = new State();
 
             // Open a Blk that will be filled if the first thing in the Doc is copy
             var first_blk = new Blk(layout);
 
             // Fill the list
-            var last_blk = process_node_into(doc.root, el, (owned)first_blk, retval);
+            var last_blk = process_node_into(doc.root, el, (owned)first_blk, retval, state);
             commit(last_blk, retval);
+
+#if 0
+            // Tests of alpha
+            {
+                IndentType ty = LOWERCASE_ALPHA;
+                for(int i=1; i<=100; ++i) {
+                    printerr("%3d %s\n", i, ty.render(i));
+                }
+            }
+#endif
 
             return retval;
         } // make_blocks()
@@ -138,7 +210,7 @@ namespace My {
             if(!retval.is_empty && retval.last() == blk) return;
             // XXX DEBUG
             print("commit: adding blk with markup <%s> and post-markup <%s>\n",
-                  blk.markup, blk.post_markup);
+                blk.markup, blk.post_markup);
             retval.add(blk);
         }
 
@@ -151,7 +223,9 @@ namespace My {
          *                  when complete.
          * @return The block in progress
          */
-        private /* owned */ Blk process_node_into(GLib.Node<Elem> node, Elem el, owned Blk blk, LinkedList<Blk> retval)
+        private /* owned */ Blk process_node_into(GLib.Node<Elem> node, Elem el,
+            owned Blk blk, LinkedList<Blk> retval,
+            State state_in)
         throws Error
         {
             bool complete = false;  // if true, nothing more to do before committing blk
@@ -159,10 +233,12 @@ namespace My {
             string post_children_markup = "";   // markup to be added after the children are processed
             StringBuilder sb = new StringBuilder();
 
+            var state = state_in;
+
             // DEBUG
             print("process_node_into: %s%s %p = '%s'\n",
-                  string.nfill(node.depth()*4, ' '), el.ty.to_string(), node,
-                  text_markup);
+                string.nfill(node.depth()*4, ' '), el.ty.to_string(), node,
+                text_markup);
 
             switch(el.ty) {
             case ROOT:
@@ -194,27 +270,39 @@ namespace My {
                 blk.post_markup = "]" + blk.post_markup;
                 complete = true;
                 break;
-            case BLOCK_BULLET_LIST:
-                commit(blk, retval);
-                blk = new Blk(layout);
-                sb.append_printf("BULLETS: [%s", text_markup);
-                blk.post_markup = "]" + blk.post_markup;
+
+            case BLOCK_BULLET_LIST:     // Get the next indentation level
+            case BLOCK_NUMBER_LIST:     // Likewise
                 complete = true;
+
+                // Copy the state so any changes are localized to this block and
+                // any children.
+                state = state.clone();
+
+                // Add the indentation level
+                var indent = get_indent_for_level(state.levels.length,
+                        el.ty == BLOCK_BULLET_LIST);
+                state.levels += indent;
+                state.last_numbers += 0;
                 break;
-            case BLOCK_NUMBER_LIST:
-                commit(blk, retval);
-                blk = new Blk(layout);
-                sb.append_printf("NUMBERS: [%s", text_markup);
-                blk.post_markup = "]" + blk.post_markup;
-                complete = true;
-                break;
+
             case BLOCK_LIST_ITEM:
                 commit(blk, retval);
-                blk = new Blk(layout);
-                sb.append_printf("* [%s", text_markup);
-                blk.post_markup = "]" + blk.post_markup;
+                var lidx = state.levels.length - 1;
+                state.last_numbers[lidx]++;
+
+                blk = new BulletBlk(layout, "%s%s".printf(
+                            state.levels[lidx].render(state.last_numbers[lidx]),
+                            state.levels[lidx].is_bullet() ? "" : "."
+                        ),
+                        Pango.SCALE * (72 + lidx*36),   // bullet_leftP
+                        Pango.SCALE * (72 + lidx*36 + 36) // text_leftP
+                );
+                sb.append(text_markup);
+
                 complete = true;
                 break;
+
             case BLOCK_HR:
                 commit(blk, retval);
                 blk = new Blk(layout);
@@ -222,11 +310,16 @@ namespace My {
                 blk.post_markup = "]" + blk.post_markup;
                 complete = true;
                 break;
+
             case BLOCK_CODE:
                 commit(blk, retval);
                 blk = new Blk(layout);
+
+                state = state.clone();
+                state.obeylines = true;
+
                 sb.append_printf("<tt>\n%s", text_markup);
-                blk.post_markup = "\n</tt>\n" + blk.post_markup;
+                blk.post_markup = "</tt>" + blk.post_markup;
                 complete = true;
                 break;
 
@@ -268,11 +361,21 @@ namespace My {
             // process children
             for(uint i = 0; i < node.n_children(); ++i) {
                 unowned GLib.Node<Elem> child = node.nth_child(i);
-                var newblk = process_node_into(child, child.data, (owned)blk, retval);
+                var newblk = process_node_into(child, child.data, (owned)blk,
+                        retval, state);
                 blk = newblk;
             }
 
             blk.markup += post_children_markup;
+
+            // Join lines
+            if(!state.obeylines) {
+                try {
+                    blk.markup = re_newline.replace(blk.markup, -1, 0, " ");
+                } catch(RegexError e) {
+                    // ignore regex errors
+                }
+            }
 
             if(complete) {
                 commit(blk, retval);
