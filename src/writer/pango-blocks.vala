@@ -37,31 +37,35 @@ namespace My { namespace Blocks {
             return this <= LAST_BULLET;
         }
 
+        // Return the string representing _codepoint_
         private static string U(uint codepoint)
         {
             return ((unichar)codepoint).to_string();
         }
 
-        private string alpha(uint num) requires(num >= 1)
+        private static string aplus(uint offset)
         {
-            // TODO FIXME: after z comes ba rather than aa.
+            return ((unichar)((int)'a' + offset)).to_string();
+        }
 
-            if(num==1) {
-                return "a";
-            }
-
-            uint n = num - 1;
+        private static string alpha(uint num) requires(num >= 1)
+        {
+            // Modified from https://www.perlmonks.org/?node_id=1168587 by
+            // MidLifeXis, https://www.perlmonks.org/?node_id=272364
             var sb = new StringBuilder();
-            while(n>0) {
-                sb.prepend(
-                    ((unichar)((int)'a' + n%26)).to_string()
-                );
+            uint n = num - 1;   // shift to 0-based
+            uint adj = 0;       // 0 the first time through, then -1
+
+            do {
+                sb.prepend(aplus(n%26 + adj));
                 n /= 26;
-            }
+                adj = -1;
+            } while(n>0);
+
             return sb.str;
         }
 
-        private string roman(uint num)
+        private static string roman(uint num)
         {
             // Knuth's algorithm for Roman numerals, from TeX.  Quoted by
             // Hans Wennborg at https://www.hanshq.net/roman-numerals.html.
@@ -103,24 +107,33 @@ namespace My { namespace Blocks {
             return sb.str;
         } // roman()
 
+        private static string smallU(uint codepoint)
+        {
+            return @"<span size=\"xx-small\">$(U(codepoint))</span>";
+        }
+
+        /**
+         * Render _num_ in the style of _this_
+         * @return Pango markup
+         */
         public string render(uint num)
         {
 
             switch(this) {
             case BLACK_CIRCLE:
-                return U(0x25cf);
+                return smallU(0x25cf);
             case WHITE_CIRCLE:
-                return U(0x25cb);
+                return smallU(0x25cb);
             case BLACK_SQUARE:
-                return U(0x25a0);
+                return smallU(0x25a0);
             case WHITE_SQUARE:
-                return U(0x25a1);
+                return smallU(0x25a1);
             case BLACK_DIAMOND:
-                return U(0x25c6);
+                return smallU(0x25c6);
             case WHITE_DIAMOND:
-                return U(0x25c7);
+                return smallU(0x25c7);
             case BLACK_TRIANGLE:
-                return U(0x2023);
+                return smallU(0x2023);
 
             /* --- Numbers --- */
             /* a..z */
@@ -141,6 +154,8 @@ namespace My { namespace Blocks {
             }
         }
     } // enum IndentType
+
+    ///////////////////////////////////////////////////////////////////////
 
     /** Results of a Blk.render() call */
     public enum RenderResult {
@@ -164,21 +179,29 @@ namespace My { namespace Blocks {
 
         var font_description = new Pango.FontDescription();
         font_description.set_family("Serif");
-        font_description.set_size((int)(12 * Pango.SCALE));
-        // 12-pt text on a Cairo surface that uses points as its units,
-        // e.g., PDFs.
+        font_description.set_size(12 * Pango.SCALE); // 12-pt text
         layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
         return layout;
     } // new_layout_12pt()
+
+    ///////////////////////////////////////////////////////////////////////
 
     /**
      * Block of content to be written.
      *
      * Blk itself knows how to render body paragraphs.  It also serves as the
      * base class for more specialized blocks.
+     *
+     * All dimensions within a Blk instance are relative to the left
+     * margin, which is provided to render().  All parameters to render()
+     * are relative to the page.
+     *
+     * Blk and its children assume that only one Blk instance will be
+     * rendered at a time.
      */
     public class Blk : Object {
+
         /**
          * The block's text, in Pango markup.
          *
@@ -204,26 +227,16 @@ namespace My { namespace Blocks {
         protected Pango.Layout layout;
 
         /**
-         * Helper to add a paragraph to markup
-         *
-         * No-op if new_markup is empty.  Otherwise. adds a newline before
-         * new_markup if there is already any content in markup.
-         */
-        public void append_paragraph_markup(string new_markup)
-        {
-            markup += new_markup;
-        }
-
-        /**
          * Render a markup block with no decorations.
          *
          * This is a helper for child classes.  If final_markup is empty,
-         * this is a no-op.
+         * this is a no-op.  Parameters are as in render().
          */
         protected static RenderResult render_simple(Cairo.Context cr,
             Pango.Layout layout,
             double rightP, double bottomP, string final_markup)
         {
+            double leftC;
             double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
 
             if(final_markup == "") {
@@ -231,6 +244,7 @@ namespace My { namespace Blocks {
             }
 
             cr.get_current_point(out xC, out yC);
+            leftC = xC;
 
             // Out of range
             if(xC*Pango.SCALE >= rightP || yC*Pango.SCALE >= bottomP) {
@@ -257,10 +271,10 @@ namespace My { namespace Blocks {
                 logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
                 logicalP.y/Pango.SCALE);
 
-            // TODO figure out how to use X and Y, which may be nonzero
+            // TODO figure out how to use logicalP's X and Y, which may be nonzero
             cr.get_current_point(out xC, out yC);
-            cr.rel_move_to(-xC + 72, (logicalP.y + logicalP.height)/Pango.SCALE);
-            // 72 = left margin. XXX HACK
+            cr.rel_move_to(-xC + leftC,
+                (logicalP.y + logicalP.height)/Pango.SCALE);
 
             // XXX DEBUG
             print("Render block: <[%s]>\n", final_markup);
@@ -273,6 +287,9 @@ namespace My { namespace Blocks {
          * The caller must set the current position to the left margin
          * of this block before calling this method.
          *
+         * This method must leave the current position at the left margin
+         * and offset vertically by the amount of space consumed.
+         *
          * rightP and bottomP are not hard limits, but say where the margins
          * are:
          * * Text rendered to the right of rightP is in the right margin.
@@ -282,11 +299,11 @@ namespace My { namespace Blocks {
          * if those blocks share a layout instance.
          *
          * @param cr        The context to render into
-         * @param rightP    The right limit, in Pango units
-         * @param bottomP   The bottom limit, in Pango units
+         * @param rightP    The right limit w.r.t. the page, in Pango units
+         * @param bottomP   The bottom limit w.r.t. the page, in Pango units
          */
         public virtual RenderResult render(Cairo.Context cr,
-            double rightP, double bottomP)
+            int rightP, int bottomP)
         {
             return render_simple(cr, layout, rightP, bottomP,
                        markup + post_markup);
@@ -307,11 +324,11 @@ namespace My { namespace Blocks {
         /** The markup for the bullet */
         private string bullet_markup;
 
-        /** The left edge of the bullet */
+        /** The left edge of the bullet, w.r.t. the left margin */
         private int bullet_leftP;
 
         /**
-         * The left edge of the text.
+         * The left edge of the text, w.r.t. the left margin.
          *
          * Must be less than bullet_leftP.
          */
@@ -330,11 +347,9 @@ namespace My { namespace Blocks {
 
         /**
          * Render the bullet and the text.
-         *
-         * This function ignores the current Cairo X position.
          */
         public override RenderResult render(Cairo.Context cr,
-            double rightP, double bottomP)
+            int rightP, int bottomP)
         {
             string final_markup = markup + post_markup;
 
@@ -343,8 +358,10 @@ namespace My { namespace Blocks {
             }
 
             double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
+            double leftC;
             double xP, yP;
             cr.get_current_point(out xC, out yC);
+            leftC = xC;
             xP = xC * Pango.SCALE;
             yP = yC * Pango.SCALE;
 
@@ -357,18 +374,153 @@ namespace My { namespace Blocks {
             // TODO check metrics and see if we are at risk of running
             // off the page
 
-            // TODO render the bullet
-            cr.move_to((double)bullet_leftP/Pango.SCALE, yC);
+            // render the bullet
+            // TODO shift the bullet down so it is centered on the first
+            // line of the text.
+            cr.move_to(leftC + (double)bullet_leftP/Pango.SCALE, yC);
             layout.set_width(text_leftP - bullet_leftP);
             layout.set_markup(bullet_markup, -1);
             Pango.cairo_show_layout(cr, layout);
 
             // Render the markup
-            cr.move_to((double)text_leftP/Pango.SCALE, yC);
-            return render_simple(cr, layout, rightP, bottomP, final_markup);
+            cr.move_to(leftC + (double)text_leftP/Pango.SCALE, yC);
+
+            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+
+            cr.get_current_point(out xC, out yC);
+            cr.rel_move_to(-xC + leftC, 0);
+
+            return result;
         }
     } // class BulletBlk
 
-    // TODO block quotes, rules
+    /**
+     * A block that renders a horizontal rule
+     */
+    public class HRBlk : Blk
+    {
+        /** The left edge of the rule, w.r.t. the left margin. */
+        private int leftP = 0;
+
+        /** The amount of vertical space the rule occupies */
+        private int heightP = 12 * Pango.SCALE;
+
+        public HRBlk(Pango.Layout layout, int leftP)
+        {
+            base(layout);
+            this.leftP = leftP;
+        }
+
+        /**
+         * Render the rule
+         *
+         * This function ignores the current Cairo X position.
+         */
+        public override RenderResult render(Cairo.Context cr,
+            int rightP, int bottomP)
+        {
+            double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
+            double leftC;   // left margin
+            double heightC = heightP/Pango.SCALE;
+            double xP, yP;
+
+            cr.get_current_point(out xC, out yC);
+            leftC = xC;
+            xP = xC * Pango.SCALE;
+            yP = yC * Pango.SCALE;
+
+            // Out of range
+            if(xP >= rightP || yP >= bottomP || leftP >= rightP) {
+                return RenderResult.ERROR;
+            }
+
+            // TODO check metrics and see if we are at risk of running
+            // off the page
+
+            // render the rule
+            cr.save();
+            cr.set_source_rgb(0,0,0);
+            cr.set_line_width(0.75);    // pt?
+            cr.move_to(leftC + (double)leftP/Pango.SCALE, yC + heightC*0.5);
+            cr.line_to((double)rightP/Pango.SCALE, yC + heightC*0.5);
+            cr.stroke();
+            cr.restore();
+
+            // move 12 pts. down.  TODO make the vertical size a parameter.
+            cr.move_to(leftC, yC + heightC);
+
+            print("Render rule\n");  // XXX DEBUG
+            return RenderResult.COMPLETE;
+        }
+    } // class HRBlk
+
+    /**
+     * A block that renders a block quote
+     */
+    public class QuoteBlk : Blk
+    {
+        /**
+         * The left edge of the text, w.r.t. the left margin.
+         *
+         * Must be less than bullet_leftP.
+         */
+        private int text_leftP;
+
+        public QuoteBlk(Pango.Layout layout, int text_leftP)
+        {
+            base(layout);
+
+            this.text_leftP = text_leftP;
+        }
+
+        /**
+         * Render the text and a sidebar.
+         */
+        public override RenderResult render(Cairo.Context cr,
+            int rightP, int bottomP)
+        {
+            string final_markup = markup + post_markup;
+
+            if(final_markup == "") {
+                return RenderResult.COMPLETE;
+            }
+
+            double x1C, y1C;    // Starting points
+            double x1P, y1P;
+            double x2C, y2C;    // Ending points of the text block
+
+            cr.get_current_point(out x1C, out y1C);
+            x1P = x1C * Pango.SCALE;
+            y1P = y1C * Pango.SCALE;
+
+            // Out of range
+            if(x1P >= rightP || y1P >= bottomP || text_leftP >= rightP) {
+                return RenderResult.ERROR;
+            }
+
+            // TODO check metrics and see if we are at risk of running
+            // off the page
+
+            // Render the markup
+            cr.move_to(x1C + (double)text_leftP/Pango.SCALE, y1C);
+            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+
+            cr.get_current_point(out x2C, out y2C);
+
+            // render the sidebar
+            double xsC = x1C + (double)text_leftP*0.5/Pango.SCALE;
+            cr.save();
+            cr.set_source_rgb(0.7,0.7,0.7);
+            cr.set_line_width(6.0);
+            cr.move_to(xsC, y1C);
+            cr.line_to(xsC, y2C);
+            cr.stroke();
+            cr.restore();
+
+            cr.move_to(x1C, y2C);
+
+            return result;
+        }
+    } // class QuoteBlk
 
 }} // namespaces

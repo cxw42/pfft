@@ -13,6 +13,8 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
 nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
+_ _ _ _ _ _
+
 As one line:
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
@@ -67,12 +69,21 @@ A paragraph ending with `code.`
 A fenced code block.
 Line 2
 Line 3
+void do_something(int foo)
+{
+    whatever(foo);
+    for(var i in foo) {
+        something_else(i);
+        obscure_function();     // Documentation of what the function does.  This documentation is needlessly long and stretches way too far across the screen.  Now up to >170 characters!  Turns out my terminal can fit 190 chars across with my default font.  OK --- that's enough of that.
+        // OR IS IT? :D
+    }
+}
 ```
 
 #### Header 4
 
-##### Header5
+##### Header 5
 
-###### Header6
+###### Header 6
 
 lorem ipsum

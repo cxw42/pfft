@@ -56,9 +56,6 @@ namespace My {
             cr = new Cairo.Context(surf);
             layout = Blocks.new_layout_12pt(cr);
 
-            layout.set_width((int)(6.5*72*Pango.SCALE));    // 6.5" wide text column
-            // layout.set_markup(markup, -1);
-
             cr.move_to(1*72, 1*72);     // 1" over, 1" down (respectively) from the UL corner
 
             // Break the text into individually-rendered blocks
@@ -66,8 +63,14 @@ namespace My {
 
             // Render
             foreach(var blk in blocks) {
-                // TODO handle pagination
-                blk.render(cr, 6.5*72*Pango.SCALE, 50*72*Pango.SCALE);  // TODO 50->10 for letter
+                // Parameters to render() are page-relative
+                var ok = blk.render(cr, (int)((1+6.5)*72*Pango.SCALE), (int)(50*72*Pango.SCALE));  // TODO 50->10 for letter
+                if(ok != RenderResult.COMPLETE) {
+                    // TODO handle pagination
+                    printerr("Block of type %s returned %s\n",
+                        blk.get_type().name(), ok.to_string());
+                    assert(false);
+                }
             }
 
             cr.show_page();
@@ -181,16 +184,6 @@ namespace My {
             var last_blk = process_node_into(doc.root, el, (owned)first_blk, retval, state);
             commit(last_blk, retval);
 
-#if 0
-            // Tests of alpha
-            {
-                IndentType ty = LOWERCASE_ALPHA;
-                for(int i=1; i<=100; ++i) {
-                    printerr("%3d %s\n", i, ty.render(i));
-                }
-            }
-#endif
-
             return retval;
         } // make_blocks()
 
@@ -209,8 +202,8 @@ namespace My {
         {
             if(!retval.is_empty && retval.last() == blk) return;
             // XXX DEBUG
-            print("commit: adding blk with markup <%s> and post-markup <%s>\n",
-                blk.markup, blk.post_markup);
+            print("commit: adding blk with markup <%s> and post-markup <%s>, type %s\n",
+                blk.markup, blk.post_markup, blk.get_type().name());
             retval.add(blk);
         }
 
@@ -240,9 +233,11 @@ namespace My {
                 string.nfill(node.depth()*4, ' '), el.ty.to_string(), node,
                 text_markup);
 
+            // Reminder: parameters to Blk instances are relative to the
+            // left margin.
             switch(el.ty) {
             case ROOT:
-                // Nothing else to do
+                // Nothing to do
                 break;
 
             // --- divs -----------------------------------------
@@ -257,7 +252,7 @@ namespace My {
                 break;
 
             case BLOCK_COPY:
-                blk.append_paragraph_markup(text_markup);
+                blk.markup += text_markup;
                 // Do not create a new blk here since there may be other
                 // nodes that have yet to contribute to blk.
                 complete = true;
@@ -265,9 +260,8 @@ namespace My {
 
             case BLOCK_QUOTE:
                 commit(blk, retval);
-                blk = new Blk(layout);
-                sb.append_printf("QUOTH THE RAVEN: [%s", text_markup);
-                blk.post_markup = "]" + blk.post_markup;
+                blk = new QuoteBlk(layout, 36*Pango.SCALE);
+                sb.append(text_markup);
                 complete = true;
                 break;
 
@@ -291,12 +285,15 @@ namespace My {
                 var lidx = state.levels.length - 1;
                 state.last_numbers[lidx]++;
 
+                // TODO? change this?
+                int margin = state.levels[lidx].is_bullet() ? 18 : 36;
+
                 blk = new BulletBlk(layout, "%s%s".printf(
                             state.levels[lidx].render(state.last_numbers[lidx]),
                             state.levels[lidx].is_bullet() ? "" : "."
                         ),
-                        Pango.SCALE * (72 + lidx*36),   // bullet_leftP
-                        Pango.SCALE * (72 + lidx*36 + 36) // text_leftP
+                        Pango.SCALE * (lidx*margin),   // bullet_leftP
+                        Pango.SCALE * (lidx*margin + margin) // text_leftP
                 );
                 sb.append(text_markup);
 
@@ -305,9 +302,7 @@ namespace My {
 
             case BLOCK_HR:
                 commit(blk, retval);
-                blk = new Blk(layout);
-                sb.append_printf("-----------[%s", text_markup);   // TODO
-                blk.post_markup = "]" + blk.post_markup;
+                blk = new HRBlk(layout, 0);
                 complete = true;
                 break;
 
@@ -356,7 +351,7 @@ namespace My {
                 break;
             }
 
-            blk.append_paragraph_markup(sb.str);
+            blk.markup += sb.str;
 
             // process children
             for(uint i = 0; i < node.n_children(); ++i) {
