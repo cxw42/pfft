@@ -7,6 +7,49 @@ using My.Blocks;
 
 namespace My {
 
+    // Unit-conversion functions -----------------------------------------
+
+    /** Cairo to Pango units */
+    int c2p(double valC) {
+        return (int)(valC*Pango.SCALE);
+    }
+
+    /** Pango to Cairo units */
+    double p2c(int valP) {
+        return ((double)valP)/Pango.SCALE;
+    }
+
+    /**
+     * Cairo units to inches
+     *
+     * This assumes that a Cairo unit is a point at 72 ppi.
+     * This is the case for PDF surfaces.
+     */
+    double c2i(double valC) {
+        return valC/72;
+    }
+
+    /**
+     * Inches to Cairo units
+     *
+     * Same assumptions as c2i().
+     */
+    double i2c(double valI) {
+        return valI*72;
+    }
+
+    /** Inches to Pango units */
+    int i2p(double valI) {
+        return c2p(i2c(valI));
+    }
+
+    /** Pango units to inches */
+    double p2i(int valP) {
+        return c2i(p2c(valP));
+    }
+
+    // -------------------------------------------------------------------
+
     /**
      * Pango-markup document writer.
      *
@@ -23,8 +66,30 @@ namespace My {
         /** The Cairo context for the document we are writing */
         Cairo.Context cr = null;
 
-        /** The Pango layout for the document we are writing */
+        /** The Pango layout for the text of the document we are writing */
         Pango.Layout layout = null;
+
+        /** The Pango layout for the page numbers */
+        Pango.Layout pageno_layout = null;
+
+        /** Current page */
+        int pageno;
+
+        // Page parameters (unit suffixes: Inches, Cairo, Pango)
+        [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
+        public double paperwidthI { get; set; default = 8.5; }
+        [Description(nick = "Paper height (in.)", blurb = "Paper height, in inches")]
+        public double paperheightI { get; set; default = 11.0; }
+        [Description(nick = "Left margin (in.)", blurb = "Left margin, in inches")]
+        public double lmarginI { get; set; default = 1.0; }
+        [Description(nick = "Top margin (in.)", blurb = "Top margin, in inches")]
+        public double tmarginI { get; set; default = 1.0; }
+        [Description(nick = "Text width (in.)", blurb = "Width of the text block, in inches")]
+        public double hsizeI { get; set; default = 6.5; }
+        [Description(nick = "Text height (in.)", blurb = "Height of the text block, in inches")]
+        public double vsizeI { get; set; default = 9.0; }
+        [Description(nick = "Footer margin (in.)", blurb = "Space between the bottom of the text block and the top of the footer, in inches")]
+        public double footerskipI { get; set; default = 0.3; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
@@ -43,37 +108,65 @@ namespace My {
          * Write a document to a file.
          * @param filename  The name of the file to write
          * @param doc       The document to write
+         * TODO make paper size a parameter
          */
         public void write_document(string filename, Doc doc) throws FileError, My.Error
         {
+            int hsizeP = i2p(hsizeI);
+            int rightP = i2p(lmarginI+hsizeI);
+            int bottomP = i2p(tmarginI+vsizeI);
+
             // Set up the drawing space
-            var surf = new Cairo.PdfSurface(filename, 8.5*72, 50*72);   // TODO 50->11 for Letter paper
+            var surf = new Cairo.PdfSurface(filename, i2c(paperwidthI), i2c(paperheightI));
             if(surf.status() != Cairo.Status.SUCCESS) {
                 throw new Error.WRITER("Could not create surface: " +
                           surf.status().to_string());
             }
 
+            // Prepare to render
             cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout_12pt(cr);
+            layout = Blocks.new_layout_12pt(cr);    // Layout for the copy
 
-            cr.move_to(1*72, 1*72);     // 1" over, 1" down (respectively) from the UL corner
+            pageno_layout = Blocks.new_layout_12pt(cr); // Layout for page numbers
+            pageno_layout.set_width(hsizeP);
+            pageno_layout.set_alignment(CENTER);
 
-            // Break the text into individually-rendered blocks
+            cr.move_to(i2c(lmarginI), i2c(tmarginI));
+            // over, down (respectively) from the UL corner
+
+            // Break the text into individually-rendered blocks.
+            // Must be done after `layout` is created.
             var blocks = make_blocks(doc);
 
             // Render
+            pageno = 1;
+
             foreach(var blk in blocks) {
-                // Parameters to render() are page-relative
-                var ok = blk.render(cr, (int)((1+6.5)*72*Pango.SCALE), (int)(50*72*Pango.SCALE));  // TODO 50->10 for letter
-                if(ok != RenderResult.COMPLETE) {
-                    // TODO handle pagination
-                    printerr("Block of type %s returned %s\n",
-                        blk.get_type().name(), ok.to_string());
-                    assert(false);
+                while(true) {   // Render this block, which may take more than one pass
+                    // Parameters to render() are page-relative
+                    printerr("rendering %s %p\n", blk.get_type().name(), blk);
+                    if(surf.status() != Cairo.Status.SUCCESS) {
+                        printerr("Surface status: %s\n", surf.status().to_string());
+                    }
+
+                    var ok = blk.render(cr, rightP, bottomP);
+                    if(ok == RenderResult.COMPLETE) {
+                        break;  // Move on to the next block
+                    } else if(ok == RenderResult.ERROR) {
+                        printerr("Block of type %s returned %s\n",
+                            blk.get_type().name(), ok.to_string());
+                        assert(false);  // TODO improve this
+                    }
+
+                    // We got PARTIAL or NONE, so we need to start a new page.
+                    eject_page();
                 }
             }
 
-            cr.show_page();
+            // We only eject in the loop above when a block demands it.
+            // Therefore, there should always be a page to eject here,
+            // even if there were no blocks.
+            eject_page();
 
             // Save the PDF
             surf.finish();
@@ -82,7 +175,32 @@ namespace My {
                           surf.status().to_string());
             }
 
-        } // write_document
+        } // write_document()
+
+        /** Finish the current page and write it out */
+        void eject_page()
+        {
+            // render the page number on the page we just finished
+            printerr("Finalizing page %d\n", pageno);
+            pageno_layout.set_text(pageno.to_string(), -1);
+            cr.move_to(i2c(lmarginI), i2c(tmarginI+vsizeI+footerskipI));
+            Pango.cairo_show_layout(cr, pageno_layout);
+            cr.show_page();
+
+            ++pageno;
+            cr.new_path();
+            cr.move_to(i2c(lmarginI), i2c(tmarginI));
+            double leftC, topC;
+            cr.get_current_point(out leftC, out topC);
+            printerr("Starting page %d at (%f,%f) %s l %f t %f\n", pageno,
+                leftC, topC, cr.has_current_point() ? "has pt" : "no pt",
+                lmarginI, tmarginI);
+
+        } // eject_page()
+
+        ///////////////////////////////////////////////////////////////////
+        // Generate blocks of markup from a Doc.
+        // The methods in this section assume cr and layout members are valid
 
         /** Markup for header levels */
         private string[] header_attributes = {
@@ -94,10 +212,6 @@ namespace My {
             "font_weight=\"bold\"",
             "font_weight=\"bold\" font_style=\"italic\"",
         };
-
-        ///////////////////////////////////////////////////////////////////
-        // Generate blocks of markup from a Doc.
-        // The methods in this section assume cr and layout members are valid
 
         // === Bulleted/numbered list support =============================
 
@@ -304,6 +418,7 @@ namespace My {
                 commit(blk, retval);
                 blk = new HRBlk(layout, 0);
                 complete = true;
+                // TODO figure out how to handle rules inside indented lists
                 break;
 
             case BLOCK_CODE:

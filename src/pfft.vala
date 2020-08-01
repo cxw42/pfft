@@ -343,8 +343,8 @@ namespace My {
             }
 
             foreach(string name in m.ascending_keys) {
-                if(default_class == "") {   // in case we didn't find one before
-                    default_class = name;
+                if(default_class == "") {   // in case we didn't find one before,
+                    default_class = name;   // use the first by default.
                 }
 
                 var type = m.get(name);

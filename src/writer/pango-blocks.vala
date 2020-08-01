@@ -159,11 +159,14 @@ namespace My { namespace Blocks {
 
     /** Results of a Blk.render() call */
     public enum RenderResult {
+        /** Other error */
         ERROR,
         /** The whole block was rendered */
         COMPLETE,
         /** There is more to render, e.g., on the next page */
         PARTIAL,
+        /** None of the block fit on the page */
+        NONE,
     }
 
     /**
@@ -227,57 +230,196 @@ namespace My { namespace Blocks {
         protected Pango.Layout layout;
 
         /**
+         * How many lines of the content have already been rendered.
+         *
+         * The use of this is up to child classes.
+         */
+        protected int nlines_rendered = 0;
+
+        /**
+         * Render a portion of a block
+         *
+         * Parameters are as render().  Sets nlines_rendered.
+         * Requires the layout already be initialized.
+         */
+        protected RenderResult render_partial(Cairo.Context cr,
+            Pango.Layout layout,
+            double leftC, double topC,
+            int rightP, int bottomP, string final_markup)
+        {
+            int lineno = 0;
+            int yP = c2p(topC);  // Current Y
+            unowned var lines = layout.get_lines_readonly();
+            unowned SList<Pango.LayoutLine> curr_line = lines;
+
+            printerr("render_partial BEGIN %s\n", this.get_type().name());
+            while(curr_line != null) {
+
+                // Advance to the first line not yet rendered
+                if(nlines_rendered > 0 && lineno < nlines_rendered) {
+                    printerr("Skipping line %d\n", lineno);
+                    ++lineno;
+                    curr_line = curr_line.next;
+                    continue;
+                }
+
+                // Can we fit this line?
+                printerr("Trying line %d\n", lineno);
+                // Note: the box is with respect to the baseline, NOT
+                // the upper-left corner.
+                Pango.Rectangle inkP, logicalP;
+                // int line_heightP;
+                curr_line.data.get_extents(out inkP, out logicalP);
+                // curr_line.data.get_height(out line_heightP);
+                // Requires Pango 1.44+
+
+                if(true) { // DEBUG
+                    printerr("  ink: %fx%f@(%f,%f)\n", p2i(inkP.width),
+                        p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
+                    printerr("  log: %fx%f@(%f,%f)\n", p2i(logicalP.width),
+                        p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
+                    // printerr("  height: %f\n", p2i(line_heightP));
+                }
+
+                if(yP + logicalP.y + logicalP.height > bottomP) {
+                    // Done with what we can do for this page.
+                    nlines_rendered = lineno;
+                    printerr("--- Done - rendered %d lines\n", nlines_rendered);
+                    return PARTIAL;
+                }
+
+                if(true) { // DEBUG: render the rectangles
+                    cr.save();
+                    cr.set_antialias(NONE);
+                    cr.set_line_width(0.5);
+                    if(false) { // ink
+                        cr.set_source_rgb(1,0,0);
+                        cr.rectangle(leftC+p2c(inkP.x), p2c(yP+inkP.y), p2c(inkP.width), p2c(inkP.height));
+                        cr.stroke();
+                    }
+                    if(true) {  // logical
+                        cr.set_source_rgb(0,0,1);
+                        cr.rectangle(leftC+p2c(logicalP.x), p2c(yP+logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
+                        cr.stroke();
+                    }
+                    cr.restore();
+                }
+
+                // Render this line
+                printerr("Rendering line %d at %f\"\n", lineno, p2i(yP));
+                cr.move_to(leftC, p2c(yP));
+                Pango.cairo_show_layout_line(cr, curr_line.data);
+                // UNSETS the current point
+                yP += logicalP.height;
+                cr.move_to(leftC, p2c(yP));
+                double currxC, curryC;
+                cr.get_current_point(out currxC, out curryC);
+                printerr("  now at (%f,%f) %s\n", c2i(currxC), c2i(curryC),
+                    cr.has_current_point() ? "has pt" : "no pt");
+
+                // On to the next line
+                ++lineno;
+                curr_line = curr_line.next;
+
+            } // for each line
+
+
+            if(curr_line == null) { // we did the whole block somehow
+                nlines_rendered = 0;
+                printerr("render_partial COMPLETE\n");
+                return COMPLETE;
+            }
+
+            nlines_rendered = lineno;   // Usual case
+            printerr("render_partial PARTIAL\n");
+            return PARTIAL;
+
+        } // render_partial()
+
+        /**
          * Render a markup block with no decorations.
          *
          * This is a helper for child classes.  If final_markup is empty,
          * this is a no-op.  Parameters are as in render().
+         *
+         * This respects nlines_rendered and invokes render_partial if needed.
          */
-        protected static RenderResult render_simple(Cairo.Context cr,
+        protected RenderResult render_simple(Cairo.Context cr,
             Pango.Layout layout,
-            double rightP, double bottomP, string final_markup)
+            int rightP, int bottomP, string final_markup)
         {
-            double leftC;
-            double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
+            double leftC, topC; // Where we started
 
             if(final_markup == "") {
                 return RenderResult.COMPLETE;
             }
 
-            cr.get_current_point(out xC, out yC);
-            leftC = xC;
+            cr.get_current_point(out leftC, out topC);
+            printerr("render_simple %s %p starting at (%f, %f) limits (%f, %f)\n",
+                this.get_type().name(), this,
+                c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
 
-            // Out of range
-            if(xC*Pango.SCALE >= rightP || yC*Pango.SCALE >= bottomP) {
-                return RenderResult.ERROR;
+            if(nlines_rendered > 0) {   // we already did part, so do the rest
+                return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
             }
 
-            layout.set_width((int)(rightP - xC*Pango.SCALE));
+            // Out of range
+            if(c2p(topC) >= bottomP) {
+                return RenderResult.NONE;
+            }
+            if(c2p(leftC) >= rightP ) {
+                printerr("render_simple: too wide\n");
+                return RenderResult.ERROR;  // too wide
+            }
+
+            layout.set_width(rightP - c2p(leftC));
             layout.set_markup(final_markup, -1);
 
-            // TODO check metrics and see if we are at risk of running
-            // off the page
+            // check metrics and see if we are at risk of running
+            // off the page vertically
+
+            Pango.Rectangle inkP, logicalP;
+            layout.get_extents(out inkP, out logicalP);
+            if(topC + p2c(logicalP.y + logicalP.height) >= p2c(bottomP)) {
+                printerr("Overflow: %f > %f\n",
+                    c2i(topC + p2c(logicalP.y + logicalP.height)),
+                    p2i(bottomP));
+                return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
+            }
+
+            if(false) { // DEBUG
+                printerr("ink: %dx%d@(%d,%d)\n", inkP.width/Pango.SCALE,
+                    inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
+                    inkP.y/Pango.SCALE);
+                printerr("log: %dx%d@(%d,%d)\n", logicalP.width/Pango.SCALE,
+                    logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
+                    logicalP.y/Pango.SCALE);
+            }
 
             Pango.cairo_show_layout(cr, layout);
 
+            if(false) { // DEBUG: render the rectangles
+                cr.save();
+                cr.set_antialias(NONE);
+                cr.set_line_width(0.5);
+                if(false) { // ink
+                    cr.set_source_rgb(1,0,0);
+                    cr.rectangle(leftC+p2c(inkP.x), topC+p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
+                    cr.stroke();
+                }
+                if(true) {  // logical
+                    cr.set_source_rgb(0,0,1);
+                    cr.rectangle(leftC+p2c(logicalP.x), topC+p2c(logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
+                    cr.stroke();
+                }
+                cr.restore();
+            }
+
             // Move down the page
-            Pango.Rectangle inkP, logicalP;
-            layout.get_extents(out inkP, out logicalP);
+            cr.move_to(leftC,
+                topC + p2c(logicalP.y + logicalP.height));
 
-            // XXX DEBUG
-            print("ink: %dx%d@(%d,%d)\n", inkP.width/Pango.SCALE,
-                inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
-                inkP.y/Pango.SCALE);
-            print("log: %dx%d@(%d,%d)\n", logicalP.width/Pango.SCALE,
-                logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
-                logicalP.y/Pango.SCALE);
-
-            // TODO figure out how to use logicalP's X and Y, which may be nonzero
-            cr.get_current_point(out xC, out yC);
-            cr.rel_move_to(-xC + leftC,
-                (logicalP.y + logicalP.height)/Pango.SCALE);
-
-            // XXX DEBUG
-            print("Render block: <[%s]>\n", final_markup);
+            // printerr("Render block: <[%s]>\n", final_markup); // DEBUG
             return RenderResult.COMPLETE;
         } // render_simple()
 
@@ -297,6 +439,9 @@ namespace My { namespace Blocks {
          *
          * This function must not be called on two blocks at the same time
          * if those blocks share a layout instance.
+         *
+         * This function may be called multiple times for the same block
+         * if the block is split across pages.
          *
          * @param cr        The context to render into
          * @param rightP    The right limit w.r.t. the page, in Pango units
@@ -330,7 +475,7 @@ namespace My { namespace Blocks {
         /**
          * The left edge of the text, w.r.t. the left margin.
          *
-         * Must be less than bullet_leftP.
+         * Must be greater than bullet_leftP.
          */
         private int text_leftP;
 
@@ -357,40 +502,39 @@ namespace My { namespace Blocks {
                 return RenderResult.COMPLETE;
             }
 
-            double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
-            double leftC;
-            double xP, yP;
-            cr.get_current_point(out xC, out yC);
-            leftC = xC;
-            xP = xC * Pango.SCALE;
-            yP = yC * Pango.SCALE;
+            double xC, yC, leftC, topC;
+            cr.get_current_point(out leftC, out topC);
 
             // Out of range
-            if(xP >= rightP || yP >= bottomP || bullet_leftP >= rightP ||
-                text_leftP >= rightP) {
+            if(c2p(topC) >= bottomP) {
+                return RenderResult.NONE;
+            }
+
+            if(c2p(leftC) >= rightP || c2p(leftC)+bullet_leftP >= rightP ||
+                c2p(leftC)+text_leftP >= rightP) {
+                printerr("bullet render(): too wide\n");
                 return RenderResult.ERROR;
             }
 
-            // TODO check metrics and see if we are at risk of running
-            // off the page
+            // Try to render the markup.  This will fail if we don't have room.
+            cr.move_to(leftC + p2c(text_leftP), topC);
+            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+            if(result != COMPLETE) {
+                return result;  // TODO render the bullet if it's the first PARTIAL
+            }
 
             // render the bullet
             // TODO shift the bullet down so it is centered on the first
             // line of the text.
-            cr.move_to(leftC + (double)bullet_leftP/Pango.SCALE, yC);
+            cr.get_current_point(out xC, out yC);   // where the copy left us
+            cr.move_to(leftC + p2c(bullet_leftP), topC);
             layout.set_width(text_leftP - bullet_leftP);
             layout.set_markup(bullet_markup, -1);
             Pango.cairo_show_layout(cr, layout);
 
-            // Render the markup
-            cr.move_to(leftC + (double)text_leftP/Pango.SCALE, yC);
+            cr.move_to(leftC, yC);
 
-            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
-
-            cr.get_current_point(out xC, out yC);
-            cr.rel_move_to(-xC + leftC, 0);
-
-            return result;
+            return COMPLETE;
         }
     } // class BulletBlk
 
@@ -403,7 +547,7 @@ namespace My { namespace Blocks {
         private int leftP = 0;
 
         /** The amount of vertical space the rule occupies */
-        private int heightP = 12 * Pango.SCALE;
+        private int heightP = c2p(12);  // 12 pt --- assumes points for Cairo units
 
         public HRBlk(Pango.Layout layout, int leftP)
         {
@@ -422,34 +566,37 @@ namespace My { namespace Blocks {
             double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
             double leftC;   // left margin
             double heightC = heightP/Pango.SCALE;
-            double xP, yP;
 
             cr.get_current_point(out xC, out yC);
             leftC = xC;
-            xP = xC * Pango.SCALE;
-            yP = yC * Pango.SCALE;
 
             // Out of range
-            if(xP >= rightP || yP >= bottomP || leftP >= rightP) {
+            if(c2p(yC) >= bottomP) {
+                return RenderResult.NONE;
+            }
+            if(c2p(xC) >= rightP || leftP >= rightP) {
                 return RenderResult.ERROR;
             }
 
-            // TODO check metrics and see if we are at risk of running
-            // off the page
+            // check metrics.  The rule is never split across pages, so
+            // does not return PARTIAL.
+            if(c2p(yC) + heightP >= bottomP) {
+                return RenderResult.NONE;
+            }
 
             // render the rule
             cr.save();
             cr.set_source_rgb(0,0,0);
-            cr.set_line_width(0.75);    // pt?
-            cr.move_to(leftC + (double)leftP/Pango.SCALE, yC + heightC*0.5);
-            cr.line_to((double)rightP/Pango.SCALE, yC + heightC*0.5);
+            cr.set_line_width(0.75);    // pt, I think
+            cr.move_to(leftC + p2c(leftP), yC + heightC*0.5);
+            cr.line_to(p2c(rightP), yC + heightC*0.5);
             cr.stroke();
             cr.restore();
 
             // move 12 pts. down.  TODO make the vertical size a parameter.
             cr.move_to(leftC, yC + heightC);
 
-            print("Render rule\n");  // XXX DEBUG
+            // printerr("Render rule\n");  // XXX DEBUG
             return RenderResult.COMPLETE;
         }
     } // class HRBlk
@@ -486,29 +633,29 @@ namespace My { namespace Blocks {
             }
 
             double x1C, y1C;    // Starting points
-            double x1P, y1P;
             double x2C, y2C;    // Ending points of the text block
 
             cr.get_current_point(out x1C, out y1C);
-            x1P = x1C * Pango.SCALE;
-            y1P = y1C * Pango.SCALE;
 
             // Out of range
-            if(x1P >= rightP || y1P >= bottomP || text_leftP >= rightP) {
+            if(c2p(x1C) >= bottomP) {
+                return RenderResult.NONE;
+            }
+            if(c2p(x1C) >= rightP || text_leftP >= rightP) {
                 return RenderResult.ERROR;
             }
 
-            // TODO check metrics and see if we are at risk of running
-            // off the page
-
-            // Render the markup
-            cr.move_to(x1C + (double)text_leftP/Pango.SCALE, y1C);
+            // Try to render the markup
+            cr.move_to(x1C + p2c(text_leftP), y1C);
             var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+            if(result != COMPLETE) {
+                return result;
+            }
 
             cr.get_current_point(out x2C, out y2C);
 
             // render the sidebar
-            double xsC = x1C + (double)text_leftP*0.5/Pango.SCALE;
+            double xsC = x1C + p2c(text_leftP)*0.5;
             cr.save();
             cr.set_source_rgb(0.7,0.7,0.7);
             cr.set_line_width(6.0);
@@ -519,7 +666,7 @@ namespace My { namespace Blocks {
 
             cr.move_to(x1C, y2C);
 
-            return result;
+            return COMPLETE;
         }
     } // class QuoteBlk
 
