@@ -167,6 +167,8 @@ namespace My { namespace Blocks {
         PARTIAL,
         /** None of the block fit on the page */
         NONE,
+        /** Unknown status */
+        UNKNOWN,
     }
 
     /**
@@ -246,11 +248,16 @@ namespace My { namespace Blocks {
             Pango.Layout layout,
             double leftC, double topC,
             int rightP, int bottomP, string final_markup)
+        ensures(result == COMPLETE || result == PARTIAL)
         {
             int lineno = 0;
             int yP = c2p(topC);  // Current Y
             unowned var lines = layout.get_lines_readonly();
             unowned SList<Pango.LayoutLine> curr_line = lines;
+            int last_bottom_yP = 0; // bottom of the last-rendered line
+            bool first_line = true;
+
+            RenderResult retval = UNKNOWN;
 
             printerr("render_partial BEGIN %s\n", this.get_type().name());
             while(curr_line != null) {
@@ -265,27 +272,34 @@ namespace My { namespace Blocks {
 
                 // Can we fit this line?
                 printerr("Trying line %d\n", lineno);
-                // Note: the box is with respect to the baseline, NOT
-                // the upper-left corner.
                 Pango.Rectangle inkP, logicalP;
-                // int line_heightP;
                 curr_line.data.get_extents(out inkP, out logicalP);
-                // curr_line.data.get_height(out line_heightP);
-                // Requires Pango 1.44+
+
+                if(first_line) {
+                    // The line's box is with respect to the baseline, NOT
+                    // the upper-left corner of the text block.
+                    // Adjust yP to compensate.
+                    yP -= logicalP.y;
+                    first_line = false;
+                }
 
                 if(true) { // DEBUG
                     printerr("  ink: %fx%f@(%f,%f)\n", p2i(inkP.width),
                         p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
                     printerr("  log: %fx%f@(%f,%f)\n", p2i(logicalP.width),
                         p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
-                    // printerr("  height: %f\n", p2i(line_heightP));
                 }
 
+                // TODO FIXME: if only a partial line fits on this page,
+                // and it's the first line, we incorrectly return PARTIAL
+                // instead of NONE.
                 if(yP + logicalP.y + logicalP.height > bottomP) {
                     // Done with what we can do for this page.
+                    // At least the current line is left, so this block is
+                    // not yet complete.
                     nlines_rendered = lineno;
-                    printerr("--- Done - rendered %d lines\n", nlines_rendered);
-                    return PARTIAL;
+                    retval = PARTIAL;
+                    break;
                 }
 
                 if(true) { // DEBUG: render the rectangles
@@ -308,32 +322,38 @@ namespace My { namespace Blocks {
                 // Render this line
                 printerr("Rendering line %d at %f\"\n", lineno, p2i(yP));
                 cr.move_to(leftC, p2c(yP));
-                Pango.cairo_show_layout_line(cr, curr_line.data);
-                // UNSETS the current point
+                Pango.cairo_show_layout_line(cr, curr_line.data);   // UNSETS the current point
+                last_bottom_yP = yP + logicalP.y + logicalP.height;
+
+                // Advance to the next line
                 yP += logicalP.height;
                 cr.move_to(leftC, p2c(yP));
-                double currxC, curryC;
-                cr.get_current_point(out currxC, out curryC);
-                printerr("  now at (%f,%f) %s\n", c2i(currxC), c2i(curryC),
-                    cr.has_current_point() ? "has pt" : "no pt");
+                if(true) { // DEBUG
+                    double currxC, curryC;
+                    cr.get_current_point(out currxC, out curryC);
+                    printerr("  now at (%f,%f) %s\n", c2i(currxC), c2i(curryC),
+                        cr.has_current_point() ? "has pt" : "no pt");
+                }
 
-                // On to the next line
                 ++lineno;
                 curr_line = curr_line.next;
 
             } // for each line
 
-
-            if(curr_line == null) { // we did the whole block somehow
+            if(curr_line == null) {
+                // we finished the block on this page
                 nlines_rendered = 0;
-                printerr("render_partial COMPLETE\n");
-                return COMPLETE;
+                retval = COMPLETE;
+
+                // Move the Pango current point to the bottom-left of the last
+                // line's logical rectangle
+                cr.move_to(leftC, p2c(last_bottom_yP));
             }
 
-            nlines_rendered = lineno;   // Usual case
-            printerr("render_partial PARTIAL\n");
-            return PARTIAL;
+            printerr("render_partial done - rendered %d lines - %s\n",
+                nlines_rendered, retval.to_string());
 
+            return retval;
         } // render_partial()
 
         /**
@@ -342,7 +362,7 @@ namespace My { namespace Blocks {
          * This is a helper for child classes.  If final_markup is empty,
          * this is a no-op.  Parameters are as in render().
          *
-         * This respects nlines_rendered and invokes render_partial if needed.
+         * This respects nlines_rendered and invokes render_partial() if needed.
          */
         protected RenderResult render_simple(Cairo.Context cr,
             Pango.Layout layout,
@@ -359,7 +379,10 @@ namespace My { namespace Blocks {
                 this.get_type().name(), this,
                 c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
 
-            if(nlines_rendered > 0) {   // we already did part, so do the rest
+            if(nlines_rendered > 0) {
+                // we already did part, so do the next part.  This may not be
+                // the whole rest of the block, if the block's text is longer
+                // than a page.
                 return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
             }
 
@@ -504,6 +527,9 @@ namespace My { namespace Blocks {
 
             double xC, yC, leftC, topC;
             cr.get_current_point(out leftC, out topC);
+            if(true) { //DEBUG
+                printerr("%s:%d: Now at (%f, %f)\n", Log.METHOD, Log.LINE, c2i(leftC), c2i(topC));
+            }
 
             // Out of range
             if(c2p(topC) >= bottomP) {
@@ -518,15 +544,20 @@ namespace My { namespace Blocks {
 
             // Try to render the markup.  This will fail if we don't have room.
             cr.move_to(leftC + p2c(text_leftP), topC);
+            bool is_first_chunk = (nlines_rendered == 0);
             var result = render_simple(cr, layout, rightP, bottomP, final_markup);
-            if(result != COMPLETE) {
-                return result;  // TODO render the bullet if it's the first PARTIAL
+            if(!is_first_chunk) {   // Nothing more to do
+                return result;
             }
+            // TODO FIXME: after fixing render_partial, check for NONE here
 
             // render the bullet
             // TODO shift the bullet down so it is centered on the first
             // line of the text.
             cr.get_current_point(out xC, out yC);   // where the copy left us
+            if(true) { //DEBUG
+                printerr("Now at (%f, %f)\n", c2i(xC), c2i(yC));
+            }
             cr.move_to(leftC + p2c(bullet_leftP), topC);
             layout.set_width(text_leftP - bullet_leftP);
             layout.set_markup(bullet_markup, -1);
@@ -534,7 +565,7 @@ namespace My { namespace Blocks {
 
             cr.move_to(leftC, yC);
 
-            return COMPLETE;
+            return result;  // COMPLETE or PARTIAL from render_simple()
         }
     } // class BulletBlk
 

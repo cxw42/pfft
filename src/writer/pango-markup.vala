@@ -338,6 +338,7 @@ namespace My {
             bool complete = false;  // if true, nothing more to do before committing blk
             string text_markup = Markup.escape_text(el.text);
             string post_children_markup = "";   // markup to be added after the children are processed
+            bool trim_trailing_whitespace = false;
             StringBuilder sb = new StringBuilder();
 
             var state = state_in;
@@ -428,7 +429,8 @@ namespace My {
                 state = state.clone();
                 state.obeylines = true;
 
-                sb.append_printf("<tt>\n%s", text_markup);
+                sb.append_printf("<tt>%s", text_markup);
+                trim_trailing_whitespace = true;    // trim trailing \n, if any
                 blk.post_markup = "</tt>" + blk.post_markup;
                 complete = true;
                 break;
@@ -470,7 +472,7 @@ namespace My {
 
             // process children
             for(uint i = 0; i < node.n_children(); ++i) {
-                unowned GLib.Node<Elem> child = node.nth_child(i);
+                unowned var child = node.nth_child(i);
                 var newblk = process_node_into(child, child.data, (owned)blk,
                         retval, state);
                 blk = newblk;
@@ -485,6 +487,10 @@ namespace My {
                 } catch(RegexError e) {
                     // ignore regex errors
                 }
+            }
+
+            if(trim_trailing_whitespace) {
+                blk.markup._chomp();
             }
 
             if(complete) {
