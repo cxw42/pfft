@@ -10,7 +10,7 @@ EOL =
 MY_pgm_VALA = pfft.vala myconfig.vapi
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
-MY_reader_VALA = markdown-snapd.vala md4c-reader.vala \
+MY_reader_VALA = md4c-reader.vala \
 		 md4c.vapi \
 		 $(EOL)
 MY_reader_EXTRASOURCES = register.c \
@@ -37,7 +37,6 @@ MY_VALA_H = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.h))
 
 # Vala dependencies
 MY_VALA_PKGS = \
-	--pkg snapd-glib \
 	--pkg pangocairo --pkg pango --pkg cairo \
 	--pkg gee-0.8 \
 	--pkg gstreamer-1.0 \

@@ -15,12 +15,7 @@ Pfft:
 
 (Package names may differ --- these are for Ubuntu)
 
-    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev libgstreamer1.0-dev
-    $ sudo apt install -y --no-install-recommends libsnapd-glib1
-
-(Note the `--no-install-recommends` --- you don't need snapd installed.
-I am just using the Markdown parser in snapd-glib since it's there.)
-
+    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev
     $ tar xvf pfft-VERSION.tar.gz
     $ cd pfft-VERSION
     $ ./configure && make -j4 && sudo make install
@@ -49,9 +44,7 @@ Install Vala:
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y libpango1.0-dev libsnapd-glib-dev libgee-0.8-dev libgstreamer1.0-dev
-    $ sudo apt install -y --no-install-recommends libsnapd-glib1
-    $ sudo apt install -y autotools-dev uncrustify perl
+    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl
 
 Initialize submodules:
 

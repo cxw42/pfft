@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 using My;
-using Snapd;
 /**
  * argv[0], for use by sanity()
  */
@@ -23,7 +22,7 @@ void loadfile()
         var fn = Test.build_filename(Test.FileType.DIST, "001-basic.md");
         Test.message("Loading filename %s", fn);
 
-        var md = new MarkdownSnapdReader();
+        var md = new MarkdownMd4cReader();
         Doc doc = md.read_document(fn);
         assert_nonnull(doc);
         did_load = true;

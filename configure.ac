@@ -37,8 +37,6 @@ dnl === Dependencies ======================================================
 PKG_PROG_PKG_CONFIG([0.24])
 
 dnl use fewer variables for terser Makefiles.
-PKG_CHECK_MODULES([INPUT],[snapd-glib >= 1.48])
-    dnl v1.48+ for markdown parser
 PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
 PKG_CHECK_MODULES([BASE],[
     gee-0.8
