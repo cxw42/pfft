@@ -7,9 +7,19 @@ EOL =
 # directory under src/ .  Each variable refers to files in the
 # corresponding subdirectory.  The subdirectories are added by the variables
 # that use these.
+
+# src/
 MY_pgm_VALA = pfft.vala myconfig.vapi
+
+# src/core
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
+
+# src/logging
+MY_logging_VALA = logging.vala
+MY_logging_EXTRASOURCES = logging-c.h logging-c.c
+
+# src/reader
 MY_reader_VALA = md4c-reader.vala \
 		 md4c.vapi \
 		 $(EOL)
@@ -19,11 +29,14 @@ MY_reader_EXTRASOURCES = register.c \
 			 md4c-shim.c md4c-shim.h \
 			 reader-shim.c reader-shim.h \
 			 $(EOL)
+
+# src/writer
 MY_writer_VALA = pango-markup.vala pango-blocks.vala \
 		 dumper.vala
 MY_writer_EXTRASOURCES = register.c
-# subdirs.  Core is listed last since it needs to be last in link lines.
-MY_subdirs = reader writer core
+
+# subdirs.  Listed in the order they should appear on link lines.
+MY_subdirs = reader writer core logging
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \

@@ -5,6 +5,8 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+using My.Log;
+
 namespace My { namespace Blocks {
 
     /** Types of bullets/numbers */
@@ -527,8 +529,8 @@ namespace My { namespace Blocks {
 
             double xC, yC, leftC, topC;
             cr.get_current_point(out leftC, out topC);
-            if(true) { //DEBUG
-                printerr("%s:%d: Now at (%f, %f)\n", Log.METHOD, Log.LINE, c2i(leftC), c2i(topC));
+            if(true) { // DEBUG
+                llog("Now at (%f, %f)\n", c2i(leftC), c2i(topC));
             }
 
             // Out of range
@@ -555,7 +557,7 @@ namespace My { namespace Blocks {
             // TODO shift the bullet down so it is centered on the first
             // line of the text.
             cr.get_current_point(out xC, out yC);   // where the copy left us
-            if(true) { //DEBUG
+            if(true) { // DEBUG
                 printerr("Now at (%f, %f)\n", c2i(xC), c2i(yC));
             }
             cr.move_to(leftC + p2c(bullet_leftP), topC);

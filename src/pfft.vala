@@ -2,6 +2,8 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+using My.Log;
+
 namespace My {
     // Types {{{1
     /**
@@ -145,8 +147,19 @@ namespace My {
             string[] dummy_args = {""};
             unowned var dargs = dummy_args;
             Gst.init(ref dargs);
+            linit();    // init logging
 
-            // TODO get available readers and writers
+            // XXX test logging
+            lerror("Error %d %s", 42, "answer");
+            lwarning("Warn %d %s", 42, "answer");
+            lfixme("Fixme %d %s", 42, "answer");
+            linfo("Info %d %s", 42, "answer");
+            ldebug("Debug %d %s", 42, "answer");
+            llog("Log %d %s", 42, "answer");
+            ltrace("Trace %d %s", 42, "answer");
+            lmemdump("Error", "foo", 3);
+
+            // get available readers and writers
             readers_ = new ClassMap();
             writers_ = new ClassMap();
             load_from_registry();
@@ -157,7 +170,7 @@ namespace My {
                 var opt_context = new OptionContext ("- produce a PDF from each FILENAME");
                 opt_context.set_help_enabled (true);
                 opt_context.add_main_entries (get_options(), null);
-                // TODO add entries from available readers and writers
+                // TODO? add entries from available readers and writers
                 opt_context.set_description(
                     ("Processes FILENAME and outputs a PDF.\n" +
                     "Visit %s for more information.\n" +

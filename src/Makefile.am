@@ -1,6 +1,6 @@
 include $(top_srcdir)/rules.mk
 
-SUBDIRS = core reader writer
+SUBDIRS = logging core reader writer
 EXTRA_DIST =
 
 LOCAL_VALA_FLAGS = $(MY_use_all_valaflags)

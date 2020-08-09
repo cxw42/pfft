@@ -3,6 +3,7 @@ include $(top_srcdir)/rules.mk
 LOCAL_VALA_FLAGS = \
 	-H pfft-writer.h --library pfft-writer --vapi pfft-writer.vapi \
 	--vapidir $(top_srcdir)/src/core --pkg pfft-core \
+	--vapidir $(top_srcdir)/src/logging --pkg pfft-logging \
 	--pkg gee-0.8 \
 	$(EOL)
 

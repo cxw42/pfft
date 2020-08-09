@@ -1,0 +1,3 @@
+*.[ch]
+!logging.vapi
+!logging-c.[ch]

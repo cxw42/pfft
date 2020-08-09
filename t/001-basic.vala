@@ -11,7 +11,7 @@ private string program_name;
 void sanity()
 {
     Test.message("%s: Running sanity test in %s() at %s:%d",
-                 program_name, Log.METHOD, Log.FILE, Log.LINE);
+                 program_name, GLib.Log.METHOD, GLib.Log.FILE, GLib.Log.LINE);
     assert_true(true);
 }
 
