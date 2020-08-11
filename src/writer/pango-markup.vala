@@ -4,6 +4,7 @@
 
 using Gee;
 using My.Blocks;
+using My.Log;
 
 namespace My {
 
@@ -142,6 +143,7 @@ namespace My {
             pageno = 1;
 
             foreach(var blk in blocks) {
+                ldebugo(blk, "start render");
                 while(true) {   // Render this block, which may take more than one pass
                     // Parameters to render() are page-relative
                     printerr("rendering %s %p\n", blk.get_type().name(), blk);
@@ -161,6 +163,7 @@ namespace My {
                     // We got PARTIAL or NONE, so we need to start a new page.
                     eject_page();
                 }
+                ldebugo(blk, "end render");
             }
 
             // We only eject in the loop above when a block demands it.
@@ -181,7 +184,7 @@ namespace My {
         void eject_page()
         {
             // render the page number on the page we just finished
-            printerr("Finalizing page %d\n", pageno);
+            linfoo(this, "Finalizing page %d\n", pageno);
             pageno_layout.set_text(pageno.to_string(), -1);
             cr.move_to(i2c(lmarginI), i2c(tmarginI+vsizeI+footerskipI));
             Pango.cairo_show_layout(cr, pageno_layout);
@@ -192,7 +195,7 @@ namespace My {
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             double leftC, topC;
             cr.get_current_point(out leftC, out topC);
-            printerr("Starting page %d at (%f,%f) %s l %f t %f\n", pageno,
+            linfoo(this, "Starting page %d at (%f,%f) %s l %f t %f\n", pageno,
                 leftC, topC, cr.has_current_point() ? "has pt" : "no pt",
                 lmarginI, tmarginI);
 

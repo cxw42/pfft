@@ -7,7 +7,7 @@ LOCAL_VALA_FLAGS = \
 	--pkg gee-0.8 \
 	$(EOL)
 
-LOCAL_CFLAGS = -I$(top_srcdir)/src/core
+LOCAL_CFLAGS = -I$(top_srcdir)/src/core -I$(top_srcdir)/src/logging
 
 EXTRA_DIST = pfft-writer.h pfft-writer.vapi
 

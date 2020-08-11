@@ -261,19 +261,19 @@ namespace My { namespace Blocks {
 
             RenderResult retval = UNKNOWN;
 
-            printerr("render_partial BEGIN %s\n", this.get_type().name());
+            ldebugo(this, "render_partial BEGIN %s", this.get_type().name());
             while(curr_line != null) {
 
                 // Advance to the first line not yet rendered
                 if(nlines_rendered > 0 && lineno < nlines_rendered) {
-                    printerr("Skipping line %d\n", lineno);
+                    llogo(this, "Skipping line %d", lineno);
                     ++lineno;
                     curr_line = curr_line.next;
                     continue;
                 }
 
                 // Can we fit this line?
-                printerr("Trying line %d\n", lineno);
+                llogo(this, "Trying line %d", lineno);
                 Pango.Rectangle inkP, logicalP;
                 curr_line.data.get_extents(out inkP, out logicalP);
 
@@ -285,10 +285,10 @@ namespace My { namespace Blocks {
                     first_line = false;
                 }
 
-                if(true) { // DEBUG
-                    printerr("  ink: %fx%f@(%f,%f)\n", p2i(inkP.width),
+                if(lenabled(DEBUG)) { // DEBUG
+                    ldebugo(this, "  ink: %fx%f@(%f,%f)", p2i(inkP.width),
                         p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
-                    printerr("  log: %fx%f@(%f,%f)\n", p2i(logicalP.width),
+                    ldebugo(this, "  log: %fx%f@(%f,%f)", p2i(logicalP.width),
                         p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
                 }
 
@@ -304,16 +304,16 @@ namespace My { namespace Blocks {
                     break;
                 }
 
-                if(true) { // DEBUG: render the rectangles
+                if(lenabled(DEBUG)) { // DEBUG: render the rectangles
                     cr.save();
                     cr.set_antialias(NONE);
                     cr.set_line_width(0.5);
-                    if(false) { // ink
+                    if(lenabled(LOG)) { // ink
                         cr.set_source_rgb(1,0,0);
                         cr.rectangle(leftC+p2c(inkP.x), p2c(yP+inkP.y), p2c(inkP.width), p2c(inkP.height));
                         cr.stroke();
                     }
-                    if(true) {  // logical
+                    if(lenabled(DEBUG)) {  // logical
                         cr.set_source_rgb(0,0,1);
                         cr.rectangle(leftC+p2c(logicalP.x), p2c(yP+logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
                         cr.stroke();
@@ -322,7 +322,7 @@ namespace My { namespace Blocks {
                 }
 
                 // Render this line
-                printerr("Rendering line %d at %f\"\n", lineno, p2i(yP));
+                ldebugo(this, "Rendering line %d at %f\"", lineno, p2i(yP));
                 cr.move_to(leftC, p2c(yP));
                 Pango.cairo_show_layout_line(cr, curr_line.data);   // UNSETS the current point
                 last_bottom_yP = yP + logicalP.y + logicalP.height;
@@ -330,10 +330,10 @@ namespace My { namespace Blocks {
                 // Advance to the next line
                 yP += logicalP.height;
                 cr.move_to(leftC, p2c(yP));
-                if(true) { // DEBUG
+                if(lenabled(DEBUG)) { // DEBUG
                     double currxC, curryC;
                     cr.get_current_point(out currxC, out curryC);
-                    printerr("  now at (%f,%f) %s\n", c2i(currxC), c2i(curryC),
+                    ldebugo(this,"  now at (%f,%f) %s", c2i(currxC), c2i(curryC),
                         cr.has_current_point() ? "has pt" : "no pt");
                 }
 
@@ -352,7 +352,7 @@ namespace My { namespace Blocks {
                 cr.move_to(leftC, p2c(last_bottom_yP));
             }
 
-            printerr("render_partial done - rendered %d lines - %s\n",
+            ldebugo(this,"render_partial done - rendered %d lines - %s",
                 nlines_rendered, retval.to_string());
 
             return retval;
@@ -377,7 +377,7 @@ namespace My { namespace Blocks {
             }
 
             cr.get_current_point(out leftC, out topC);
-            printerr("render_simple %s %p starting at (%f, %f) limits (%f, %f)\n",
+            ldebugo(this,"render_simple %s %p starting at (%f, %f) limits (%f, %f)",
                 this.get_type().name(), this,
                 c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
 
@@ -393,7 +393,8 @@ namespace My { namespace Blocks {
                 return RenderResult.NONE;
             }
             if(c2p(leftC) >= rightP ) {
-                printerr("render_simple: too wide\n");
+                linfoo(this, "render_simple: too wide: %f >= %f",
+                        c2i(leftC), p2i(rightP));
                 return RenderResult.ERROR;  // too wide
             }
 
@@ -406,33 +407,33 @@ namespace My { namespace Blocks {
             Pango.Rectangle inkP, logicalP;
             layout.get_extents(out inkP, out logicalP);
             if(topC + p2c(logicalP.y + logicalP.height) >= p2c(bottomP)) {
-                printerr("Overflow: %f > %f\n",
+                lwarningo(this, "Overflow: %f > %f",
                     c2i(topC + p2c(logicalP.y + logicalP.height)),
                     p2i(bottomP));
                 return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
             }
 
-            if(false) { // DEBUG
-                printerr("ink: %dx%d@(%d,%d)\n", inkP.width/Pango.SCALE,
+            if(lenabled(DEBUG)) { // DEBUG
+                ldebugo(this, "ink: %dx%d@(%d,%d)", inkP.width/Pango.SCALE,
                     inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
                     inkP.y/Pango.SCALE);
-                printerr("log: %dx%d@(%d,%d)\n", logicalP.width/Pango.SCALE,
+                ldebugo(this, "log: %dx%d@(%d,%d)", logicalP.width/Pango.SCALE,
                     logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
                     logicalP.y/Pango.SCALE);
             }
 
             Pango.cairo_show_layout(cr, layout);
 
-            if(false) { // DEBUG: render the rectangles
+            if(lenabled(DEBUG)) { // DEBUG: render the rectangles
                 cr.save();
                 cr.set_antialias(NONE);
                 cr.set_line_width(0.5);
-                if(false) { // ink
+                if(lenabled(LOG)) { // ink
                     cr.set_source_rgb(1,0,0);
                     cr.rectangle(leftC+p2c(inkP.x), topC+p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
                 }
-                if(true) {  // logical
+                if(lenabled(DEBUG)) {  // logical
                     cr.set_source_rgb(0,0,1);
                     cr.rectangle(leftC+p2c(logicalP.x), topC+p2c(logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
                     cr.stroke();
@@ -444,7 +445,7 @@ namespace My { namespace Blocks {
             cr.move_to(leftC,
                 topC + p2c(logicalP.y + logicalP.height));
 
-            // printerr("Render block: <[%s]>\n", final_markup); // DEBUG
+            // ldebugo(this, "Render block: <[%s]>", final_markup); // DEBUG
             return RenderResult.COMPLETE;
         } // render_simple()
 
@@ -529,8 +530,8 @@ namespace My { namespace Blocks {
 
             double xC, yC, leftC, topC;
             cr.get_current_point(out leftC, out topC);
-            if(true) { // DEBUG
-                llog("Now at (%f, %f)\n", c2i(leftC), c2i(topC));
+            if(lenabled(DEBUG)) { // DEBUG
+                llog("Now at (%f, %f)", c2i(leftC), c2i(topC));
             }
 
             // Out of range
@@ -540,7 +541,7 @@ namespace My { namespace Blocks {
 
             if(c2p(leftC) >= rightP || c2p(leftC)+bullet_leftP >= rightP ||
                 c2p(leftC)+text_leftP >= rightP) {
-                printerr("bullet render(): too wide\n");
+                lerroro(this, "bullet render(): too wide");
                 return RenderResult.ERROR;
             }
 
@@ -557,8 +558,8 @@ namespace My { namespace Blocks {
             // TODO shift the bullet down so it is centered on the first
             // line of the text.
             cr.get_current_point(out xC, out yC);   // where the copy left us
-            if(true) { // DEBUG
-                printerr("Now at (%f, %f)\n", c2i(xC), c2i(yC));
+            if(lenabled(DEBUG)) { // DEBUG
+                ldebugo(this, "Now at (%f, %f)", c2i(xC), c2i(yC));
             }
             cr.move_to(leftC + p2c(bullet_leftP), topC);
             layout.set_width(text_leftP - bullet_leftP);
@@ -629,7 +630,7 @@ namespace My { namespace Blocks {
             // move 12 pts. down.  TODO make the vertical size a parameter.
             cr.move_to(leftC, yC + heightC);
 
-            // printerr("Render rule\n");  // XXX DEBUG
+            // ldebugo(this, "Render rule\n");  // XXX DEBUG
             return RenderResult.COMPLETE;
         }
     } // class HRBlk

@@ -28,7 +28,7 @@ namespace My {
     /**
      * Main application class for pfft
      */
-    public class App {
+    public class App: Object {
 
         // Command-line parsing {{{1
 
@@ -150,14 +150,25 @@ namespace My {
             linit();    // init logging
 
             // XXX test logging
-            lerror("Error %d %s", 42, "answer");
-            lwarning("Warn %d %s", 42, "answer");
-            lfixme("Fixme %d %s", 42, "answer");
-            linfo("Info %d %s", 42, "answer");
-            ldebug("Debug %d %s", 42, "answer");
-            llog("Log %d %s", 42, "answer");
-            ltrace("Trace %d %s", 42, "answer");
-            lmemdump("Error", "foo", 3);
+            if(lenabled(MEMDUMP)) {
+                lerror("Error %d %s", 42, "answer");
+                lwarning("Warn %d %s", 42, "answer");
+                lfixme("Fixme %d %s", 42, "answer");
+                linfo("Info %d %s", 42, "answer");
+                ldebug("Debug %d %s", 42, "answer");
+                llog("Log %d %s", 42, "answer");
+                ltrace("Trace %d %s", 42, "answer");
+                lmemdump("Memdump", "foo", 3);
+
+                lerroro(this, "Error %d %s", 42, "answer");
+                lwarningo(this, "Warn %d %s", 42, "answer");
+                lfixmeo(this, "Fixme %d %s", 42, "answer");
+                linfoo(this, "Info %d %s", 42, "answer");
+                ldebugo(this, "Debug %d %s", 42, "answer");
+                llogo(this, "Log %d %s", 42, "answer");
+                ltraceo(this, "Trace %d %s", 42, "answer");
+                lmemdumpo(this, "Memdump", "bar\0quux", 8);
+            }
 
             // get available readers and writers
             readers_ = new ClassMap();
