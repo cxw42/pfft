@@ -20,6 +20,16 @@ void md4c_free_parser_(MD_PARSER *parser)
     free(parser);
 }
 
+gchar *md4c_get_info_string(void *code_detail)
+{
+    struct MD_BLOCK_CODE_DETAIL *detail = (struct MD_BLOCK_CODE_DETAIL *)code_detail;
+    if(detail->info.text == NULL) {
+        return g_strdup("");
+    } else {
+        return g_strndup((gchar *)detail->info.text, detail->info.size);
+    }
+}
+
 // md4c.h copyright notice follows
 /*
  * MD4C: Markdown parser for C

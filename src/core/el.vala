@@ -111,6 +111,13 @@ namespace My {
          */
         public uint header_level { get; set; }
 
+        /**
+         * A code block's info string
+         *
+         * Valid only when ty == BLOCK_CODE.
+         */
+        public string info_string { get; set; default = ""; }
+
         // --- Constructors ---
 
         /**
@@ -127,7 +134,11 @@ namespace My {
          */
         public string as_string()
         {
-            return "%s: -%s-".printf(ty.to_string(), text);
+            if(info_string != "") {
+                return "%s/%s: -%s-".printf(ty.to_string(), info_string, text);
+            } else {
+                return "%s: -%s-".printf(ty.to_string(), text);
+            }
         } // as_string
 
     } // Elem

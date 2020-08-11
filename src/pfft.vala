@@ -28,7 +28,7 @@ namespace My {
     /**
      * Main application class for pfft
      */
-    public class App: Object {
+    public class App : Object {
 
         // Command-line parsing {{{1
 

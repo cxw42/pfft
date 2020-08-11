@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 using Md4c;
+using My.Log;
 
 namespace My
 {
@@ -107,6 +108,9 @@ namespace My
 
             case CODE:
                 newnode = node_of_ty(BLOCK_CODE);
+                newnode.data.info_string = get_info_string(detail);
+                newnode.data.info_string._chomp();
+                ldebugo(self, "Info string -%s-",  newnode.data.info_string);
                 break;
 
             case P:

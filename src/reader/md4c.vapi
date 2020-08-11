@@ -521,6 +521,11 @@ namespace Md4c {
     [CCode(cname="md_parse")]
     public int parse(/*const*/ Char ? text, Size size, /*const*/ Parser ? parser, void *userdata);
 
+    /**
+     * Helper for extracting the info string from a BlockCodeDetail.
+     */
+    [CCode(cheader_filename="md4c-shim.h")]
+    string get_info_string(void *code_detail);
 }
 
 

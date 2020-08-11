@@ -67,8 +67,15 @@ namespace My {
         /** The Cairo context for the document we are writing */
         Cairo.Context cr = null;
 
+        // TODO: provide Blk instances with a layout factory instead of layouts,
+        // so that each Blk can have its own layout and they won't step on
+        // each other.
+
         /** The Pango layout for the text of the document we are writing */
         Pango.Layout layout = null;
+
+        /** The Pango layout for bullets and numbers */
+        Pango.Layout bullet_layout = null;
 
         /** The Pango layout for the page numbers */
         Pango.Layout pageno_layout = null;
@@ -127,6 +134,7 @@ namespace My {
             // Prepare to render
             cr = new Cairo.Context(surf);
             layout = Blocks.new_layout_12pt(cr);    // Layout for the copy
+            bullet_layout = Blocks.new_layout_12pt(cr);
 
             pageno_layout = Blocks.new_layout_12pt(cr); // Layout for page numbers
             pageno_layout.set_width(hsizeP);
@@ -146,17 +154,15 @@ namespace My {
                 ldebugo(blk, "start render");
                 while(true) {   // Render this block, which may take more than one pass
                     // Parameters to render() are page-relative
-                    printerr("rendering %s %p\n", blk.get_type().name(), blk);
                     if(surf.status() != Cairo.Status.SUCCESS) {
-                        printerr("Surface status: %s\n", surf.status().to_string());
+                        lerroro(blk, "Surface status: %s", surf.status().to_string());
                     }
 
                     var ok = blk.render(cr, rightP, bottomP);
                     if(ok == RenderResult.COMPLETE) {
                         break;  // Move on to the next block
                     } else if(ok == RenderResult.ERROR) {
-                        printerr("Block of type %s returned %s\n",
-                            blk.get_type().name(), ok.to_string());
+                        lerroro(blk, "render returned %s", ok.to_string());
                         assert(false);  // TODO improve this
                     }
 
@@ -184,7 +190,7 @@ namespace My {
         void eject_page()
         {
             // render the page number on the page we just finished
-            linfoo(this, "Finalizing page %d\n", pageno);
+            linfoo(this, "Finalizing page %d", pageno);
             pageno_layout.set_text(pageno.to_string(), -1);
             cr.move_to(i2c(lmarginI), i2c(tmarginI+vsizeI+footerskipI));
             Pango.cairo_show_layout(cr, pageno_layout);
@@ -195,8 +201,8 @@ namespace My {
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             double leftC, topC;
             cr.get_current_point(out leftC, out topC);
-            linfoo(this, "Starting page %d at (%f,%f) %s l %f t %f\n", pageno,
-                leftC, topC, cr.has_current_point() ? "has pt" : "no pt",
+            linfoo(this, "Starting page %d at (%f,%f) %s l %f t %f", pageno,
+                c2i(leftC), c2i(topC), cr.has_current_point() ? "has pt" : "no pt",
                 lmarginI, tmarginI);
 
         } // eject_page()
@@ -319,8 +325,8 @@ namespace My {
         {
             if(!retval.is_empty && retval.last() == blk) return;
             // XXX DEBUG
-            print("commit: adding blk with markup <%s> and post-markup <%s>, type %s\n",
-                blk.markup, blk.post_markup, blk.get_type().name());
+            llogo(blk, "commit: adding blk with markup <%s> and post-markup <%s>",
+                blk.markup, blk.post_markup);
             retval.add(blk);
         }
 
@@ -406,7 +412,7 @@ namespace My {
                 // TODO? change this?
                 int margin = state.levels[lidx].is_bullet() ? 18 : 36;
 
-                blk = new BulletBlk(layout, "%s%s".printf(
+                blk = new BulletBlk(layout, bullet_layout, "%s%s".printf(
                             state.levels[lidx].render(state.last_numbers[lidx]),
                             state.levels[lidx].is_bullet() ? "" : "."
                         ),

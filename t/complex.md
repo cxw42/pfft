@@ -31,6 +31,9 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor i
          1. triply-nested
             1. 4x
                1. 5x Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            1. 4x again
+         1. 3x again
+      1. doubly-nested third
    1. nested third
 1. fourth
 

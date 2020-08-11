@@ -250,7 +250,7 @@ namespace My { namespace Blocks {
             Pango.Layout layout,
             double leftC, double topC,
             int rightP, int bottomP, string final_markup)
-        ensures(result == COMPLETE || result == PARTIAL)
+        ensures(result == COMPLETE || result == PARTIAL || result == NONE)
         {
             int lineno = 0;
             int yP = c2p(topC);  // Current Y
@@ -258,13 +258,16 @@ namespace My { namespace Blocks {
             unowned SList<Pango.LayoutLine> curr_line = lines;
             int last_bottom_yP = 0; // bottom of the last-rendered line
             bool first_line = true;
+            bool did_render = false;    // did we render anything during this call?
 
             RenderResult retval = UNKNOWN;
 
-            ldebugo(this, "render_partial BEGIN %s", this.get_type().name());
+            ldebugo(this, "render_partial BEGIN - %u lines in layout", lines.length());
             while(curr_line != null) {
 
                 // Advance to the first line not yet rendered
+                // TODO double-check that this works -- it appears that we
+                // might be skipping lines sometimes.
                 if(nlines_rendered > 0 && lineno < nlines_rendered) {
                     llogo(this, "Skipping line %d", lineno);
                     ++lineno;
@@ -285,30 +288,30 @@ namespace My { namespace Blocks {
                     first_line = false;
                 }
 
-                if(lenabled(DEBUG)) { // DEBUG
-                    ldebugo(this, "  ink: %fx%f@(%f,%f)", p2i(inkP.width),
+                if(lenabled(DEBUG)) {
+                    ltraceo(this, "  ink: %fx%f@(%f,%f)", p2i(inkP.width),
                         p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
                     ldebugo(this, "  log: %fx%f@(%f,%f)", p2i(logicalP.width),
                         p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
                 }
 
-                // TODO FIXME: if only a partial line fits on this page,
-                // and it's the first line, we incorrectly return PARTIAL
-                // instead of NONE.
                 if(yP + logicalP.y + logicalP.height > bottomP) {
                     // Done with what we can do for this page.
                     // At least the current line is left, so this block is
                     // not yet complete.
                     nlines_rendered = lineno;
-                    retval = PARTIAL;
+                    retval = did_render ? RenderResult.PARTIAL : RenderResult.NONE;
+                    // TODO if nlines_rendered > 0, should we always return
+                    // PARTIAL since some of the block has already been
+                    // rendered?
                     break;
                 }
 
-                if(lenabled(DEBUG)) { // DEBUG: render the rectangles
+                if(lenabled(DEBUG)) { // render the rectangles
                     cr.save();
                     cr.set_antialias(NONE);
                     cr.set_line_width(0.5);
-                    if(lenabled(LOG)) { // ink
+                    if(lenabled(TRACE)) { // ink
                         cr.set_source_rgb(1,0,0);
                         cr.rectangle(leftC+p2c(inkP.x), p2c(yP+inkP.y), p2c(inkP.width), p2c(inkP.height));
                         cr.stroke();
@@ -325,12 +328,14 @@ namespace My { namespace Blocks {
                 ldebugo(this, "Rendering line %d at %f\"", lineno, p2i(yP));
                 cr.move_to(leftC, p2c(yP));
                 Pango.cairo_show_layout_line(cr, curr_line.data);   // UNSETS the current point
+                did_render = true;
                 last_bottom_yP = yP + logicalP.y + logicalP.height;
 
                 // Advance to the next line
                 yP += logicalP.height;
                 cr.move_to(leftC, p2c(yP));
-                if(lenabled(DEBUG)) { // DEBUG
+
+                if(lenabled(DEBUG)) {
                     double currxC, curryC;
                     cr.get_current_point(out currxC, out curryC);
                     ldebugo(this,"  now at (%f,%f) %s", c2i(currxC), c2i(curryC),
@@ -377,9 +382,8 @@ namespace My { namespace Blocks {
             }
 
             cr.get_current_point(out leftC, out topC);
-            ldebugo(this,"render_simple %s %p starting at (%f, %f) limits (%f, %f)",
-                this.get_type().name(), this,
-                c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
+            ldebugo(this,"render_simple layout %p starting at (%f, %f) limits (%f, %f)",
+                layout, c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
 
             if(nlines_rendered > 0) {
                 // we already did part, so do the next part.  This may not be
@@ -394,7 +398,7 @@ namespace My { namespace Blocks {
             }
             if(c2p(leftC) >= rightP ) {
                 linfoo(this, "render_simple: too wide: %f >= %f",
-                        c2i(leftC), p2i(rightP));
+                    c2i(leftC), p2i(rightP));
                 return RenderResult.ERROR;  // too wide
             }
 
@@ -407,28 +411,28 @@ namespace My { namespace Blocks {
             Pango.Rectangle inkP, logicalP;
             layout.get_extents(out inkP, out logicalP);
             if(topC + p2c(logicalP.y + logicalP.height) >= p2c(bottomP)) {
-                lwarningo(this, "Overflow: %f > %f",
+                lwarningo(this, "Not enough room for the whole block: %f > %f",
                     c2i(topC + p2c(logicalP.y + logicalP.height)),
                     p2i(bottomP));
                 return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
             }
 
-            if(lenabled(DEBUG)) { // DEBUG
-                ldebugo(this, "ink: %dx%d@(%d,%d)", inkP.width/Pango.SCALE,
-                    inkP.height/Pango.SCALE, inkP.x/Pango.SCALE,
-                    inkP.y/Pango.SCALE);
-                ldebugo(this, "log: %dx%d@(%d,%d)", logicalP.width/Pango.SCALE,
-                    logicalP.height/Pango.SCALE, logicalP.x/Pango.SCALE,
-                    logicalP.y/Pango.SCALE);
+            if(lenabled(DEBUG)) {
+                ltraceo(this, "ink: %fx%f@(%f,%f)", p2i(inkP.width),
+                    p2i(inkP.height), p2i(inkP.x),
+                    p2i(inkP.y/Pango.SCALE));
+                ldebugo(this, "log: %fx%f@(%f,%f)", p2i(logicalP.width),
+                    p2i(logicalP.height), p2i(logicalP.x),
+                    p2i(logicalP.y));
             }
 
             Pango.cairo_show_layout(cr, layout);
 
-            if(lenabled(DEBUG)) { // DEBUG: render the rectangles
+            if(lenabled(DEBUG)) { // render the rectangles
                 cr.save();
                 cr.set_antialias(NONE);
                 cr.set_line_width(0.5);
-                if(lenabled(LOG)) { // ink
+                if(lenabled(TRACE)) { // ink
                     cr.set_source_rgb(1,0,0);
                     cr.rectangle(leftC+p2c(inkP.x), topC+p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
@@ -445,7 +449,7 @@ namespace My { namespace Blocks {
             cr.move_to(leftC,
                 topC + p2c(logicalP.y + logicalP.height));
 
-            // ldebugo(this, "Render block: <[%s]>", final_markup); // DEBUG
+            // ldebugo(this, "Render block: <[%s]>", final_markup);
             return RenderResult.COMPLETE;
         } // render_simple()
 
@@ -492,6 +496,14 @@ namespace My { namespace Blocks {
      */
     public class BulletBlk : Blk
     {
+        /**
+         * A layout for the bullet.
+         *
+         * We need this so that we don't trash the main layout between pages
+         * if the block splits across pages.
+         */
+        private Pango.Layout bullet_layout;
+
         /** The markup for the bullet */
         private string bullet_markup;
 
@@ -505,12 +517,13 @@ namespace My { namespace Blocks {
          */
         private int text_leftP;
 
-        public BulletBlk(Pango.Layout layout, string bullet_markup,
-            int bullet_leftP, int text_leftP)
+        public BulletBlk(Pango.Layout layout, Pango.Layout bullet_layout,
+            string bullet_markup, int bullet_leftP, int text_leftP)
         requires(text_leftP > bullet_leftP)
         {
             base(layout);
 
+            this.bullet_layout = bullet_layout;
             this.bullet_markup = bullet_markup;
             this.bullet_leftP = bullet_leftP;
             this.text_leftP = text_leftP;
@@ -531,7 +544,7 @@ namespace My { namespace Blocks {
             double xC, yC, leftC, topC;
             cr.get_current_point(out leftC, out topC);
             if(lenabled(DEBUG)) { // DEBUG
-                llog("Now at (%f, %f)", c2i(leftC), c2i(topC));
+                llogo(this, "Pre-render at (%f, %f)", c2i(leftC), c2i(topC));
             }
 
             // Out of range
@@ -549,24 +562,30 @@ namespace My { namespace Blocks {
             cr.move_to(leftC + p2c(text_leftP), topC);
             bool is_first_chunk = (nlines_rendered == 0);
             var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+
+            // Move back to where the next block will start
+            cr.get_current_point(out xC, out yC);   // where the copy left us
+            cr.move_to(leftC, yC);
+
             if(!is_first_chunk) {   // Nothing more to do
                 return result;
             }
-            // TODO FIXME: after fixing render_partial, check for NONE here
+            if(result == NONE) {    // None of the block fit on the page
+                return result;
+            }
 
-            // render the bullet
+            // Something rendered on the first page, so render the bullet.
             // TODO shift the bullet down so it is centered on the first
             // line of the text.
-            cr.get_current_point(out xC, out yC);   // where the copy left us
-            if(lenabled(DEBUG)) { // DEBUG
-                ldebugo(this, "Now at (%f, %f)", c2i(xC), c2i(yC));
-            }
+            ldebugo(this, "Rendering bullet from layout %p - post-render at (%f, %f)",
+                bullet_layout, c2i(xC), c2i(yC));
             cr.move_to(leftC + p2c(bullet_leftP), topC);
-            layout.set_width(text_leftP - bullet_leftP);
-            layout.set_markup(bullet_markup, -1);
-            Pango.cairo_show_layout(cr, layout);
+            bullet_layout.set_width(text_leftP - bullet_leftP);
+            bullet_layout.set_markup(bullet_markup, -1);
+            Pango.cairo_show_layout(cr, bullet_layout);
 
             cr.move_to(leftC, yC);
+            ldebugo(this, "Rendered bullet - now at (%f, %f)", c2i(leftC), c2i(yC));
 
             return result;  // COMPLETE or PARTIAL from render_simple()
         }
@@ -630,7 +649,7 @@ namespace My { namespace Blocks {
             // move 12 pts. down.  TODO make the vertical size a parameter.
             cr.move_to(leftC, yC + heightC);
 
-            // ldebugo(this, "Render rule\n");  // XXX DEBUG
+            // ldebugo(this, "Render rule\n");
             return RenderResult.COMPLETE;
         }
     } // class HRBlk
