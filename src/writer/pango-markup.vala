@@ -77,7 +77,7 @@ namespace My {
         /** The Pango layout for bullets and numbers */
         Pango.Layout bullet_layout = null;
 
-        /** The Pango layout for the page numbers */
+        /** The Pango layout for the page numbers and headers */
         Pango.Layout pageno_layout = null;
 
         /** Current page */
@@ -98,16 +98,35 @@ namespace My {
         public double vsizeI { get; set; default = 9.0; }
         [Description(nick = "Footer margin (in.)", blurb = "Space between the bottom of the text block and the top of the footer, in inches")]
         public double footerskipI { get; set; default = 0.3; }
+        [Description(nick = "Header margin (in.)", blurb = "Space between the top of the text block and the top of the header, in inches")]
+        public double headerskipI { get; set; default = 0.4; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
+
+        /**
+         * Regex for recognizing pfft commands.
+         *
+         * A code block with the info string `pfft: <command>` is interpreted
+         * as a command rather than as a code block.
+         */
+        private Regex re_command = null;
+
+        /**
+         * Header markup
+         *
+         * TODO handle headers/footers in a more general way
+         */
+        private string header_markup = "";
 
         // Not a ctor since we create instances through g_object_new() --- see
         // https://gitlab.gnome.org/GNOME/vala/-/issues/650
         construct {
             try {
                 re_newline = new Regex("\\R+");
+                re_command = new Regex("^pfft:\\s*(\\w+)");
             } catch(RegexError e) {
+                lerroro(this, "Could not create required regexes --- I can't go on");
                 assert(false);  // die horribly --- something is very wrong!
             }
         }
@@ -189,8 +208,16 @@ namespace My {
         /** Finish the current page and write it out */
         void eject_page()
         {
-            // render the page number on the page we just finished
             linfoo(this, "Finalizing page %d", pageno);
+
+            // render the page header on the page we just finished
+            if(header_markup != "") {
+                pageno_layout.set_markup(header_markup, -1);
+                cr.move_to(i2c(lmarginI), i2c(tmarginI-headerskipI));
+                Pango.cairo_show_layout(cr, pageno_layout);
+            }
+
+            // render the page number on the page we just finished
             pageno_layout.set_text(pageno.to_string(), -1);
             cr.move_to(i2c(lmarginI), i2c(tmarginI+vsizeI+footerskipI));
             Pango.cairo_show_layout(cr, pageno_layout);
@@ -347,6 +374,7 @@ namespace My {
             bool complete = false;  // if true, nothing more to do before committing blk
             string text_markup = Markup.escape_text(el.text);
             string post_children_markup = "";   // markup to be added after the children are processed
+            string cmd = "";  // a processing command (```pfft:foo ...```), or ""
             bool trim_trailing_whitespace = false;
             StringBuilder sb = new StringBuilder();
 
@@ -436,11 +464,20 @@ namespace My {
                 blk = new Blk(layout);
 
                 state = state.clone();
-                state.obeylines = true;
 
-                sb.append_printf("<tt>%s", text_markup);
+                MatchInfo matches;
+                if(re_command.match(el.info_string, 0, out matches)) {
+                    // Not actually a code block --- a directive to pfft.
+                    cmd = matches.fetch(1);
+                    state.obeylines = false;
+                    sb.append_printf("%s ", text_markup);
+                    // Let the rest of the function run to collect the text
+                } else {    // a normal code block
+                    state.obeylines = true;
+                    sb.append_printf("<tt>%s ", text_markup);
+                    blk.post_markup = "</tt>" + blk.post_markup;
+                }
                 trim_trailing_whitespace = true;    // trim trailing \n, if any
-                blk.post_markup = "</tt>" + blk.post_markup;
                 complete = true;
                 break;
 
@@ -502,16 +539,32 @@ namespace My {
                 blk.markup._chomp();
             }
 
+            switch(cmd) {
+            case "":
+                // not a command
+                break;
+            case "header":
+                header_markup = blk.markup;
+                header_markup._strip();
+                linfoo(this, "Header markup set to -%s-", header_markup);
+                blk = null;     // discard the Blk we used to collect the text
+                blk = new Blk(layout);
+                break;
+            default:
+                lwarningo(this, "Ignoring unknown command '%s'", cmd);
+                break;
+            }
+
             if(complete) {
                 commit(blk, retval);
                 blk = new Blk(layout);
             }
 
             return (owned)blk;
-        } // process_div_into
+        }         // process_div_into
 
-    } // class PangoMarkupWriter
-} // My
+    }         // class PangoMarkupWriter
+}         // My
 
 // Thanks to the following for information:
 // - https://wiki.gnome.org/Projects/Vala/PangoCairoSample

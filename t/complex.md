@@ -1,3 +1,6 @@
+```pfft: header
+Hello, world!
+```
 # H1
 
 Body paragraph 1.
