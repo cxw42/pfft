@@ -2,6 +2,8 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+using My.Log;
+
 namespace My {
 
     extern void init_gstreamer();   // from pfft-shim.c
@@ -29,7 +31,7 @@ namespace My {
     /**
      * Main application class for pfft
      */
-    public class App {
+    public class App : Object {
 
         // Command-line parsing {{{1
 
@@ -147,7 +149,7 @@ namespace My {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
             init_gstreamer();
 
-            // TODO get available readers and writers
+            // get available readers and writers
             readers_ = new ClassMap();
             writers_ = new ClassMap();
             load_from_registry();
@@ -158,7 +160,7 @@ namespace My {
                 var opt_context = new OptionContext ("- produce a PDF from each FILENAME");
                 opt_context.set_help_enabled (true);
                 opt_context.add_main_entries (get_options(), null);
-                // TODO add entries from available readers and writers
+                // TODO? add entries from available readers and writers
                 opt_context.set_description(
                     ("Processes FILENAME and outputs a PDF.\n" +
                     "Visit %s for more information.\n" +
@@ -187,33 +189,37 @@ namespace My {
 
             /* Create the plugins */
             Reader reader;
-            Writer writer;
+            var reader_name = opt_reader_name ?? reader_default_;
             try {
                 reader = create_instance(
-                    readers_, opt_reader_name ?? reader_default_, opt_reader_options) as Reader;
+                    readers_, reader_name, opt_reader_options) as Reader;
             } catch(KeyFileError e) {
                 printerr ("Could not create reader: %s\n", e.message);
                 return 1;
             }
 
+            Writer writer;
+            var writer_name = opt_writer_name ?? writer_default_;
             try {
                 writer = create_instance(
-                    writers_, opt_writer_name ?? writer_default_, opt_writer_options) as Writer;
+                    writers_, writer_name, opt_writer_options) as Writer;
             } catch(KeyFileError e) {
                 printerr ("Could not create writer: %s\n", e.message);
                 return 1;
             }
 
             if(reader == null) {
-                printerr("Could not create reader %s\n",
-                    opt_reader_name ?? reader_default_);
+                printerr("Could not create reader %s\n", reader_name);
                 return 1;
             }
 
             if(writer == null) {
-                printerr("Could not create writer %s\n",
-                    opt_writer_name ?? writer_default_);
+                printerr("Could not create writer %s\n", writer_name);
                 return 1;
+            }
+
+            if(opt_verbose > 0) {
+                print("Using reader %s, writer %s\n", reader_name, writer_name);
             }
 
             /* Do the work */
@@ -245,29 +251,39 @@ namespace My {
             print("Processing %s\n", infn);
 
             var infh = File.new_for_path(infn);
-            File outfh;
+            string outfn;
 
-            if(opt_outfn.length != 0) { // Make outfn
-                outfh = File.new_for_path(opt_outfn);
+            if(opt_outfn.length != 0) { // User provided outfn
 
-            } else {
+                if(opt_outfn == "-") {  // stdout
+                    outfn = "-";
+                } else {
+                    var outfh = File.new_for_path(opt_outfn);
+                    outfn = outfh.get_path();
+                }
+
+            } else {                    // Generate outfn
                 var basename = infh.get_basename();
                 var re = new Regex("""^(.+)\.(\S+)$""");
                 MatchInfo matches;
+                File outfh;
+
                 if(!re.match(basename, 0, out matches)) {   // just add .pdf
                     outfh = infh.get_parent().get_child(basename + ".pdf");
                 } else {
                     var newname = matches.fetch(1) + ".pdf";
                     outfh = infh.get_parent().get_child(newname);
                 }
+
+                outfn = outfh.get_path();
             }
 
             if(opt_verbose > 0) {
-                print("Processing %s to %s\n", infh.get_path(), outfh.get_path());
+                print("Processing %s to %s\n", infh.get_path(), outfn);
             }
 
             var doc = reader.read_document(infh.get_path());
-            writer.write_document(outfh.get_path(), doc);
+            writer.write_document(outfn, doc);
 
         } // process_file()
 
@@ -330,8 +346,8 @@ namespace My {
             }
 
             foreach(string name in m.ascending_keys) {
-                if(default_class == "") {   // in case we didn't find one before
-                    default_class = name;
+                if(default_class == "") {   // in case we didn't find one before,
+                    default_class = name;   // use the first by default.
                 }
 
                 var type = m.get(name);

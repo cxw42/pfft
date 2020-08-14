@@ -9,6 +9,7 @@
 #ifndef MD4C_SHIM_H_
 #define MD4C_SHIM_H_
 
+#include <glib.h>
 #include <stdlib.h>
 #include "md4c.h"
 
@@ -17,6 +18,14 @@ MD_PARSER *md4c_new_parser_();
 
 /** Free a renderer structure */
 void md4c_free_parser_(MD_PARSER *parser);
+
+/**
+ * Duplicate the info string from an MD_BLOCK_CODE_DETAIL.
+ *
+ * This function exists because I was having trouble with member access
+ * and didn't want to fuss with it.
+ */
+gchar *md4c_get_info_string(void *code_detail);
 
 #endif /* MD4C_SHIM_H_ */
 // md4c.h copyright notice follows

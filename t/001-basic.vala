@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 using My;
-using Snapd;
 /**
  * argv[0], for use by sanity()
  */
@@ -12,7 +11,7 @@ private string program_name;
 void sanity()
 {
     Test.message("%s: Running sanity test in %s() at %s:%d",
-                 program_name, Log.METHOD, Log.FILE, Log.LINE);
+                 program_name, GLib.Log.METHOD, GLib.Log.FILE, GLib.Log.LINE);
     assert_true(true);
 }
 
@@ -23,7 +22,7 @@ void loadfile()
         var fn = Test.build_filename(Test.FileType.DIST, "001-basic.md");
         Test.message("Loading filename %s", fn);
 
-        var md = new MarkdownSnapdReader();
+        var md = new MarkdownMd4cReader();
         Doc doc = md.read_document(fn);
         assert_nonnull(doc);
         did_load = true;
@@ -31,16 +30,20 @@ void loadfile()
         assert_true(doc.root.n_children() == 2);
 
         unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
-        assert_true(node0.n_children() == 0);
-        unowned Elem el0 = node0.data;
-        assert_true(el0.ty == Elem.Type.BLOCK_HEADER);
-        assert_true(el0.text == "Header");
-
-        unowned GLib.Node<Elem> node1 = doc.root.nth_child(1);
+        assert_true(node0.n_children() == 1);
+        assert_true(node0.data.ty == Elem.Type.BLOCK_HEADER);
+        unowned GLib.Node<Elem> node1 = node0.nth_child(0);
         assert_true(node1.n_children() == 0);
-        unowned Elem el1 = node1.data;
-        assert_true(el1.ty == Elem.Type.BLOCK_COPY);
-        assert_true(el1.text == "Body");
+        assert_true(node1.data.ty == Elem.Type.SPAN_PLAIN);
+        assert_true(node1.data.text == "Header");
+
+        unowned GLib.Node<Elem> node2 = doc.root.nth_child(1);
+        assert_true(node2.n_children() == 1);
+        assert_true(node2.data.ty == Elem.Type.BLOCK_COPY);
+        unowned GLib.Node<Elem> node3 = node2.nth_child(0);
+        assert_true(node3.n_children() == 0);
+        assert_true(node3.data.ty == Elem.Type.SPAN_PLAIN);
+        assert_true(node3.data.text == "Body");
     } catch(FileError e) {
         warning("file error: %s", e.message);
         assert_true(false); // make sure the test doesn't pass

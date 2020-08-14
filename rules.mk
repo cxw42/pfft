@@ -7,26 +7,43 @@ EOL =
 # directory under src/ .  Each variable refers to files in the
 # corresponding subdirectory.  The subdirectories are added by the variables
 # that use these.
-MY_pgm_VALA = pfft.vala
+
+# src/
+MY_pgm_VALA = pfft.vala myconfig.vapi
 MY_pgm_EXTRASOURCES = pfft-shim.c
+
+# src/core
 MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
-MY_reader_VALA = markdown-snapd.vala md4c-reader.vala
-MY_reader_EXTRASOURCES = register.c ../md4c/src/md4c.c md4c.vapi \
+
+# src/logging
+MY_logging_VALA = logging.vala
+MY_logging_EXTRASOURCES = logging-c.h logging-c.c
+
+# src/reader
+MY_reader_VALA = md4c-reader.vala \
+		 md4c.vapi \
+		 $(EOL)
+MY_reader_EXTRASOURCES = register.c \
+			 $(top_srcdir)/src/md4c/src/md4c.c \
+			 $(top_srcdir)/src/md4c/src/md4c.h \
 			 md4c-shim.c md4c-shim.h \
 			 reader-shim.c reader-shim.h \
 			 $(EOL)
-MY_writer_VALA = pango-markup.vala
+
+# src/writer
+MY_writer_VALA = pango-markup.vala pango-blocks.vala \
+		 dumper.vala
 MY_writer_EXTRASOURCES = register.c
-# subdirs.  Core is listed last since it needs to be last in link lines.
-MY_subdirs = reader writer core
+
+# subdirs.  Listed in the order they should appear on link lines.
+MY_subdirs = reader writer core logging
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \
 	$(foreach dir, $(MY_subdirs), \
 		$(foreach fn, $(MY_$(dir)_VALA), $(dir)/$(fn)) \
 	) \
-	myconfig.vapi \
 	$(EOL)
 
 MY_VALA_C = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.c))
@@ -34,7 +51,6 @@ MY_VALA_H = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.h))
 
 # Vala dependencies
 MY_VALA_PKGS = \
-	--pkg snapd-glib \
 	--pkg pangocairo --pkg pango --pkg cairo \
 	--pkg gee-0.8 \
 	--pkg gstreamer-1.0 \

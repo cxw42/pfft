@@ -1,21 +1,11 @@
 include $(top_srcdir)/rules.mk
 
-SUBDIRS = core reader writer
+SUBDIRS = logging core reader writer
 EXTRA_DIST =
-DISTCLEANFILES =
 
 LOCAL_VALA_FLAGS = $(MY_use_all_valaflags)
 LOCAL_CFLAGS = $(MY_use_all_cflags)
 LDADD = $(wholearchive) $(MY_use_all_ldadd) $(nowholearchive)
-
-# === myconfig package ====================================================
-# Gives access to config.h
-
-myconfig.vapi: $(top_srcdir)/config.h
-	$(srcdir)/gen-myconfig.pl $< > $@
-
-EXTRA_DIST += myconfig.vapi gen-myconfig.pl
-DISTCLEANFILES += myconfig.vapi
 
 # === Program =============================================================
 

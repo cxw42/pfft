@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 using Md4c;
+using My.Log;
 
 namespace My
 {
@@ -22,107 +23,17 @@ namespace My
         [Description(blurb = "Read CommonMark Markdown files")]
         public bool meta { get; default = false; }
 
-#if 0
-        /**
-         * Create and attach a My.GLib.Node<Elem> representing a Snapd.MarkdownNode.
-         * @param depth     Current depth, for debugging
-         * @param parent    The node to attach to
-         * @param mkid      The child on which to base the new node.
-         * @return The new child node, if any
-         */
-        private static unowned GLib.Node<Elem>? make_and_attach(
-            int depth,
-            /*unowned*/ GLib.Node<Elem> parent, MarkdownNode mkid)
-        {
-#if EXTRA_VERBOSE
-            Test.message("%s", as_diag("> parent %p, mkid %p".printf(parent, mkid)));
-#endif
-            unowned GLib.Node<Elem>? retval;
-            string mtext = (mkid.get_text() != null) ? mkid.get_text() : "";
-            var mty = mkid.get_node_type();
-
-            Test.message("%s", as_diag(
-                    "%sNode ty %s text -%s-".printf(
-                        string.nfill(depth*2, ' '),
-                        mty.to_string(),
-                        mtext)));
-            if(mty == MarkdownNodeType.TEXT) {
-                retval = null;
-                // TODO add whitespace?
-
-                // XXX HACK - promote parents to headers
-                if(mtext[0 : 2]=="# " && parent.data.text == "" && parent.data.ty == Elem.Type.BLOCK_COPY) {
-                    parent.data.ty = Elem.Type.BLOCK_HEADER;
-                    parent.data.header_level = 1;   // XXX
-                    mtext = mtext[2 : mtext.length];
-                }
-                parent.data.text += mtext;
-#if EXTRA_VERBOSE
-                Test.message("%s", as_diag("Appended -%s-; now -%s-".printf(mtext, parent.data.text)));
-#endif
-
-            } else if(  // Handle block elements
-                mty == MarkdownNodeType.CODE_BLOCK ||
-                mty == MarkdownNodeType.LIST_ITEM ||
-                mty == MarkdownNodeType.PARAGRAPH ||
-                mty == MarkdownNodeType.UNORDERED_LIST ||
-                parent == null // Promote top-level inline to block
-            ) {
-                var newnode = node_of_ty(Elem.Type.BLOCK_COPY);
-                newnode.data.text = mtext;
-                retval = newnode;
-                parent.append((owned)newnode);  // now newnode is null
-
-            } else { // Handle inline elements
-                retval = null;
-                parent.data.text += mtext;
-            }
-
-#if EXTRA_VERBOSE
-            Test.message("%s", as_diag("< parent %p, mkid %p, retval %p".printf(parent, mkid, retval)));
-#endif
-            return retval;
-        } // make_and_attach()
-
-        /**
-         * Traverse a MarkdownNode and build a GLib.Node<Elem>.
-         * @param depth     Current depth, for debugging
-         * @param parent    The parent node, which must exist
-         * @param newkids   Array of child node(s) to add to the parent
-         */
-        private static void build_tree(int depth, GLib.Node<Elem> parent,
-            GenericArray<unowned MarkdownNode>? newkids)
-        {
-            if(newkids == null || newkids.length == 0) {
-                return;
-            }
-
-            for(int i=0; i<newkids.length; ++i) {
-                MarkdownNode mkid = newkids.get(i);
-#if EXTRA_VERBOSE
-                Test.message("%s", as_diag("] parent %p, mkid %p, no. %d".printf(parent, mkid, i)));
-#endif
-                unowned GLib.Node<Elem> kid = make_and_attach(depth+1, parent, mkid);
-                // If mkid didn't need a new node, attach children of
-                // mkid to the parent of mkid.
-                build_tree(depth+1, kid ?? parent,
-                    (GenericArray<unowned MarkdownNode>)mkid.get_children());
-#if EXTRA_VERBOSE
-                Test.message("%s", as_diag("[ parent %p, mkid %p, no. %d, kid %p".printf(parent, mkid, i, kid)));
-#endif
-            }
-        } // build_tree()
-#endif
-
         /**
          * Read a document.
          * @return A node tree of the document
          */
         public Doc read_document(string filename) throws FileError, MarkupError
         {
-            GLib.Node<Elem> root = tree_for(filename);
-            return new Doc((owned)root);
+            make_tree_for(filename);
+            return new Doc((owned)root_);
         }
+
+        // === Parser callbacks and data ===================================
 
         /**
          * Indentation based on depth_.
@@ -144,13 +55,79 @@ namespace My
             }
         }
 
-        /** md4c callback */
+        /** The root of the tree we are building */
+        private GLib.Node<Elem> root_;
+
+        /** The current node */
+        private unowned GLib.Node<Elem> node_;
+
+        /**
+         * md4c callback for entering blocks.
+         *
+         * Sets node_ to a SPAN_PLAIN if the block was of a recognized type.
+         */
         private static int enter_block_(BlockType block_type, void *detail, void *userdata)
         {
+            GLib.Node<Elem> newnode = null;
+
             var self = (MarkdownMd4cReader)userdata;
             print("%sGot block %s\n",
                 self.indent_, block_type.to_string());
             ++self.depth_;
+
+            switch(block_type) {
+            case DOC:
+                self.node_ = self.root_;
+                break;
+
+            case QUOTE:
+                newnode = node_of_ty(BLOCK_QUOTE);
+                break;
+
+            case UL:
+                newnode = node_of_ty(BLOCK_BULLET_LIST);
+                break;
+
+            case OL:
+                newnode = node_of_ty(BLOCK_NUMBER_LIST);
+                break;
+
+            case LI:
+                newnode = node_of_ty(BLOCK_LIST_ITEM);
+                break;
+
+            case HR:
+                newnode = node_of_ty(BLOCK_HR);
+                break;
+
+            case H:
+                var det = (BlockHDetail*)detail;
+                newnode = node_of_ty(BLOCK_HEADER);
+                newnode.data.header_level = det.level;
+                break;
+
+            case CODE:
+                newnode = node_of_ty(BLOCK_CODE);
+                newnode.data.info_string = get_info_string(detail);
+                newnode.data.info_string._chomp();
+                ldebugo(self, "Info string -%s-",  newnode.data.info_string);
+                break;
+
+            case P:
+                newnode = node_of_ty(BLOCK_COPY);
+                break;
+
+            default:
+                printerr("I don't yet know how to process block type %s\n".printf(block_type.to_string()));
+                newnode = node_of_ty(BLOCK_COPY);
+                break;
+            }
+
+            if(newnode != null) {
+                self.node_.append((owned)newnode);  // clears newnode
+                self.node_ = self.node_.last_child();
+            }
+
             return 0;
         }
 
@@ -161,15 +138,53 @@ namespace My
             --self.depth_;
             print("%sLeaving block %s\n",
                 self.indent_, block_type.to_string());
+
+            // Pop out of the last span, if we're in one
+            if(self.node_.data.is_span) {
+                self.node_ = self.node_.parent;
+            }
+
+            // TODO? check here that the block we are leaving has the type we expect?
+
+            // Leave the current block
+            self.node_ = self.node_.parent;
+
             return 0;
         }
 
         /** md4c callback */
         private static int enter_span_(SpanType span_type, void *detail, void *userdata)
         {
+            GLib.Node<Elem> newnode = null;
+
             var self = (MarkdownMd4cReader)userdata;
             print("%sGot span %s ... ",
                 self.indent_, span_type.to_string());
+
+            switch(span_type) {
+            case EM: newnode = node_of_ty(SPAN_EM); break;
+            case STRONG: newnode = node_of_ty(SPAN_STRONG); break;
+            case A:
+                printerr("Hyperlinks are not yet supported\n");
+                newnode = node_of_ty(SPAN_PLAIN);
+                break;
+            case IMG:
+                printerr("Images are not yet supported\n");
+                newnode = node_of_ty(SPAN_PLAIN);
+                break;
+            case CODE: newnode = node_of_ty(SPAN_CODE); break;
+            case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
+            case U: newnode = node_of_ty(SPAN_UNDERLINE); break;
+            default:
+                printerr("Unsupported span type %s\n".printf(span_type.to_string()));
+                newnode = node_of_ty(SPAN_PLAIN);
+                break;
+            }
+
+            if(newnode != null) {
+                self.node_.append((owned)newnode);  // clears newnode
+                self.node_ = (GLib.Node<Elem>)self.node_.last_child();
+            }
             return 0;
         }
 
@@ -178,33 +193,54 @@ namespace My
         {
             var self = (MarkdownMd4cReader)userdata;
             print("left span %s\n", span_type.to_string());
+
+            // Move back into the parent span
+            self.node_ = self.node_.parent;
+
             return 0;
         }
 
+        /**
+         * md4c callback to accept text content.
+         *
+         * Every text chunk gets its own Elem.Type.SPAN_PLAIN.  This is so
+         * that text after a child span will not be merged with text
+         * before the child span.
+         */
         private static int text_(TextType text_type, /*const*/ Char? text, Size size, void *userdata)
         {
             var self = (MarkdownMd4cReader)userdata;
             var data = strndup((char *)text, size);
             print("%s<<%s>>\n", self.indent_, data);
+
+            var newnode = node_of_ty(SPAN_PLAIN);
+            newnode.data.text = data;
+            self.node_.append((owned)newnode);  // clears newnode
+
             return 0;
         }
 
+        // === Parser callbacks and data ===================================
+
         /**
          * Read a file and build a node tree for it.
+         *
+         * Fills in root_.
          */
-        private GLib.Node<Elem> tree_for(string filename) throws FileError, MarkupError
+        private void make_tree_for(string filename) throws FileError, MarkupError
         {
             // Read it in
             string contents;
             FileUtils.get_contents(filename, out contents);
-            // TODO var parser = new MarkdownParser(MarkdownVersion.@0);
-            // parser.set_preserve_whitespace(false);
-            // var parsed = parser.parse(contents);
+
+            // Set up the parse
+
+            root_ = node_of_ty(Elem.Type.ROOT);
+            depth_ = 0;
+
+            // Processing functions.  NOTE: no closure in the current binding.
+
             Md4c.Parser parser = new Parser();
-
-            // Processing functions
-            // NOTE: no closure
-
             parser.enter_block = enter_block_;
             parser.leave_block = leave_block_;
             parser.enter_span = enter_span_;
@@ -212,16 +248,11 @@ namespace My
             parser.text = text_;
             parser.debug_log = null;
 
-            depth_ = 0;
+            // Parse it
             var ok = Md4c.parse((Char?)contents, contents.length, parser, this);
             if(ok != 0) {
                 throw new MarkupError.PARSE("parse failed (%d)".printf(ok));
             }
-
-            // Build a GLib.Node<Elem> tree
-            var root = node_of_ty(Elem.Type.ROOT);
-            // TODO build_tree(0, root, parsed);
-            return root;
         }
     }
 } // My
