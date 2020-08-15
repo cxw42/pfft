@@ -3,3 +3,6 @@ pfft.[ch]
 
 # generated manpage
 pfft.1
+
+# myconfig.vapi is under source control
+!myconfig.vapi

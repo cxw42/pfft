@@ -10,7 +10,7 @@ LDADD = $(wholearchive) $(MY_use_all_ldadd) $(nowholearchive)
 # === Program =============================================================
 
 bin_PROGRAMS = pfft
-pfft_SOURCES = nop.cpp $(MY_pgm_VALA) myconfig.vapi $(MY_pgm_EXTRASOURCES)
+pfft_SOURCES = nop.cpp $(MY_pgm_VALA) $(MY_pgm_EXTRASOURCES)
 # nop.cpp is listed first so the C++ linker will be used.
 
 # === manpage =============================================================

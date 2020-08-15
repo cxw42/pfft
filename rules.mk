@@ -10,6 +10,8 @@ EOL =
 
 # src/
 MY_pgm_VALA = pfft.vala myconfig.vapi
+# myconfig.vapi is under source control, so make sure to update it manually
+# if you add symbols to config.h.
 MY_pgm_EXTRASOURCES = pfft-shim.c
 
 # src/core
