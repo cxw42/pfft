@@ -1,6 +1,10 @@
 // core/logging.vala - Logging front-end.
 // Part of pfft, https://github.com/cxw42/pfft
 //
+// NOTE: If you put any executable code in this file (as opposed to
+// declarations), adjust Makefile.am's treatment of the generated logging.c.
+// As of writing, logging.c has no content we need.
+//
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: LGPL-2.0-or-later
 
