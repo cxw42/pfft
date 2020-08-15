@@ -1,3 +1,4 @@
+os: linux
 dist: bionic
 language: c
 
@@ -20,6 +21,18 @@ install:
   - sudo apt install -y --no-install-recommends libsnapd-glib1
   - valac --version
   # Note: at present, it builds OK with Vala 0.40.19.
+  - make --version
 
 before_script:
   - ./bootstrap
+
+script:
+  - ./configure --disable-dependency-tracking
+  # The dependency tracking doesn't work on Travis for some reason --- 
+  # e.g, https://travis-ci.org/github/cxw42/pfft/builds/718187356
+  - make V=1
+  - make test V=1
+
+after_failure:
+  - ls -alR
+  - find . -name Makefile -exec sh -c 'echo "$0" ; cat "$0"' {} ';'

@@ -148,6 +148,7 @@ namespace My {
         {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
             init_gstreamer();
+            linit();
 
             // get available readers and writers
             readers_ = new ClassMap();

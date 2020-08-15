@@ -254,7 +254,7 @@ namespace My { namespace Blocks {
         {
             int lineno = 0;
             int yP = c2p(topC);  // Current Y
-            unowned var lines = layout.get_lines_readonly();
+            unowned SList<Pango.LayoutLine> lines = layout.get_lines_readonly();
             unowned SList<Pango.LayoutLine> curr_line = lines;
             int last_bottom_yP = 0; // bottom of the last-rendered line
             bool first_line = true;

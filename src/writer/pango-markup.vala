@@ -518,7 +518,7 @@ namespace My {
 
             // process children
             for(uint i = 0; i < node.n_children(); ++i) {
-                unowned var child = node.nth_child(i);
+                unowned GLib.Node<Elem> child = node.nth_child(i);
                 var newblk = process_node_into(child, child.data, (owned)blk,
                         retval, state);
                 blk = newblk;
