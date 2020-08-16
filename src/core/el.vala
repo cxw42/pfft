@@ -81,8 +81,10 @@ namespace My {
             SPAN_STRIKE,
             /** Underline */
             SPAN_UNDERLINE,
+            /** Image */
+            SPAN_IMAGE,
 
-            // TODO? hyperlinks, images, math, wikilinks
+            // TODO? hyperlinks, math, wikilinks
         }
 
         /**

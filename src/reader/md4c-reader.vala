@@ -170,7 +170,7 @@ namespace My
                 break;
             case IMG:
                 printerr("Images are not yet supported\n");
-                newnode = node_of_ty(SPAN_PLAIN);
+                newnode = node_of_ty(SPAN_IMAGE);
                 break;
             case CODE: newnode = node_of_ty(SPAN_CODE); break;
             case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
