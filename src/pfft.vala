@@ -284,7 +284,7 @@ namespace My {
             }
 
             var doc = reader.read_document(infh.get_path());
-            writer.write_document(outfn, doc);
+            writer.write_document(outfn, doc, infh.get_path());
 
         } // process_file()
 

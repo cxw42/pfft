@@ -169,8 +169,11 @@ namespace My
                 newnode = node_of_ty(SPAN_PLAIN);
                 break;
             case IMG:
-                printerr("Images are not yet supported\n");
                 newnode = node_of_ty(SPAN_IMAGE);
+                string href, title;
+                get_img_detail(detail, out href, out title);
+                newnode.data.href = href;
+                newnode.data.info_string = title;
                 break;
             case CODE: newnode = node_of_ty(SPAN_CODE); break;
             case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
