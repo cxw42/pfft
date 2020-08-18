@@ -133,26 +133,28 @@ namespace My {
 
             /**
              * Create an Image referencing an external image file.
+             * @param href      Where the referenced image is
              * @param doc_path  Where the referencing file is.
              *                  This is a string rather than a File so it
              *                  can later be expanded to URLs.
-             * @param href      Where the referenced image is
              *
              * NOTE: at present, assumes that @href is a path from the
              * location of the source file to the location of a PNG file.
              */
-            public Image.from_href(string doc_path, string href)
+            public Image.from_href(string href, string doc_path)
             {
                 Cairo.ImageSurface s;
 
                 string docfn = Filename.canonicalize(doc_path); // make absolute
-                string imgfn = Filename.canonicalize(href, docfn);
+                string docdir = File.new_for_path(docfn).get_parent().get_path();
+                string imgfn = Filename.canonicalize(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
                 this(s);
+                llogo(this, "Loaded %s (%s relative to %s): %p", imgfn, href, doc_path, s);
             } // Image.from_href()
 
-        } //class Image
-    } //namespace Shape
+        } // class Image
+    } // namespace Shape
 
     namespace Blocks {
 
@@ -359,6 +361,19 @@ namespace My {
              */
             public string post_markup { get; set; default = ""; }
 
+            /** A cached version of markup + post_markup */
+            private string whole_markup = null;
+
+            /** Return the cached markup + post_markup */
+            protected string get_whole_markup()
+            {
+                if(whole_markup == null) {
+                    whole_markup = markup + post_markup;
+                    fill_shape_attrs();
+                }
+                return whole_markup;
+            }
+
             /**
              * A layout instance to use.
              *
@@ -402,13 +417,30 @@ namespace My {
             protected void fill_shape_attrs()
             {
                 shape_attrs = new Pango.AttrList();
+                if(shapes == null || shapes.is_empty) {
+                    return;
+                }
 
                 foreach(var shape in shapes) {
                     var attr = new Pango.AttrShape<Shape.Base>.with_data(
                         shape.get_inkP(), shape.get_logicalP(), shape,
-                            (data)=>{ return data.clone();} );
+                        (data)=>{ return data.clone();} );
                     shape_attrs.insert((owned)attr);
                 }
+
+                // TODO check if the number of OBJ_REPL_CHARs in whole_markup
+                // is the same as the number of shapes
+                var re = new Regex(OBJ_REPL_CHAR());    // TODO move out of this fn, or handle/forward the RegexError
+                MatchInfo matches;
+                if(!re.match_all(get_whole_markup(), 0, out matches)) {
+                    lerroro(this, "No obj repl chars");
+                    assert(false);  // TODO
+                }
+                if(matches.get_match_count() != shapes.size) {
+                    lerroro(this, "Wrong number of obj repl chars/shapes");
+                    assert(false);  // TODO
+                }
+
             } // fill_shape_attrs()
 
             /**
@@ -422,7 +454,7 @@ namespace My {
             protected RenderResult render_partial(Cairo.Context cr,
                 Pango.Layout layout,
                 double leftC, double topC,
-                int rightP, int bottomP, string final_markup)
+                int rightP, int bottomP)
             ensures(result == COMPLETE || result == PARTIAL || result == NONE)
             {
                 int lineno = 0;
@@ -539,18 +571,18 @@ namespace My {
             /**
              * Render a markup block with no decorations.
              *
-             * This is a helper for child classes.  If final_markup is empty,
+             * This is a helper for child classes.  If whole_markup is empty,
              * this is a no-op.  Parameters are as in render().
              *
              * This respects nlines_rendered and invokes render_partial() if needed.
              */
             protected RenderResult render_simple(Cairo.Context cr,
                 Pango.Layout layout,
-                int rightP, int bottomP, string final_markup)
+                int rightP, int bottomP)
             {
                 double leftC, topC; // Where we started
 
-                if(final_markup == "") {
+                if(get_whole_markup() == "") {
                     return RenderResult.COMPLETE;
                 }
 
@@ -562,7 +594,7 @@ namespace My {
                     // we already did part, so do the next part.  This may not be
                     // the whole rest of the block, if the block's text is longer
                     // than a page.
-                    return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
+                    return render_partial(cr, layout, leftC, topC, rightP, bottomP);
                 }
 
                 // Out of range
@@ -576,7 +608,7 @@ namespace My {
                 }
 
                 layout.set_width(rightP - c2p(leftC));
-                layout.set_markup(final_markup, -1);
+                layout.set_markup(get_whole_markup(), -1);
 
                 // check metrics and see if we are at risk of running
                 // off the page vertically
@@ -587,7 +619,7 @@ namespace My {
                     lwarningo(this, "Not enough room for the whole block: %f > %f",
                         c2i(topC + p2c(logicalP.y + logicalP.height)),
                         p2i(bottomP));
-                    return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
+                    return render_partial(cr, layout, leftC, topC, rightP, bottomP);
                 }
 
                 if(lenabled(DEBUG)) {
@@ -622,7 +654,7 @@ namespace My {
                 cr.move_to(leftC,
                     topC + p2c(logicalP.y + logicalP.height));
 
-                // ldebugo(this, "Render block: <[%s]>", final_markup);
+                // ldebugo(this, "Render block: <[%s]>", get_whole_markup());
                 return RenderResult.COMPLETE;
             } // render_simple()
 
@@ -653,8 +685,7 @@ namespace My {
             public virtual RenderResult render(Cairo.Context cr,
                 int rightP, int bottomP)
             {
-                return render_simple(cr, layout, rightP, bottomP,
-                           markup + post_markup);
+                return render_simple(cr, layout, rightP, bottomP);
             }
 
             public Blk(Pango.Layout layout)
@@ -708,9 +739,7 @@ namespace My {
             public override RenderResult render(Cairo.Context cr,
                 int rightP, int bottomP)
             {
-                string final_markup = markup + post_markup;
-
-                if(final_markup == "") {
+                if(get_whole_markup() == "") {
                     return RenderResult.COMPLETE;
                 }
 
@@ -734,7 +763,7 @@ namespace My {
                 // Try to render the markup.  This will fail if we don't have room.
                 cr.move_to(leftC + p2c(text_leftP), topC);
                 bool is_first_chunk = (nlines_rendered == 0);
-                var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+                var result = render_simple(cr, layout, rightP, bottomP);
 
                 // Move back to where the next block will start
                 cr.get_current_point(out xC, out yC); // where the copy left us
@@ -852,9 +881,7 @@ namespace My {
             public override RenderResult render(Cairo.Context cr,
                 int rightP, int bottomP)
             {
-                string final_markup = markup + post_markup;
-
-                if(final_markup == "") {
+                if(get_whole_markup() == "") {
                     return RenderResult.COMPLETE;
                 }
 
@@ -873,7 +900,7 @@ namespace My {
 
                 // Try to render the markup
                 cr.move_to(x1C + p2c(text_leftP), y1C);
-                var result = render_simple(cr, layout, rightP, bottomP, final_markup);
+                var result = render_simple(cr, layout, rightP, bottomP);
                 if(result != COMPLETE) {
                     return result;
                 }
