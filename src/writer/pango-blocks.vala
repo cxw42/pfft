@@ -49,12 +49,14 @@ namespace My {
 
             /**
              * Render this shape at the current position.
+             * @param cr        The Cairo context
+             * @param do_path   See CairoShapeRendererFunc
              *
              * Leaves the current position at the right side of the rendering.
              * This is because shapes are inline (span-like), so there is
              * more text following the shape, in the general case.
              */
-            public abstract void render(Cairo.Context cr);
+            public abstract void render(Cairo.Context cr, bool do_path);
 
             /** Clone this shape */
             public abstract Shape.Base clone();
@@ -93,11 +95,12 @@ namespace My {
                 return get_inkP();
             }
 
-            public override void render(Cairo.Context cr)
+            public override void render(Cairo.Context cr, bool do_path)
             {
                 double leftC, topC; // Where we started
                 double wC = image.get_width();
                 double hC = image.get_height();
+                assert(!do_path);   // XXX handle this more gracefully
 
                 cr.get_current_point(out leftC, out topC);
 
@@ -113,8 +116,12 @@ namespace My {
                 cr.line_to(leftC+wC, topC+hC);
                 cr.stroke();
 
-                cr.move_to(leftC+wC, topC);
+                cr.set_source_surface(image, leftC, topC);
+                cr.rectangle(leftC, topC, wC, hC);
+                cr.fill();
+
                 cr.restore();
+                cr.move_to(leftC+wC, topC);
             }
 
             public override Shape.Base clone()
@@ -150,7 +157,9 @@ namespace My {
                 string imgfn = Filename.canonicalize(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
                 this(s);
-                llogo(this, "Loaded %s (%s relative to %s): %p", imgfn, href, doc_path, s);
+                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
+                    imgfn, href, doc_path, s,
+                    c2i(image.get_width()), c2i(image.get_height()));
             } // Image.from_href()
 
         } // class Image
@@ -421,27 +430,73 @@ namespace My {
                     return;
                 }
 
-                foreach(var shape in shapes) {
-                    var attr = new Pango.AttrShape<Shape.Base>.with_data(
-                        shape.get_inkP(), shape.get_logicalP(), shape,
-                        (data)=>{ return data.clone();} );
-                    shape_attrs.insert((owned)attr);
-                }
-
-                // TODO check if the number of OBJ_REPL_CHARs in whole_markup
+                // check if the number of OBJ_REPL_CHARs in whole_markup
                 // is the same as the number of shapes
+                int[] start_offset_bytes = {};
+                int[] end_offset_bytes = {};
                 var re = new Regex(OBJ_REPL_CHAR());    // TODO move out of this fn, or handle/forward the RegexError
                 MatchInfo matches;
-                if(!re.match_all(get_whole_markup(), 0, out matches)) {
+                // lmemdumpo(this, "OBJ_REPL_CHAR", OBJ_REPL_CHAR(), OBJ_REPL_CHAR().length);
+                // lmemdumpo(this, "whole_markup", get_whole_markup(), get_whole_markup().length);
+                if(!re.match_full(get_whole_markup(), -1, 0, 0, out matches)) {
                     lerroro(this, "No obj repl chars");
                     assert(false);  // TODO
                 }
-                if(matches.get_match_count() != shapes.size) {
+                int shapeidx = -1;
+                while(matches.matches()) {
+                    ++shapeidx;
+                    int start_pos, end_pos;
+                    if(!matches.fetch_pos(0, out start_pos, out end_pos)) {
+                        lerroro(this, "Could not fetch match position");
+                        assert(false);  // TODO
+                    }
+                    ltraceo(this, "shape %d repl char %d->%d", shapeidx, start_pos, end_pos);
+                    start_offset_bytes += start_pos;
+                    end_offset_bytes += end_pos;
+                    matches.next();
+                }
+
+                if(start_offset_bytes.length != shapes.size) {
                     lerroro(this, "Wrong number of obj repl chars/shapes");
                     assert(false);  // TODO
                 }
+                ltraceo(this, "Found %d match(es)", start_offset_bytes.length);
+
+                shapeidx = -1;
+                foreach(var shape in shapes) {
+                    ++shapeidx;
+                    var attr = new Pango.AttrShape<Shape.Base>.with_data(
+                        shape.get_inkP(), shape.get_logicalP(), shape,
+                        (data)=>{ return data.clone();} );
+
+                    // byte offsets of the placeholder
+                    attr.start_index = start_offset_bytes[shapeidx];
+                    attr.end_index = end_offset_bytes[shapeidx];
+
+
+                    shape_attrs.insert((owned)attr);
+                }
 
             } // fill_shape_attrs()
+
+            /**
+             * Render a shape
+             */
+            private void render_shape(Cairo.Context cr, Pango.AttrShape<Shape.Base> attr, bool do_path)
+            {
+                ldebugo(this, "Rendering shape %p", attr);
+                unowned Shape.Base shape = attr.data;
+                assert(shape != null);
+                shape.render(cr, do_path);
+
+                /*
+                double leftC, topC;
+                cr.get_current_point(out leftC, out topC);
+                cr.save();
+                cr.restore();
+                cr.move_to(topC, leftC + XXX);
+                */
+            } // render_shape()
 
             /**
              * Render a portion of a block
@@ -575,6 +630,9 @@ namespace My {
              * this is a no-op.  Parameters are as in render().
              *
              * This respects nlines_rendered and invokes render_partial() if needed.
+             *
+             * TODO just use render_partial --- the code duplication is not
+             * worth the potential speed increase in my use case.
              */
             protected RenderResult render_simple(Cairo.Context cr,
                 Pango.Layout layout,
@@ -631,6 +689,25 @@ namespace My {
                         p2i(logicalP.y));
                 }
 
+                // Set up for shape rendering.  For some reason, calling this
+                // at the beginning of this function did not take effect.
+                Pango.cairo_context_set_shape_renderer(
+                    layout.get_context(),
+                    (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
+                );
+                ldebugo(this, "Context %p", layout.get_context());
+                layout.set_attributes(shape_attrs);
+                if(lenabled(DEBUG)) {
+                    // Can't use shape_attrs.get_attributes() because it's Pango 1.44+
+                    var iter = shape_attrs.get_iterator();
+                    int entries = 0;
+                    while(iter.next()) {
+                        ++entries;
+                    }
+                    ldebugo(this, "Attr list has %d entries", entries);
+                }
+
+                // Render
                 Pango.cairo_show_layout(cr, layout);
 
                 if(lenabled(DEBUG)) { // render the rectangles
