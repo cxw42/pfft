@@ -63,77 +63,138 @@ namespace My {
 
         } // class Base
 
-        /** An image */
+        /**
+         * An image
+         *
+         * This class is based on C code by Mike Birch, which code he kindly
+         * placed in the public domain.  <https://immortalsofar.com/PangoDemo/>.
+         */
         public class Image : Base {
             /**
-             * The bounding rectangle, in Pango units.
-             *
-             * This class uses the same rectangle for both ink and logical.
+             * The ink rectangle, in Pango units.
              */
-            private Pango.Rectangle? rectP = null;
+            private Pango.Rectangle? inkP = null;
+
+            private int paddingP_stg;
+
+            /** The size of the padding */
+            public int paddingP {
+                get {
+                    return paddingP_stg;
+                }
+                set {
+                    paddingP_stg = value;
+                    populate_rects();
+                }
+            }
+
+            /** Default padding */
+            public const double DEFAULT_PADDING_IN = 0.05;
+
+            /**
+             * The logical rectangle, including padding
+             *
+             * The logical rectangle is the ink rectangle plus padding on
+             * the top, left, and right.
+             */
+            private Pango.Rectangle? logicalP = null;
+
             private Cairo.ImageSurface image;
 
-            private void populate_rectP()
+            private void populate_rects()
             {
-                rectP = Pango.Rectangle();
-                rectP.x = 0;
-                rectP.y = 0;    // TODO?  Baseline?
-                rectP.width = c2p(image.get_width());
-                rectP.height = c2p(image.get_height());
+                int wdP = c2p(image.get_width());
+                int htP = c2p(image.get_height());
+                logicalP = Pango.Rectangle();
+                logicalP.x = 0;
+                logicalP.y = -(htP + paddingP);
+                logicalP.width = wdP + 2*paddingP;
+                logicalP.height = htP + paddingP;
+
+                inkP = Pango.Rectangle();
+                inkP.x = paddingP;
+                inkP.y = -htP;  // Bottom of the image sits on the baseline
+                inkP.width = wdP;
+                inkP.height = htP;
+
             }
 
             public override Pango.Rectangle get_inkP()
             {
-                if(rectP == null) {
-                    populate_rectP();
+                if(inkP == null) {
+                    populate_rects();
                 }
-                return rectP;
+                return inkP;
             }
 
             public override Pango.Rectangle get_logicalP()
             {
-                return get_inkP();
+                if(inkP == null) {
+                    populate_rects();
+                }
+                return logicalP;
             }
 
             public override void render(Cairo.Context cr, bool do_path)
             {
-                double leftC, topC; // Where we started
-                double wC = image.get_width();
-                double hC = image.get_height();
                 assert(!do_path);   // XXX handle this more gracefully
 
+                double leftC, topC; // Where we started
                 cr.get_current_point(out leftC, out topC);
 
+                // Figure out where to put the image.  Use the ink rectangle
+                // so that changes to the business logic are only in populate_rects().
+                double img_topC, img_leftC, img_wC, img_hC, img_log_widthC;
+
+                var inkP = get_inkP();
+
+                img_topC = topC + p2c(inkP.y);
+                img_leftC = leftC + p2c(inkP.x);
+                img_wC = p2c(inkP.width);
+                img_hC = p2c(inkP.height);
+
+                var logP = get_logicalP();
+                img_log_widthC = p2c(logP.x + logP.width);
+
+                // Render the image
                 cr.save();
                 cr.set_antialias(NONE);
-                cr.set_line_width(0.5);
-                cr.set_source_rgb(1,0,0);
 
-                cr.rectangle(leftC, topC, wC, hC);
-                cr.stroke();
-
-                cr.move_to(leftC, topC);
-                cr.line_to(leftC+wC, topC+hC);
-                cr.stroke();
-
-                cr.set_source_surface(image, leftC, topC);
-                cr.rectangle(leftC, topC, wC, hC);
+                cr.set_source_surface(image, img_leftC, img_topC);
+                cr.rectangle(img_leftC, img_topC, img_wC, img_hC);
                 cr.fill();
 
+                cr.set_line_width(0.5);
+                if(lenabled(TRACE)) { // ink
+                    cr.set_source_rgb(1,0,0);
+                    cr.rectangle(leftC + p2c(inkP.x), topC + p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
+                    cr.stroke();
+                }
+                if(lenabled(DEBUG)) { // logical
+                    cr.set_source_rgb(0,0,1);
+                    cr.rectangle(leftC + p2c(logP.x), topC + p2c(logP.y), p2c(logP.width), p2c(logP.height));
+                    cr.stroke();
+                }
                 cr.restore();
-                cr.move_to(leftC+wC, topC);
+                cr.move_to(leftC + img_log_widthC, topC);
             }
 
             public override Shape.Base clone()
             {
-                Image retval = new Image(this.image);
+                Image retval = new Image(this.image, this.paddingP);
                 return retval;
             }
 
-            /** Constructor */
-            public Image(Cairo.ImageSurface image)
+            /**
+             * Constructor
+             * @param image     The image
+             * @param paddingP  The padding, in Pango units.  -1 (the default)
+             *                  means to use DEFAULT_PADDING_IN.
+             */
+            public Image(Cairo.ImageSurface image, int paddingP = -1)
             {
                 this.image = image;
+                this.paddingP = (paddingP == -1) ? i2p(DEFAULT_PADDING_IN) : paddingP;
             } // ctor
 
             // constructors that load from files
@@ -148,7 +209,7 @@ namespace My {
              * NOTE: at present, assumes that @href is a path from the
              * location of the source file to the location of a PNG file.
              */
-            public Image.from_href(string href, string doc_path)
+            public Image.from_href(string href, string doc_path, int paddingP = -1)
             {
                 Cairo.ImageSurface s;
 
@@ -156,7 +217,7 @@ namespace My {
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
                 string imgfn = Filename.canonicalize(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
-                this(s);
+                this(s, paddingP);
                 llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
                     imgfn, href, doc_path, s,
                     c2i(image.get_width()), c2i(image.get_height()));
@@ -490,12 +551,12 @@ namespace My {
                 shape.render(cr, do_path);
 
                 /*
-                double leftC, topC;
-                cr.get_current_point(out leftC, out topC);
-                cr.save();
-                cr.restore();
-                cr.move_to(topC, leftC + XXX);
-                */
+                   double leftC, topC;
+                   cr.get_current_point(out leftC, out topC);
+                   cr.save();
+                   cr.restore();
+                   cr.move_to(topC, leftC + XXX);
+                 */
             } // render_shape()
 
             /**
