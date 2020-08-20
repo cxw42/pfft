@@ -14,6 +14,13 @@ namespace My {
         return ((unichar)codepoint).to_string();
     }
 
+    /** Stringify a Pango.Rectangle for debugging */
+    string prect_to_string(Pango.Rectangle rect)
+    {
+        return "%fx%f@(%f,%f)".printf( p2i(rect.width), p2i(rect.height),
+                   p2i(rect.x), p2i(rect.y) );
+    }
+
     /**
      * Results of a render call
      *
@@ -166,12 +173,12 @@ namespace My {
 
                 cr.set_line_width(0.5);
                 if(lenabled(TRACE)) { // ink
-                    cr.set_source_rgb(1,0,0);
+                    cr.set_source_rgb(1,0.5,0.5);
                     cr.rectangle(leftC + p2c(inkP.x), topC + p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
                 }
                 if(lenabled(DEBUG)) { // logical
-                    cr.set_source_rgb(0,0,1);
+                    cr.set_source_rgb(1,0,0);
                     cr.rectangle(leftC + p2c(logP.x), topC + p2c(logP.y), p2c(logP.width), p2c(logP.height));
                     cr.stroke();
                 }
@@ -439,7 +446,6 @@ namespace My {
             {
                 if(whole_markup == null) {
                     whole_markup = markup + post_markup;
-                    fill_shape_attrs();
                 }
                 return whole_markup;
             }
@@ -480,11 +486,12 @@ namespace My {
 
             /**
              * Initialize shape_attrs.
+             * @param text  The actual text in the layout --- NOT the markup
              *
              * Call only when the markup for the block has been finalized and
              * all add_shape() calls have been made.
              */
-            protected void fill_shape_attrs()
+            protected void fill_shape_attrs(string text)
             {
                 shape_attrs = new Pango.AttrList();
                 if(shapes == null || shapes.is_empty) {
@@ -499,7 +506,7 @@ namespace My {
                 MatchInfo matches;
                 // lmemdumpo(this, "OBJ_REPL_CHAR", OBJ_REPL_CHAR(), OBJ_REPL_CHAR().length);
                 // lmemdumpo(this, "whole_markup", get_whole_markup(), get_whole_markup().length);
-                if(!re.match_full(get_whole_markup(), -1, 0, 0, out matches)) {
+                if(!re.match_full(text, -1, 0, 0, out matches)) {
                     lerroro(this, "No obj repl chars");
                     assert(false);  // TODO
                 }
@@ -540,6 +547,73 @@ namespace My {
 
             } // fill_shape_attrs()
 
+            /** Add shape_attrs to the list of attributes for a layout */
+            private void append_shape_attrs_to(Pango.Layout layout)
+            {
+                var old_attributes = layout.get_attributes();
+                if(old_attributes == null) {
+                    ltraceo(this, "Setting attributes to %p", shape_attrs);
+                    layout.set_attributes(shape_attrs); // OK even if shape_attrs==null
+                    return;
+                }
+
+                if(shape_attrs == null) {
+                    ltraceo(this, "Don't need to change the existing attrs");
+                    return;
+                }
+
+                // Normal case: add to the list
+                var dest = old_attributes.copy();
+                var iter = shape_attrs.get_iterator();
+                int entries = 0;
+                while(true) {
+                    var attrs = iter.get_attrs();
+                    if(attrs != null) {
+                        attrs.foreach((attr) => {
+                            var new_attr = attr.copy();
+                            ltraceo(new_attr, "Shape attr for %d", entries);
+                            dest.insert((owned)new_attr);
+                            ++entries;
+                        });
+                    }
+                    if(!iter.next()) {
+                        break;
+                    }
+                }
+                ldebugo(this, "Added %d attrs", entries);
+
+                // Refresh the layout if anything changed
+                if(entries > 0) {
+                    ltraceo(this, "Updating layout");
+                    layout.set_attributes(dest);
+                }
+
+                if(lenabled(TRACE)) {
+                    iter = layout.get_attributes().get_iterator();
+                    entries = 0;
+                    while(true) {
+                        var attrs = iter.get_attrs();
+                        if(attrs != null) {
+                            attrs.foreach((attr) => {
+                                ++entries;
+                                ltraceo(attr, "%s %u->%u", attr.klass.type.to_string(),
+                                attr.start_index, attr.end_index);
+                                if(attr.klass.type == Pango.AttrType.SHAPE) {
+                                    unowned Pango.AttrShape<Shape.Base> shape = (Pango.AttrShape<Shape.Base>)attr;
+                                    ltraceo(attr, "  shape: ink %s log %s",
+                                    prect_to_string(shape.ink_rect),
+                                    prect_to_string(shape.logical_rect));
+                                }
+                            });
+                        }
+                        if(!iter.next()) {
+                            break;
+                        }
+                    }
+                    ltraceo(this, "Total %d attrs", entries);
+                } // endif TRACE
+            } // append_shape_attrs_to()
+
             /**
              * Render a shape
              */
@@ -549,46 +623,93 @@ namespace My {
                 unowned Shape.Base shape = attr.data;
                 assert(shape != null);
                 shape.render(cr, do_path);
-
-                /*
-                   double leftC, topC;
-                   cr.get_current_point(out leftC, out topC);
-                   cr.save();
-                   cr.restore();
-                   cr.move_to(topC, leftC + XXX);
-                 */
             } // render_shape()
 
             /**
-             * Render a portion of a block
+             * Render a block or portion thereof.
              *
-             * Parameters are as render().  Sets nlines_rendered.
+             * This is a helper for child classes.  If whole_markup is empty,
+             * this is a no-op.  Parameters are as in render().
+             *
              * Requires the layout already be initialized.
              * If any shapes are present, requires fill_shape_attrs() already have
              * been called.
+             *
+             * Sets nlines_rendered.
              */
-            protected RenderResult render_partial(Cairo.Context cr,
+            protected RenderResult render_layout(Cairo.Context cr,
                 Pango.Layout layout,
-                double leftC, double topC,
                 int rightP, int bottomP)
-            ensures(result == COMPLETE || result == PARTIAL || result == NONE)
             {
+                double leftC, topC; // Where we started
+
+                cr.get_current_point(out leftC, out topC);
+                ldebugo(this,"layout %p starting at (%f, %f) limits (%f, %f)",
+                    layout, c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
+
+                if(get_whole_markup() == "") {
+                    return RenderResult.COMPLETE;
+                }
+
+                // If this is the first time we've touched this block,
+                // finalize and check the layout.
+                if(nlines_rendered == 0) {
+
+                    // Out of range
+                    if(c2p(topC) >= bottomP) {
+                        return RenderResult.NONE;
+                    }
+                    if(c2p(leftC) >= rightP ) {
+                        linfoo(this, "too wide: %f >= %f",
+                            c2i(leftC), p2i(rightP));
+                        return RenderResult.ERROR; // too wide
+                    }
+
+                    layout.set_width(rightP - c2p(leftC));
+                    layout.set_markup(get_whole_markup(), -1);
+                    lmemdumpo(this, "whole markup", get_whole_markup(), get_whole_markup().length);
+                    lmemdumpo(this, "layout text", layout.get_text(), layout.get_text().length);
+
+                    // Set up for shape rendering.
+
+                    // Find the object-replacement chars.  We have to fill AFTER
+                    // the set_markup() call because:
+                    // - the markup includes markup tags;
+                    // - the text omits those tags; and
+                    // - the byte offsets are in the text, not the markup.
+                    // Rather than parsing the markup ourselves, just get the text
+                    // the layout is actually using.
+
+                    fill_shape_attrs(layout.get_text());
+
+                    append_shape_attrs_to(layout);
+                    Pango.cairo_context_set_shape_renderer(
+                        layout.get_context(),
+                        (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
+                    );
+
+                    if(lenabled(LOG)) {
+                        Pango.Rectangle inkP, logicalP;
+                        layout.get_extents(out inkP, out logicalP);
+                        llogo(this, "layout ink: %s", prect_to_string(inkP));
+                        llogo(this, "layout log: %s", prect_to_string(logicalP));
+                    }
+
+                } // endif need to set up the layout
+
                 int lineno = 0;
                 int yP = c2p(topC); // Current Y
+
                 unowned SList<Pango.LayoutLine> lines = layout.get_lines_readonly();
                 unowned SList<Pango.LayoutLine> curr_line = lines;
-                int last_bottom_yP = 0; // bottom of the last-rendered line
-                bool first_line = true;
                 bool did_render = false; // did we render anything during this call?
 
                 RenderResult retval = UNKNOWN;
 
-                ldebugo(this, "render_partial BEGIN - %u lines in layout", lines.length());
+                ldebugo(this, "BEGIN - %u lines in layout", lines.length());
                 while(curr_line != null) {
 
                     // Advance to the first line not yet rendered
-                    // TODO double-check that this works -- it appears that we
-                    // might be skipping lines sometimes.
                     if(nlines_rendered > 0 && lineno < nlines_rendered) {
                         llogo(this, "Skipping line %d", lineno);
                         ++lineno;
@@ -596,27 +717,19 @@ namespace My {
                         continue;
                     }
 
+                    // Each time through the loop, (leftC, yP) is at the
+                    // upper-left corner of this line's box.
+
                     // Can we fit this line?
                     llogo(this, "Trying line %d", lineno);
                     Pango.Rectangle inkP, logicalP;
                     curr_line.data.get_extents(out inkP, out logicalP);
-
-                    if(first_line) {
-                        // The line's box is with respect to the baseline, NOT
-                        // the upper-left corner of the text block.
-                        // Adjust yP to compensate.
-                        yP -= logicalP.y;
-                        first_line = false;
-                    }
-
                     if(lenabled(DEBUG)) {
-                        ltraceo(this, "  ink: %fx%f@(%f,%f)", p2i(inkP.width),
-                            p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
-                        ldebugo(this, "  log: %fx%f@(%f,%f)", p2i(logicalP.width),
-                            p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
+                        ltraceo(this, "  ink: %s", prect_to_string(inkP));
+                        ldebugo(this, "  log: %s", prect_to_string(logicalP));
                     }
 
-                    if(yP + logicalP.y + logicalP.height > bottomP) {
+                    if(yP + logicalP.height > bottomP) {
                         // Done with what we can do for this page.
                         // At least the current line is left, so this block is
                         // not yet complete.
@@ -628,29 +741,32 @@ namespace My {
                         break;
                     }
 
-                    if(lenabled(DEBUG)) { // render the rectangles
+                    if(lenabled(DEBUG)) { // draw the rectangles
                         cr.save();
                         cr.set_antialias(NONE);
                         cr.set_line_width(0.5);
                         if(lenabled(TRACE)) { // ink
-                            cr.set_source_rgb(1,0,0);
-                            cr.rectangle(leftC+p2c(inkP.x), p2c(yP+inkP.y), p2c(inkP.width), p2c(inkP.height));
+                            cr.set_source_rgb(0.5, 0.5, 1);
+                            cr.rectangle(leftC, p2c(yP), p2c(inkP.width), p2c(inkP.height));
                             cr.stroke();
                         }
                         if(lenabled(DEBUG)) { // logical
                             cr.set_source_rgb(0,0,1);
-                            cr.rectangle(leftC+p2c(logicalP.x), p2c(yP+logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
+                            cr.rectangle(leftC, p2c(yP), p2c(logicalP.width), p2c(logicalP.height));
                             cr.stroke();
                         }
                         cr.restore();
                     }
 
                     // Render this line
-                    ldebugo(this, "Rendering line %d at %f\"", lineno, p2i(yP));
-                    cr.move_to(leftC, p2c(yP));
+                    ldebugo(this, "  - Rendering line %d, UL corner y %f", lineno, p2i(yP));
+                    // Move vertically to the baseline, which is the vertical
+                    // reference for the line.
+                    int baseline_yP = yP - logicalP.y;
+                    llogo(this, "    Baseline y %f", p2i(baseline_yP));
+                    cr.move_to(leftC, p2c(baseline_yP));
                     Pango.cairo_show_layout_line(cr, curr_line.data); // UNSETS the current point
                     did_render = true;
-                    last_bottom_yP = yP + logicalP.y + logicalP.height;
 
                     // Advance to the next line
                     yP += logicalP.height;
@@ -673,128 +789,16 @@ namespace My {
                     nlines_rendered = 0;
                     retval = COMPLETE;
 
-                    // Move the Pango current point to the bottom-left of the last
-                    // line's logical rectangle
-                    cr.move_to(leftC, p2c(last_bottom_yP));
+                    // Move the Pango current point to the bottom-left of the
+                    // last line's logical rectangle
+                    cr.move_to(leftC, p2c(yP));
                 }
 
-                ldebugo(this,"render_partial done - rendered %d lines - %s",
+                ldebugo(this,"done - rendered %d lines - %s",
                     nlines_rendered, retval.to_string());
 
                 return retval;
-            } // render_partial()
-
-            /**
-             * Render a markup block with no decorations.
-             *
-             * This is a helper for child classes.  If whole_markup is empty,
-             * this is a no-op.  Parameters are as in render().
-             *
-             * This respects nlines_rendered and invokes render_partial() if needed.
-             *
-             * TODO just use render_partial --- the code duplication is not
-             * worth the potential speed increase in my use case.
-             */
-            protected RenderResult render_simple(Cairo.Context cr,
-                Pango.Layout layout,
-                int rightP, int bottomP)
-            {
-                double leftC, topC; // Where we started
-
-                if(get_whole_markup() == "") {
-                    return RenderResult.COMPLETE;
-                }
-
-                cr.get_current_point(out leftC, out topC);
-                ldebugo(this,"render_simple layout %p starting at (%f, %f) limits (%f, %f)",
-                    layout, c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
-
-                if(nlines_rendered > 0) {
-                    // we already did part, so do the next part.  This may not be
-                    // the whole rest of the block, if the block's text is longer
-                    // than a page.
-                    return render_partial(cr, layout, leftC, topC, rightP, bottomP);
-                }
-
-                // Out of range
-                if(c2p(topC) >= bottomP) {
-                    return RenderResult.NONE;
-                }
-                if(c2p(leftC) >= rightP ) {
-                    linfoo(this, "render_simple: too wide: %f >= %f",
-                        c2i(leftC), p2i(rightP));
-                    return RenderResult.ERROR; // too wide
-                }
-
-                layout.set_width(rightP - c2p(leftC));
-                layout.set_markup(get_whole_markup(), -1);
-
-                // check metrics and see if we are at risk of running
-                // off the page vertically
-
-                Pango.Rectangle inkP, logicalP;
-                layout.get_extents(out inkP, out logicalP);
-                if(topC + p2c(logicalP.y + logicalP.height) >= p2c(bottomP)) {
-                    lwarningo(this, "Not enough room for the whole block: %f > %f",
-                        c2i(topC + p2c(logicalP.y + logicalP.height)),
-                        p2i(bottomP));
-                    return render_partial(cr, layout, leftC, topC, rightP, bottomP);
-                }
-
-                if(lenabled(DEBUG)) {
-                    ltraceo(this, "ink: %fx%f@(%f,%f)", p2i(inkP.width),
-                        p2i(inkP.height), p2i(inkP.x),
-                        p2i(inkP.y/Pango.SCALE));
-                    ldebugo(this, "log: %fx%f@(%f,%f)", p2i(logicalP.width),
-                        p2i(logicalP.height), p2i(logicalP.x),
-                        p2i(logicalP.y));
-                }
-
-                // Set up for shape rendering.  For some reason, calling this
-                // at the beginning of this function did not take effect.
-                Pango.cairo_context_set_shape_renderer(
-                    layout.get_context(),
-                    (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
-                );
-                ldebugo(this, "Context %p", layout.get_context());
-                layout.set_attributes(shape_attrs);
-                if(lenabled(DEBUG)) {
-                    // Can't use shape_attrs.get_attributes() because it's Pango 1.44+
-                    var iter = shape_attrs.get_iterator();
-                    int entries = 0;
-                    while(iter.next()) {
-                        ++entries;
-                    }
-                    ldebugo(this, "Attr list has %d entries", entries);
-                }
-
-                // Render
-                Pango.cairo_show_layout(cr, layout);
-
-                if(lenabled(DEBUG)) { // render the rectangles
-                    cr.save();
-                    cr.set_antialias(NONE);
-                    cr.set_line_width(0.5);
-                    if(lenabled(TRACE)) { // ink
-                        cr.set_source_rgb(1,0,0);
-                        cr.rectangle(leftC+p2c(inkP.x), topC+p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
-                        cr.stroke();
-                    }
-                    if(lenabled(DEBUG)) { // logical
-                        cr.set_source_rgb(0,0,1);
-                        cr.rectangle(leftC+p2c(logicalP.x), topC+p2c(logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
-                        cr.stroke();
-                    }
-                    cr.restore();
-                }
-
-                // Move down the page
-                cr.move_to(leftC,
-                    topC + p2c(logicalP.y + logicalP.height));
-
-                // ldebugo(this, "Render block: <[%s]>", get_whole_markup());
-                return RenderResult.COMPLETE;
-            } // render_simple()
+            } // render_layout()
 
             /**
              * Render this block at the current position on the context.
@@ -823,7 +827,7 @@ namespace My {
             public virtual RenderResult render(Cairo.Context cr,
                 int rightP, int bottomP)
             {
-                return render_simple(cr, layout, rightP, bottomP);
+                return render_layout(cr, layout, rightP, bottomP);
             }
 
             public Blk(Pango.Layout layout)
@@ -901,7 +905,7 @@ namespace My {
                 // Try to render the markup.  This will fail if we don't have room.
                 cr.move_to(leftC + p2c(text_leftP), topC);
                 bool is_first_chunk = (nlines_rendered == 0);
-                var result = render_simple(cr, layout, rightP, bottomP);
+                var result = render_layout(cr, layout, rightP, bottomP);
 
                 // Move back to where the next block will start
                 cr.get_current_point(out xC, out yC); // where the copy left us
@@ -927,7 +931,7 @@ namespace My {
                 cr.move_to(leftC, yC);
                 ldebugo(this, "Rendered bullet - now at (%f, %f)", c2i(leftC), c2i(yC));
 
-                return result; // COMPLETE or PARTIAL from render_simple()
+                return result; // COMPLETE or PARTIAL from render_layout()
             }
         } // class BulletBlk
 
@@ -1038,7 +1042,7 @@ namespace My {
 
                 // Try to render the markup
                 cr.move_to(x1C + p2c(text_leftP), y1C);
-                var result = render_simple(cr, layout, rightP, bottomP);
+                var result = render_layout(cr, layout, rightP, bottomP);
                 if(result != COMPLETE) {
                     return result;
                 }
