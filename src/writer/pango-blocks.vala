@@ -220,9 +220,9 @@ namespace My {
             {
                 Cairo.ImageSurface s;
 
-                string docfn = Filename.canonicalize(doc_path); // make absolute
+                string docfn = My.Log.canonicalize_filename(doc_path); // make absolute
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
-                string imgfn = Filename.canonicalize(href, docdir);
+                string imgfn = My.Log.canonicalize_filename(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
                 this(s, paddingP);
                 llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
@@ -741,18 +741,24 @@ namespace My {
                         break;
                     }
 
+                    int baseline_yP = yP - logicalP.y;
+
                     if(lenabled(DEBUG)) { // draw the rectangles
                         cr.save();
                         cr.set_antialias(NONE);
                         cr.set_line_width(0.5);
                         if(lenabled(TRACE)) { // ink
                             cr.set_source_rgb(0.5, 0.5, 1);
-                            cr.rectangle(leftC, p2c(yP), p2c(inkP.width), p2c(inkP.height));
+                            cr.rectangle(leftC+p2c(inkP.x),
+                                p2c(baseline_yP+inkP.y),
+                                p2c(inkP.width), p2c(inkP.height));
                             cr.stroke();
                         }
                         if(lenabled(DEBUG)) { // logical
                             cr.set_source_rgb(0,0,1);
-                            cr.rectangle(leftC, p2c(yP), p2c(logicalP.width), p2c(logicalP.height));
+                            cr.rectangle(leftC+p2c(logicalP.x),
+                                p2c(yP), p2c(logicalP.width),
+                                p2c(logicalP.height));
                             cr.stroke();
                         }
                         cr.restore();
@@ -762,7 +768,6 @@ namespace My {
                     ldebugo(this, "  - Rendering line %d, UL corner y %f", lineno, p2i(yP));
                     // Move vertically to the baseline, which is the vertical
                     // reference for the line.
-                    int baseline_yP = yP - logicalP.y;
                     llogo(this, "    Baseline y %f", p2i(baseline_yP));
                     cr.move_to(leftC, p2c(baseline_yP));
                     Pango.cairo_show_layout_line(cr, curr_line.data); // UNSETS the current point
