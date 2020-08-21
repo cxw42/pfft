@@ -98,4 +98,9 @@ Before submitting a PR, please run `make prep`.  This will:
 - <https://github.com/stefantalpalaru/vala-skeleton-autotools>
 - <https://github.com/D3Engineering/d3-jetson-bsp>
 
+## Legal
+
+Most of pfft is BSD-3-clause (see file `LICENSE`).  The files in `src/logging`
+are LGPL 2.1+ (see file `LGPL-2.1`).
+
 [valac]: https://wiki.gnome.org/Projects/Vala
