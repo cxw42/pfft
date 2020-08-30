@@ -16,7 +16,8 @@ GHashTable *my_get_registry()
 }
 
 void my_register_type(const gchar *name, GType ty,
-                      const gchar *filename, const guint lineno)
+                      G_GNUC_UNUSED const gchar *filename,
+                      G_GNUC_UNUSED const guint lineno)
 {
     GHashTable *registry = my_get_registry();
     g_hash_table_insert(registry, (gpointer)name, (gpointer)ty);

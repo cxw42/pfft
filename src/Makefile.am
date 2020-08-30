@@ -19,5 +19,9 @@ dist_man1_MANS = pfft.1
 
 EXTRA_DIST += pfft.pod
 
-pfft.1: pfft.pod
-	$(AM_V_GEN)pod2man $< $@
+pfft.1: pfft.pod Makefile.am
+	$(AM_V_GEN)pod2man $< $@ \
+		-s 1 \
+		--center='User Commands' \
+		-r 'v@PACKAGE_VERSION@' \
+		$(EOL)
