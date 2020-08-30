@@ -71,7 +71,7 @@ namespace My
             GLib.Node<Elem> newnode = null;
 
             var self = (MarkdownMd4cReader)userdata;
-            print("%sGot block %s\n",
+            llog("%sGot block %s",
                 self.indent_, block_type.to_string());
             ++self.depth_;
 
@@ -136,7 +136,7 @@ namespace My
         {
             var self = (MarkdownMd4cReader)userdata;
             --self.depth_;
-            print("%sLeaving block %s\n",
+            llog("%sLeaving block %s",
                 self.indent_, block_type.to_string());
 
             // Pop out of the last span, if we're in one
@@ -158,7 +158,7 @@ namespace My
             GLib.Node<Elem> newnode = null;
 
             var self = (MarkdownMd4cReader)userdata;
-            print("%sGot span %s ... ",
+            llog("%sGot span %s ... ",
                 self.indent_, span_type.to_string());
 
             switch(span_type) {
@@ -195,7 +195,7 @@ namespace My
         private static int leave_span_(SpanType span_type, void *detail, void *userdata)
         {
             var self = (MarkdownMd4cReader)userdata;
-            print("left span %s\n", span_type.to_string());
+            llog("left span %s", span_type.to_string());
 
             // Move back into the parent span
             self.node_ = self.node_.parent;
@@ -214,7 +214,7 @@ namespace My
         {
             var self = (MarkdownMd4cReader)userdata;
             var data = strndup((char *)text, size);
-            print("%s<<%s>>\n", self.indent_, data);
+            llog("%s<<%s>>", self.indent_, data);
 
             var newnode = node_of_ty(SPAN_PLAIN);
             newnode.data.text = data;

@@ -390,8 +390,7 @@ namespace My {
 
             var state = state_in;
 
-            // DEBUG
-            print("process_node_into: %s%s %p = '%s'\n",
+            ldebug("process_node_into: %s%s %p = '%s'",
                 string.nfill(node.depth()*4, ' '), el.ty.to_string(), node,
                 text_markup);
 

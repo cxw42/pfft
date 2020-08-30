@@ -33,7 +33,12 @@ Display version number
 
 =item -v, --verbose
 
-Verbosity (can be given multiple times)
+Verbosity.  Can be given up to five times, each time increasing verbosity.
+
+=item -q, --quiet
+
+Turn off output.  If both C<-q> and C<-v> are given, the C<-q> wins, and
+messages are not printed.
 
 =item -R, --reader=READER
 
@@ -59,7 +64,18 @@ Set a writer option
 
 =head1 ENVIRONMENT
 
-No enviroment variables are used at present.
+=over
+
+=item C<GST_DEBUG>
+
+This controls the verbosity.  Set
+
+    GST_DEBUG='pfft:X'
+
+to set verbosity to level C<X>.  C<X=0> means no messages (like C<-q>), and
+C<X=9> means everything (like giving C<-v> five or more times).
+
+=back
 
 =head1 FILES
 

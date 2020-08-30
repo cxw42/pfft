@@ -46,6 +46,9 @@ namespace My {
          */
         private static int opt_verbose = 0;
 
+        /** Quietness, which beats verbosity */
+        private bool opt_quiet = false;
+
         /**
          * Input filename(s).
          *
@@ -92,6 +95,8 @@ namespace My {
                        // --verbose
                        { "verbose", 'v', OptionFlags.NO_ARG, OptionArg.CALLBACK,
                          (void *)cb_verbose, "Verbosity (can be given multiple times)", null },
+                       // --quiet
+                       { "quiet", 'q', 0, OptionArg.NONE, &opt_quiet, "Silence debugging output (cancels --verbose)", null },
                        // --reader, -R READER
                        { "reader", 'R', 0, OptionArg.STRING, &opt_reader_name, "Which reader to use", "READER" },
 
@@ -109,20 +114,6 @@ namespace My {
 
                        // FILENAME* (non-option arg(s) - inputs)
                        { OPTION_REMAINING, 0, 0, OptionArg.FILENAME_ARRAY, &opt_infns, "Filename(s) to process", "FILENAME..." },
-
-                       /*
-                          // --driver
-                          { "driver", 0, 0, OptionArg.STRING, ref driver, "Use the given driver", "DRIVER" },
-                          // [--import STRING]*
-                          { "import", 0, 0, OptionArg.STRING_ARRAY, ref import_packages, "Include binding for PACKAGE", "PACKAGE..." },
-
-                          // --double DOUBLE
-                          { "double", 0, 0, OptionArg.DOUBLE, ref numd, "double value", "DOUBLE" },
-                          // --int64 INT64
-                          { "int64", 0, 0, OptionArg.INT64, ref numi64, "int64 value", "INT64" },
-                          // --int INT
-                          { "int", 0, 0, OptionArg.INT, ref numi, "int value", "INT" },
-                        */
 
                        // list terminator
                        { null }
@@ -172,6 +163,9 @@ namespace My {
                 return 1;
             }
 
+            // Convert verbosity into GST_DEBUG levels
+            set_verbosity();
+
             if (opt_version) {
                 print("%s\nVisit %s for more information\n", PACKAGE_STRING, PACKAGE_URL);
                 return 0;
@@ -219,9 +213,7 @@ namespace My {
                 return 1;
             }
 
-            if(opt_verbose > 0) {
-                print("Using reader %s, writer %s\n", reader_name, writer_name);
-            }
+            linfo("Using reader %s, writer %s", reader_name, writer_name);
 
             /* Do the work */
             for(uint i=0; i<num_infns; ++i) {
@@ -249,7 +241,7 @@ namespace My {
         void process_file(string infn, Reader reader, Writer writer)
         throws FileError, MarkupError, RegexError, My.Error
         {
-            print("Processing %s\n", infn);
+            linfo("Processing %s", infn);
 
             var infh = File.new_for_path(infn);
             string outfn;
@@ -279,15 +271,37 @@ namespace My {
                 outfn = outfh.get_path();
             }
 
-            if(opt_verbose > 0) {
-                print("Processing %s to %s\n", infh.get_path(), outfn);
-            }
+            linfo("Processing %s to %s", infh.get_path(), outfn);
 
             var doc = reader.read_document(infh.get_path());
             writer.write_document(outfn, doc, infh.get_path());
 
         } // process_file()
 
+        void set_verbosity()
+        {
+            if(opt_quiet) {
+                Log.category.set_threshold(NONE);
+                opt_verbose = 0;
+                return;
+            }
+
+            int oldlevel = Log.category.get_threshold();
+            int newlevel = int.max(oldlevel, Gst.DebugLevel.ERROR);
+
+            if(opt_verbose == 1) {
+                newlevel = int.max(newlevel, Gst.DebugLevel.INFO);
+            } else if(opt_verbose == 2) {
+                newlevel = int.max(newlevel, Gst.DebugLevel.DEBUG);
+            } else if(opt_verbose == 3) {
+                newlevel = int.max(newlevel, Gst.DebugLevel.LOG);
+            } else if(opt_verbose == 4) {
+                newlevel = int.max(newlevel, Gst.DebugLevel.TRACE);
+            } else if(opt_verbose > 0) {
+                newlevel = int.max(newlevel, Gst.DebugLevel.MEMDUMP);
+            }
+            Log.category.set_threshold((Gst.DebugLevel)newlevel);
+        }
         // }}}1
         // Registry functions {{{1
 
