@@ -56,6 +56,10 @@ namespace My {
      *
      * Write a document by generating Pango markup for it.
      * Can write the Pango markup or the PDF.
+     *
+     * Caution: an instance of this class can only handle one source document.
+     * Functions herein use instance data to store state and so are not
+     * necessarily reentrant.
      */
     public class PangoMarkupWriter : Object, Writer {
         /** Metadata for this class */
@@ -63,6 +67,9 @@ namespace My {
         public bool meta {get; default = false; }
 
         // TODO make paper size a property
+
+        /** The path to the source document */
+        string source_fn;
 
         /** The Cairo context for the document we are writing */
         Cairo.Context cr = null;
@@ -135,10 +142,13 @@ namespace My {
          * Write a document to a file.
          * @param filename  The name of the file to write
          * @param doc       The document to write
+         * @param sourcefn  The filename of the source that @doc came from.
          * TODO make paper size a parameter
          */
-        public void write_document(string filename, Doc doc) throws FileError, My.Error
+        public void write_document(string filename, Doc doc, string? sourcefn = null) throws FileError, My.Error
         {
+            source_fn = (sourcefn == null) ? "" : sourcefn;
+
             int hsizeP = i2p(hsizeI);
             int rightP = i2p(lmarginI+hsizeI);
             int bottomP = i2p(tmarginI+vsizeI);
@@ -507,10 +517,15 @@ namespace My {
                 sb.append_printf("<u>%s", text_markup);
                 post_children_markup = "</u>";
                 break;
+            case SPAN_IMAGE:
+                sb.append(OBJ_REPL_CHAR());
+                var shape = new Shape.Image.from_href(el.href, source_fn);
+                blk.add_shape(shape);
+                break;
 
             // --------------------------------------------------
             default:
-                warning("Unknown div type %s", el.ty.to_string());
+                warning("Unknown elem type %s", el.ty.to_string());
                 break;
             }
 
@@ -539,6 +554,7 @@ namespace My {
                 blk.markup._chomp();
             }
 
+            // TODO move command parsing into core, and just respond to cmds here
             switch(cmd) {
             case "":
                 // not a command
@@ -556,6 +572,7 @@ namespace My {
             }
 
             if(complete) {
+                // lmemdumpo(blk, "Block markup", blk.markup, blk.markup.length);
                 commit(blk, retval);
                 blk = new Blk(layout);
             }

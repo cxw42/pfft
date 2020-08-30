@@ -526,8 +526,14 @@ namespace Md4c {
      */
     [CCode(cheader_filename="md4c-shim.h")]
     string get_info_string(void *code_detail);
-}
 
+    /**
+     * Helper for extracting data from a SpanImgDetail.
+     */
+    [CCode(cheader_filename="md4c-shim.h")]
+    void get_img_detail(void *code_detail, out string href, out string title);
+
+} // namespace Md4c
 
 // md4c.h copyright notice follows
 /*

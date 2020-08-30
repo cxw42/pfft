@@ -101,5 +101,9 @@ namespace My {
          */
         [CCode (cheader_filename = "logging-c.h")]
         public extern bool lenabled(Gst.DebugLevel level);
+
+        [CCode (cheader_filename = "logging-c.h")]
+        public extern string canonicalize_filename (string filename,
+            string? relative_to = null);
     }
 }

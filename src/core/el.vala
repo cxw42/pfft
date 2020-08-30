@@ -81,8 +81,10 @@ namespace My {
             SPAN_STRIKE,
             /** Underline */
             SPAN_UNDERLINE,
+            /** Image */
+            SPAN_IMAGE,
 
-            // TODO? hyperlinks, images, math, wikilinks
+            // TODO? hyperlinks, math, wikilinks
         }
 
         /**
@@ -99,6 +101,7 @@ namespace My {
          * The element's text.
          *
          * All elements have text, even if it's empty (e.g., {{{``}}}).
+         * For SPAN_IMAGE elements, this is the title text.
          */
         public string text { get; set; default = ""; }
 
@@ -112,11 +115,21 @@ namespace My {
         public uint header_level { get; set; }
 
         /**
-         * A code block's info string
+         * A supplemental information string
          *
-         * Valid only when ty == BLOCK_CODE.
+         * * when ty == BLOCK_CODE, the code block's info string
+         * * when ty == SPAN_IMAGE, the image title.
+         * * otherwise, not valid (as of now).
          */
         public string info_string { get; set; default = ""; }
+
+        /**
+         * A span's href.
+         *
+         * * When ty == SPAN_IMAGE, holds the image source.
+         * * Otherwise, not valid (as of now).
+         */
+        public string href { get; set; default = ""; }
 
         // --- Constructors ---
 
@@ -127,6 +140,17 @@ namespace My {
         {
             ty = newty;
         }
+
+        /** Shallow-clone an elem */
+        public Elem clone()
+        {
+            var retval = new Elem(ty);
+            retval.text = text;
+            retval.header_level = header_level;
+            retval.info_string = info_string;
+            retval.href = href;
+            return retval;
+        } // clone()
 
         // --- Accessors and helpers ---
         /**

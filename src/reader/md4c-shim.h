@@ -21,11 +21,23 @@ void md4c_free_parser_(MD_PARSER *parser);
 
 /**
  * Duplicate the info string from an MD_BLOCK_CODE_DETAIL.
+ * Returns: (transfer full): the info string
  *
  * This function exists because I was having trouble with member access
  * and didn't want to fuss with it.
  */
 gchar *md4c_get_info_string(void *code_detail);
+
+/**
+ * Extract the strings from an MD_SPAN_IMG_DETAIL.
+ * @img_detail: the input
+ * @href: (out) (transfer full): The image URL
+ * @title: (out) (transfer full): The title text
+ *
+ * This function exists because I was having trouble with member access
+ * and didn't want to fuss with it.
+ */
+void md4c_get_img_detail(void *code_detail, gchar **href, gchar **title);
 
 #endif /* MD4C_SHIM_H_ */
 // md4c.h copyright notice follows

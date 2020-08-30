@@ -30,6 +30,23 @@ gchar *md4c_get_info_string(void *code_detail)
     }
 }
 
+void md4c_get_img_detail(void *code_detail, gchar **href, gchar **title)
+{
+    struct MD_SPAN_IMG_DETAIL *detail = (struct MD_SPAN_IMG_DETAIL *)code_detail;
+
+    if(detail->src.text == NULL) {
+        *href = g_strdup("");
+    } else {
+        *href = g_strndup((gchar *)detail->src.text, detail->src.size);
+    }
+
+    if(detail->title.text == NULL) {
+        *title = g_strdup("");
+    } else {
+        *title = g_strndup((gchar *)detail->title.text, detail->title.size);
+    }
+}
+
 // md4c.h copyright notice follows
 /*
  * MD4C: Markdown parser for C

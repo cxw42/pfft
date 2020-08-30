@@ -7,159 +7,26 @@
 
 using My.Log;
 
-namespace My { namespace Blocks {
+namespace My {
+    /** Return the string representing _codepoint_ */
+    public string U(uint codepoint)
+    {
+        return ((unichar)codepoint).to_string();
+    }
 
-    /** Types of bullets/numbers */
-    private enum IndentType {
-        /* --- Bullets --- */
-        BLACK_CIRCLE,
-        WHITE_CIRCLE,
-        BLACK_SQUARE,
-        WHITE_SQUARE,
-        BLACK_DIAMOND,
-        WHITE_DIAMOND,
-        BLACK_TRIANGLE,
+    /** Stringify a Pango.Rectangle for debugging */
+    string prect_to_string(Pango.Rectangle rect)
+    {
+        return "%fx%f@(%f,%f)".printf( p2i(rect.width), p2i(rect.height),
+                   p2i(rect.x), p2i(rect.y) );
+    }
 
-        /* --- Numbers --- */
-        /** 0..9 */
-        ENGLISH_DIGITS,
-        /** a..z */
-        LOWERCASE_ALPHA,
-        /** i, ii, ... */
-        LOWERCASE_ROMAN,
-        /** A..Z */
-        UPPERCASE_ALPHA,
-        /** I, II, ... */
-        UPPERCASE_ROMAN,
-
-        LAST_BULLET = BLACK_TRIANGLE;
-
-        public bool is_bullet()
-        {
-            return this <= LAST_BULLET;
-        }
-
-        // Return the string representing _codepoint_
-        private static string U(uint codepoint)
-        {
-            return ((unichar)codepoint).to_string();
-        }
-
-        private static string aplus(uint offset)
-        {
-            return ((unichar)((int)'a' + offset)).to_string();
-        }
-
-        private static string alpha(uint num) requires(num >= 1)
-        {
-            // Modified from https://www.perlmonks.org/?node_id=1168587 by
-            // MidLifeXis, https://www.perlmonks.org/?node_id=272364
-            var sb = new StringBuilder();
-            uint n = num - 1;   // shift to 0-based
-            uint adj = 0;       // 0 the first time through, then -1
-
-            do {
-                sb.prepend(aplus(n%26 + adj));
-                n /= 26;
-                adj = -1;
-            } while(n>0);
-
-            return sb.str;
-        }
-
-        private static string roman(uint num)
-        {
-            // Knuth's algorithm for Roman numerals, from TeX.  Quoted by
-            // Hans Wennborg at https://www.hanshq.net/roman-numerals.html.
-            // Converted to Vala by Chris White (github.com/cxw42)
-
-            var sb = new StringBuilder();
-
-            string control = "m2d5c2l5x2v5i";
-            int j, k;   // mysterious indices into `control`
-            uint u, v;  // mysterious numbers
-            j = 0;
-            v = 1000;
-
-            while(true) {
-                while(num >= v) {
-                    sb.append_c(control[j]);
-                    num -= v;
-                }
-                if(num <= 0) {  // nonpositive input produces no output
-                    break;
-                }
-
-                k = j+2;
-                u = v / control[k-1].digit_value();
-                if(control[k-1] == '2') {
-                    k += 2;
-                    u /= control[k-1].digit_value();
-                }
-
-                if(num+u >= v) {
-                    sb.append_c(control[k]);
-                    num += u;
-                } else {
-                    j += 2;
-                    v /= control[j-1].digit_value();
-                }
-            }
-
-            return sb.str;
-        } // roman()
-
-        private static string smallU(uint codepoint)
-        {
-            return @"<span size=\"xx-small\">$(U(codepoint))</span>";
-        }
-
-        /**
-         * Render _num_ in the style of _this_
-         * @return Pango markup
-         */
-        public string render(uint num)
-        {
-
-            switch(this) {
-            case BLACK_CIRCLE:
-                return smallU(0x25cf);
-            case WHITE_CIRCLE:
-                return smallU(0x25cb);
-            case BLACK_SQUARE:
-                return smallU(0x25a0);
-            case WHITE_SQUARE:
-                return smallU(0x25a1);
-            case BLACK_DIAMOND:
-                return smallU(0x25c6);
-            case WHITE_DIAMOND:
-                return smallU(0x25c7);
-            case BLACK_TRIANGLE:
-                return smallU(0x2023);
-
-            /* --- Numbers --- */
-            /* a..z */
-            case LOWERCASE_ALPHA:
-                return alpha(num);
-            /* i... */
-            case LOWERCASE_ROMAN:
-                return roman(num);
-            /* A..Z */
-            case UPPERCASE_ALPHA:
-                return alpha(num).ascii_up();
-            /* I... */
-            case UPPERCASE_ROMAN:
-                return roman(num).ascii_up();
-            case ENGLISH_DIGITS:
-            default:
-                return num.to_string();
-            }
-        }
-    } // enum IndentType
-
-    ///////////////////////////////////////////////////////////////////////
-
-    /** Results of a Blk.render() call */
+    /**
+     * Results of a render call
+     *
+     * This is the return value of My.Shape.Base.render() and
+     * My.Blocks.Blk.render().
+     */
     public enum RenderResult {
         /** Other error */
         ERROR,
@@ -173,554 +40,1035 @@ namespace My { namespace Blocks {
         UNKNOWN,
     }
 
-    /**
-     * Create a layout with 12-pt text.
-     *
-     * Here for convenience.
-     *
-     * @param cr The Cairo context with which this layout will be used
-     */
-    public static Pango.Layout new_layout_12pt(Cairo.Context cr)
-    {
-        var layout = Pango.cairo_create_layout(cr);
 
-        var font_description = new Pango.FontDescription();
-        font_description.set_family("Serif");
-        font_description.set_size(12 * Pango.SCALE); // 12-pt text
-        layout.set_wrap(Pango.WrapMode.WORD_CHAR);
+    /** Shapes that can be rendered inline with text */
+    namespace Shape {
+        /**
+         * Base class for shapes
+         *
+         * TODO make this an interface instead?
+         */
+        public abstract class Base : Object {
+            /** The ink rectangle for this shape */
+            public abstract Pango.Rectangle get_inkP();
+            /** The logical rectangle for this shape */
+            public abstract Pango.Rectangle get_logicalP();
 
-        return layout;
-    } // new_layout_12pt()
+            /**
+             * Render this shape at the current position.
+             * @param cr        The Cairo context
+             * @param do_path   See CairoShapeRendererFunc
+             *
+             * Leaves the current position at the right side of the rendering.
+             * This is because shapes are inline (span-like), so there is
+             * more text following the shape, in the general case.
+             */
+            public abstract void render(Cairo.Context cr, bool do_path);
 
-    ///////////////////////////////////////////////////////////////////////
+            /** Clone this shape */
+            public abstract Shape.Base clone();
 
-    /**
-     * Block of content to be written.
-     *
-     * Blk itself knows how to render body paragraphs.  It also serves as the
-     * base class for more specialized blocks.
-     *
-     * All dimensions within a Blk instance are relative to the left
-     * margin, which is provided to render().  All parameters to render()
-     * are relative to the page.
-     *
-     * Blk and its children assume that only one Blk instance will be
-     * rendered at a time.
-     */
-    public class Blk : Object {
+        } // class Base
 
         /**
-         * The block's text, in Pango markup.
+         * An image
          *
-         * This definition is here so child classes don't have to repeat it.
-         * However, a child class is not obliged to use this.
-         *
-         * NOTE: Pango obeys `\n`s in the markup, so the caller must remove
-         * them for automatically-wrapped text.
+         * This class is based on C code by Mike Birch, which code he kindly
+         * placed in the public domain.  <https://immortalsofar.com/PangoDemo/>.
          */
-        public string markup { get; set; default = ""; }
+        public class Image : Base {
+            /**
+             * The ink rectangle, in Pango units.
+             */
+            private Pango.Rectangle? inkP = null;
 
-        /**
-         * Additional markup to be added to the end of the block before rendering.
-         * A child class is not obliged to use this.
-         */
-        public string post_markup { get; set; default = ""; }
+            private int paddingP_stg;
 
-        /**
-         * A layout instance to use.
-         *
-         * This is so the font and wrap can be consistent between blocks.
-         */
-        protected Pango.Layout layout;
-
-        /**
-         * How many lines of the content have already been rendered.
-         *
-         * The use of this is up to child classes.
-         */
-        protected int nlines_rendered = 0;
-
-        /**
-         * Render a portion of a block
-         *
-         * Parameters are as render().  Sets nlines_rendered.
-         * Requires the layout already be initialized.
-         */
-        protected RenderResult render_partial(Cairo.Context cr,
-            Pango.Layout layout,
-            double leftC, double topC,
-            int rightP, int bottomP, string final_markup)
-        ensures(result == COMPLETE || result == PARTIAL || result == NONE)
-        {
-            int lineno = 0;
-            int yP = c2p(topC);  // Current Y
-            unowned SList<Pango.LayoutLine> lines = layout.get_lines_readonly();
-            unowned SList<Pango.LayoutLine> curr_line = lines;
-            int last_bottom_yP = 0; // bottom of the last-rendered line
-            bool first_line = true;
-            bool did_render = false;    // did we render anything during this call?
-
-            RenderResult retval = UNKNOWN;
-
-            ldebugo(this, "render_partial BEGIN - %u lines in layout", lines.length());
-            while(curr_line != null) {
-
-                // Advance to the first line not yet rendered
-                // TODO double-check that this works -- it appears that we
-                // might be skipping lines sometimes.
-                if(nlines_rendered > 0 && lineno < nlines_rendered) {
-                    llogo(this, "Skipping line %d", lineno);
-                    ++lineno;
-                    curr_line = curr_line.next;
-                    continue;
+            /** The size of the padding */
+            public int paddingP {
+                get {
+                    return paddingP_stg;
                 }
-
-                // Can we fit this line?
-                llogo(this, "Trying line %d", lineno);
-                Pango.Rectangle inkP, logicalP;
-                curr_line.data.get_extents(out inkP, out logicalP);
-
-                if(first_line) {
-                    // The line's box is with respect to the baseline, NOT
-                    // the upper-left corner of the text block.
-                    // Adjust yP to compensate.
-                    yP -= logicalP.y;
-                    first_line = false;
+                set {
+                    paddingP_stg = value;
+                    populate_rects();
                 }
+            }
 
-                if(lenabled(DEBUG)) {
-                    ltraceo(this, "  ink: %fx%f@(%f,%f)", p2i(inkP.width),
-                        p2i(inkP.height), p2i(inkP.x), p2i(inkP.y));
-                    ldebugo(this, "  log: %fx%f@(%f,%f)", p2i(logicalP.width),
-                        p2i(logicalP.height), p2i(logicalP.x), p2i(logicalP.y));
+            /** Default padding */
+            public const double DEFAULT_PADDING_IN = 0.05;
+
+            /**
+             * The logical rectangle, including padding
+             *
+             * The logical rectangle is the ink rectangle plus padding on
+             * the top, left, and right.
+             */
+            private Pango.Rectangle? logicalP = null;
+
+            private Cairo.ImageSurface image;
+
+            private void populate_rects()
+            {
+                int wdP = c2p(image.get_width());
+                int htP = c2p(image.get_height());
+                logicalP = Pango.Rectangle();
+                logicalP.x = 0;
+                logicalP.y = -(htP + paddingP);
+                logicalP.width = wdP + 2*paddingP;
+                logicalP.height = htP + paddingP;
+
+                inkP = Pango.Rectangle();
+                inkP.x = paddingP;
+                inkP.y = -htP;  // Bottom of the image sits on the baseline
+                inkP.width = wdP;
+                inkP.height = htP;
+
+            }
+
+            public override Pango.Rectangle get_inkP()
+            {
+                if(inkP == null) {
+                    populate_rects();
                 }
+                return inkP;
+            }
 
-                if(yP + logicalP.y + logicalP.height > bottomP) {
-                    // Done with what we can do for this page.
-                    // At least the current line is left, so this block is
-                    // not yet complete.
-                    nlines_rendered = lineno;
-                    retval = did_render ? RenderResult.PARTIAL : RenderResult.NONE;
-                    // TODO if nlines_rendered > 0, should we always return
-                    // PARTIAL since some of the block has already been
-                    // rendered?
-                    break;
+            public override Pango.Rectangle get_logicalP()
+            {
+                if(inkP == null) {
+                    populate_rects();
                 }
-
-                if(lenabled(DEBUG)) { // render the rectangles
-                    cr.save();
-                    cr.set_antialias(NONE);
-                    cr.set_line_width(0.5);
-                    if(lenabled(TRACE)) { // ink
-                        cr.set_source_rgb(1,0,0);
-                        cr.rectangle(leftC+p2c(inkP.x), p2c(yP+inkP.y), p2c(inkP.width), p2c(inkP.height));
-                        cr.stroke();
-                    }
-                    if(lenabled(DEBUG)) {  // logical
-                        cr.set_source_rgb(0,0,1);
-                        cr.rectangle(leftC+p2c(logicalP.x), p2c(yP+logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
-                        cr.stroke();
-                    }
-                    cr.restore();
-                }
-
-                // Render this line
-                ldebugo(this, "Rendering line %d at %f\"", lineno, p2i(yP));
-                cr.move_to(leftC, p2c(yP));
-                Pango.cairo_show_layout_line(cr, curr_line.data);   // UNSETS the current point
-                did_render = true;
-                last_bottom_yP = yP + logicalP.y + logicalP.height;
-
-                // Advance to the next line
-                yP += logicalP.height;
-                cr.move_to(leftC, p2c(yP));
-
-                if(lenabled(DEBUG)) {
-                    double currxC, curryC;
-                    cr.get_current_point(out currxC, out curryC);
-                    ldebugo(this,"  now at (%f,%f) %s", c2i(currxC), c2i(curryC),
-                        cr.has_current_point() ? "has pt" : "no pt");
-                }
-
-                ++lineno;
-                curr_line = curr_line.next;
-
-            } // for each line
-
-            if(curr_line == null) {
-                // we finished the block on this page
-                nlines_rendered = 0;
-                retval = COMPLETE;
-
-                // Move the Pango current point to the bottom-left of the last
-                // line's logical rectangle
-                cr.move_to(leftC, p2c(last_bottom_yP));
+                return logicalP;
             }
 
-            ldebugo(this,"render_partial done - rendered %d lines - %s",
-                nlines_rendered, retval.to_string());
+            public override void render(Cairo.Context cr, bool do_path)
+            {
+                assert(!do_path);   // XXX handle this more gracefully
 
-            return retval;
-        } // render_partial()
+                double leftC, topC; // Where we started
+                cr.get_current_point(out leftC, out topC);
 
-        /**
-         * Render a markup block with no decorations.
-         *
-         * This is a helper for child classes.  If final_markup is empty,
-         * this is a no-op.  Parameters are as in render().
-         *
-         * This respects nlines_rendered and invokes render_partial() if needed.
-         */
-        protected RenderResult render_simple(Cairo.Context cr,
-            Pango.Layout layout,
-            int rightP, int bottomP, string final_markup)
-        {
-            double leftC, topC; // Where we started
+                // Figure out where to put the image.  Use the ink rectangle
+                // so that changes to the business logic are only in populate_rects().
+                double img_topC, img_leftC, img_wC, img_hC, img_log_widthC;
 
-            if(final_markup == "") {
-                return RenderResult.COMPLETE;
-            }
+                var inkP = get_inkP();
 
-            cr.get_current_point(out leftC, out topC);
-            ldebugo(this,"render_simple layout %p starting at (%f, %f) limits (%f, %f)",
-                layout, c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
+                img_topC = topC + p2c(inkP.y);
+                img_leftC = leftC + p2c(inkP.x);
+                img_wC = p2c(inkP.width);
+                img_hC = p2c(inkP.height);
 
-            if(nlines_rendered > 0) {
-                // we already did part, so do the next part.  This may not be
-                // the whole rest of the block, if the block's text is longer
-                // than a page.
-                return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
-            }
+                var logP = get_logicalP();
+                img_log_widthC = p2c(logP.x + logP.width);
 
-            // Out of range
-            if(c2p(topC) >= bottomP) {
-                return RenderResult.NONE;
-            }
-            if(c2p(leftC) >= rightP ) {
-                linfoo(this, "render_simple: too wide: %f >= %f",
-                    c2i(leftC), p2i(rightP));
-                return RenderResult.ERROR;  // too wide
-            }
-
-            layout.set_width(rightP - c2p(leftC));
-            layout.set_markup(final_markup, -1);
-
-            // check metrics and see if we are at risk of running
-            // off the page vertically
-
-            Pango.Rectangle inkP, logicalP;
-            layout.get_extents(out inkP, out logicalP);
-            if(topC + p2c(logicalP.y + logicalP.height) >= p2c(bottomP)) {
-                lwarningo(this, "Not enough room for the whole block: %f > %f",
-                    c2i(topC + p2c(logicalP.y + logicalP.height)),
-                    p2i(bottomP));
-                return render_partial(cr, layout, leftC, topC, rightP, bottomP, final_markup);
-            }
-
-            if(lenabled(DEBUG)) {
-                ltraceo(this, "ink: %fx%f@(%f,%f)", p2i(inkP.width),
-                    p2i(inkP.height), p2i(inkP.x),
-                    p2i(inkP.y/Pango.SCALE));
-                ldebugo(this, "log: %fx%f@(%f,%f)", p2i(logicalP.width),
-                    p2i(logicalP.height), p2i(logicalP.x),
-                    p2i(logicalP.y));
-            }
-
-            Pango.cairo_show_layout(cr, layout);
-
-            if(lenabled(DEBUG)) { // render the rectangles
+                // Render the image
                 cr.save();
                 cr.set_antialias(NONE);
+
+                cr.set_source_surface(image, img_leftC, img_topC);
+                cr.rectangle(img_leftC, img_topC, img_wC, img_hC);
+                cr.fill();
+
                 cr.set_line_width(0.5);
                 if(lenabled(TRACE)) { // ink
-                    cr.set_source_rgb(1,0,0);
-                    cr.rectangle(leftC+p2c(inkP.x), topC+p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
+                    cr.set_source_rgb(1,0.5,0.5);
+                    cr.rectangle(leftC + p2c(inkP.x), topC + p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
                 }
-                if(lenabled(DEBUG)) {  // logical
-                    cr.set_source_rgb(0,0,1);
-                    cr.rectangle(leftC+p2c(logicalP.x), topC+p2c(logicalP.y), p2c(logicalP.width), p2c(logicalP.height));
+                if(lenabled(DEBUG)) { // logical
+                    cr.set_source_rgb(1,0,0);
+                    cr.rectangle(leftC + p2c(logP.x), topC + p2c(logP.y), p2c(logP.width), p2c(logP.height));
                     cr.stroke();
                 }
                 cr.restore();
+                cr.move_to(leftC + img_log_widthC, topC);
             }
 
-            // Move down the page
-            cr.move_to(leftC,
-                topC + p2c(logicalP.y + logicalP.height));
+            public override Shape.Base clone()
+            {
+                Image retval = new Image(this.image, this.paddingP);
+                return retval;
+            }
 
-            // ldebugo(this, "Render block: <[%s]>", final_markup);
-            return RenderResult.COMPLETE;
-        } // render_simple()
+            /**
+             * Constructor
+             * @param image     The image
+             * @param paddingP  The padding, in Pango units.  -1 (the default)
+             *                  means to use DEFAULT_PADDING_IN.
+             */
+            public Image(Cairo.ImageSurface image, int paddingP = -1)
+            {
+                this.image = image;
+                this.paddingP = (paddingP == -1) ? i2p(DEFAULT_PADDING_IN) : paddingP;
+            } // ctor
 
-        /**
-         * Render this block at the current position on the context.
-         *
-         * The caller must set the current position to the left margin
-         * of this block before calling this method.
-         *
-         * This method must leave the current position at the left margin
-         * and offset vertically by the amount of space consumed.
-         *
-         * rightP and bottomP are not hard limits, but say where the margins
-         * are:
-         * * Text rendered to the right of rightP is in the right margin.
-         * * Text rendered below bottomP is in the bottom margin.
-         *
-         * This function must not be called on two blocks at the same time
-         * if those blocks share a layout instance.
-         *
-         * This function may be called multiple times for the same block
-         * if the block is split across pages.
-         *
-         * @param cr        The context to render into
-         * @param rightP    The right limit w.r.t. the page, in Pango units
-         * @param bottomP   The bottom limit w.r.t. the page, in Pango units
-         */
-        public virtual RenderResult render(Cairo.Context cr,
-            int rightP, int bottomP)
+            // constructors that load from files
+
+            /**
+             * Create an Image referencing an external image file.
+             * @param href      Where the referenced image is
+             * @param doc_path  Where the referencing file is.
+             *                  This is a string rather than a File so it
+             *                  can later be expanded to URLs.
+             *
+             * NOTE: at present, assumes that @href is a path from the
+             * location of the source file to the location of a PNG file.
+             */
+            public Image.from_href(string href, string doc_path, int paddingP = -1)
+            {
+                Cairo.ImageSurface s;
+
+                string docfn = My.Log.canonicalize_filename(doc_path); // make absolute
+                string docdir = File.new_for_path(docfn).get_parent().get_path();
+                string imgfn = My.Log.canonicalize_filename(href, docdir);
+                s = new Cairo.ImageSurface.from_png(imgfn);
+                this(s, paddingP);
+                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
+                    imgfn, href, doc_path, s,
+                    c2i(image.get_width()), c2i(image.get_height()));
+            } // Image.from_href()
+
+        } // class Image
+    } // namespace Shape
+
+    namespace Blocks {
+
+        /** Placeholder character used for images */
+        public string OBJ_REPL_CHAR()
         {
-            return render_simple(cr, layout, rightP, bottomP,
-                       markup + post_markup);
+            return U(0xfffc); // Unicode OBJECT REPLACEMENT CHARACTER
         }
 
-        public Blk(Pango.Layout layout)
-        {
-            this.layout = layout;
-        }
+        /** Types of bullets/numbers */
+        public enum IndentType {
+            /* --- Bullets --- */
+            BLACK_CIRCLE,
+            WHITE_CIRCLE,
+            BLACK_SQUARE,
+            WHITE_SQUARE,
+            BLACK_DIAMOND,
+            WHITE_DIAMOND,
+            BLACK_TRIANGLE,
 
-    } // class Blk
+            /* --- Numbers --- */
+            /** 0..9 */
+            ENGLISH_DIGITS,
+            /** a..z */
+            LOWERCASE_ALPHA,
+            /** i, ii, ... */
+            LOWERCASE_ROMAN,
+            /** A..Z */
+            UPPERCASE_ALPHA,
+            /** I, II, ... */
+            UPPERCASE_ROMAN,
 
-    /**
-     * A block that renders a bullet and a text block
-     */
-    public class BulletBlk : Blk
-    {
+            LAST_BULLET = BLACK_TRIANGLE;
+
+            public bool is_bullet()
+            {
+                return this <= LAST_BULLET;
+            }
+
+            private static string aplus(uint offset)
+            {
+                return ((unichar)((int)'a' + offset)).to_string();
+            }
+
+            private static string alpha(uint num) requires(num >= 1)
+            {
+                // Modified from https://www.perlmonks.org/?node_id=1168587 by
+                // MidLifeXis, https://www.perlmonks.org/?node_id=272364
+                var sb = new StringBuilder();
+                uint n = num - 1; // shift to 0-based
+                uint adj = 0;   // 0 the first time through, then -1
+
+                do {
+                    sb.prepend(aplus(n%26 + adj));
+                    n /= 26;
+                    adj = -1;
+                } while(n>0);
+
+                return sb.str;
+            }
+
+            private static string roman(uint num)
+            {
+                // Knuth's algorithm for Roman numerals, from TeX.  Quoted by
+                // Hans Wennborg at https://www.hanshq.net/roman-numerals.html.
+                // Converted to Vala by Chris White (github.com/cxw42)
+
+                var sb = new StringBuilder();
+
+                string control = "m2d5c2l5x2v5i";
+                int j, k; // mysterious indices into `control`
+                uint u, v; // mysterious numbers
+                j = 0;
+                v = 1000;
+
+                while(true) {
+                    while(num >= v) {
+                        sb.append_c(control[j]);
+                        num -= v;
+                    }
+                    if(num <= 0) { // nonpositive input produces no output
+                        break;
+                    }
+
+                    k = j+2;
+                    u = v / control[k-1].digit_value();
+                    if(control[k-1] == '2') {
+                        k += 2;
+                        u /= control[k-1].digit_value();
+                    }
+
+                    if(num+u >= v) {
+                        sb.append_c(control[k]);
+                        num += u;
+                    } else {
+                        j += 2;
+                        v /= control[j-1].digit_value();
+                    }
+                }
+
+                return sb.str;
+            } // roman()
+
+            private static string smallU(uint codepoint)
+            {
+                return @"<span size=\"xx-small\">$(U(codepoint))</span>";
+            }
+
+            /**
+             * Render _num_ in the style of _this_
+             * @return Pango markup
+             */
+            public string render(uint num)
+            {
+
+                switch(this) {
+                case BLACK_CIRCLE:
+                    return smallU(0x25cf);
+                case WHITE_CIRCLE:
+                    return smallU(0x25cb);
+                case BLACK_SQUARE:
+                    return smallU(0x25a0);
+                case WHITE_SQUARE:
+                    return smallU(0x25a1);
+                case BLACK_DIAMOND:
+                    return smallU(0x25c6);
+                case WHITE_DIAMOND:
+                    return smallU(0x25c7);
+                case BLACK_TRIANGLE:
+                    return smallU(0x2023);
+
+                /* --- Numbers --- */
+                /* a..z */
+                case LOWERCASE_ALPHA:
+                    return alpha(num);
+                /* i... */
+                case LOWERCASE_ROMAN:
+                    return roman(num);
+                /* A..Z */
+                case UPPERCASE_ALPHA:
+                    return alpha(num).ascii_up();
+                /* I... */
+                case UPPERCASE_ROMAN:
+                    return roman(num).ascii_up();
+                case ENGLISH_DIGITS:
+                default:
+                    return num.to_string();
+                }
+            }
+        } // enum IndentType
+
+        ///////////////////////////////////////////////////////////////////////
+
         /**
-         * A layout for the bullet.
+         * Create a layout with 12-pt text.
          *
-         * We need this so that we don't trash the main layout between pages
-         * if the block splits across pages.
-         */
-        private Pango.Layout bullet_layout;
-
-        /** The markup for the bullet */
-        private string bullet_markup;
-
-        /** The left edge of the bullet, w.r.t. the left margin */
-        private int bullet_leftP;
-
-        /**
-         * The left edge of the text, w.r.t. the left margin.
+         * Here for convenience.
          *
-         * Must be greater than bullet_leftP.
+         * @param cr The Cairo context with which this layout will be used
          */
-        private int text_leftP;
-
-        public BulletBlk(Pango.Layout layout, Pango.Layout bullet_layout,
-            string bullet_markup, int bullet_leftP, int text_leftP)
-        requires(text_leftP > bullet_leftP)
+        public static Pango.Layout new_layout_12pt(Cairo.Context cr)
         {
-            base(layout);
+            var layout = Pango.cairo_create_layout(cr);
 
-            this.bullet_layout = bullet_layout;
-            this.bullet_markup = bullet_markup;
-            this.bullet_leftP = bullet_leftP;
-            this.text_leftP = text_leftP;
-        }
+            var font_description = new Pango.FontDescription();
+            font_description.set_family("Serif");
+            font_description.set_size(12 * Pango.SCALE); // 12-pt text
+            layout.set_wrap(Pango.WrapMode.WORD_CHAR);
+
+            return layout;
+        } // new_layout_12pt()
+
+        ///////////////////////////////////////////////////////////////////////
 
         /**
-         * Render the bullet and the text.
+         * Block of content to be written.
+         *
+         * Blk itself knows how to render body paragraphs.  It also serves as the
+         * base class for more specialized blocks.
+         *
+         * All dimensions within a Blk instance are relative to the left
+         * margin, which is provided to render().  All parameters to render()
+         * are relative to the page.
+         *
+         * Blk and its children assume that only one Blk instance will be
+         * rendered at a time.
          */
-        public override RenderResult render(Cairo.Context cr,
-            int rightP, int bottomP)
-        {
-            string final_markup = markup + post_markup;
+        public class Blk : Object {
 
-            if(final_markup == "") {
+            /**
+             * The block's text, in Pango markup.
+             *
+             * This definition is here so child classes don't have to repeat it.
+             * However, a child class is not obliged to use this.
+             *
+             * NOTE: Pango obeys `\n`s in the markup, so the caller must remove
+             * them for automatically-wrapped text.
+             */
+            public string markup { get; set; default = ""; }
+
+            /**
+             * Additional markup to be added to the end of the block before rendering.
+             * A child class is not obliged to use this.
+             */
+            public string post_markup { get; set; default = ""; }
+
+            /** A cached version of markup + post_markup */
+            private string whole_markup = null;
+
+            /** Return the cached markup + post_markup */
+            protected string get_whole_markup()
+            {
+                if(whole_markup == null) {
+                    whole_markup = markup + post_markup;
+                }
+                return whole_markup;
+            }
+
+            /**
+             * A layout instance to use.
+             *
+             * This is so the font and wrap can be consistent between blocks.
+             */
+            protected Pango.Layout layout;
+
+            /**
+             * How many lines of the content have already been rendered.
+             *
+             * The use of this is up to child classes.
+             */
+            protected int nlines_rendered = 0;
+
+            /**
+             * List of "shapes", i.e., non-text elements to be rendered inline
+             * with the text.
+             *
+             * These are represented in text by OBJ_REPL_CHAR.
+             */
+            protected Gee.LinkedList<Shape.Base> shapes = null;
+
+            /** Add an object to the list of elements to be rendered separately */
+            public void add_shape(Shape.Base shape)
+            {
+                if(shapes == null) {
+                    shapes = new Gee.LinkedList<Shape.Base>();
+                }
+                shapes.add(shape);
+            } // add_shape()
+
+            /** Attributes representing the shapes */
+            protected Pango.AttrList shape_attrs = null;
+
+            /**
+             * Initialize shape_attrs.
+             * @param text  The actual text in the layout --- NOT the markup
+             *
+             * Call only when the markup for the block has been finalized and
+             * all add_shape() calls have been made.
+             */
+            protected void fill_shape_attrs(string text)
+            {
+                shape_attrs = new Pango.AttrList();
+                if(shapes == null || shapes.is_empty) {
+                    return;
+                }
+
+                // check if the number of OBJ_REPL_CHARs in whole_markup
+                // is the same as the number of shapes
+                int[] start_offset_bytes = {};
+                int[] end_offset_bytes = {};
+                var re = new Regex(OBJ_REPL_CHAR());    // TODO move out of this fn, or handle/forward the RegexError
+                MatchInfo matches;
+                // lmemdumpo(this, "OBJ_REPL_CHAR", OBJ_REPL_CHAR(), OBJ_REPL_CHAR().length);
+                // lmemdumpo(this, "whole_markup", get_whole_markup(), get_whole_markup().length);
+                if(!re.match_full(text, -1, 0, 0, out matches)) {
+                    lerroro(this, "No obj repl chars");
+                    assert(false);  // TODO
+                }
+                int shapeidx = -1;
+                while(matches.matches()) {
+                    ++shapeidx;
+                    int start_pos, end_pos;
+                    if(!matches.fetch_pos(0, out start_pos, out end_pos)) {
+                        lerroro(this, "Could not fetch match position");
+                        assert(false);  // TODO
+                    }
+                    ltraceo(this, "shape %d repl char %d->%d", shapeidx, start_pos, end_pos);
+                    start_offset_bytes += start_pos;
+                    end_offset_bytes += end_pos;
+                    matches.next();
+                }
+
+                if(start_offset_bytes.length != shapes.size) {
+                    lerroro(this, "Wrong number of obj repl chars/shapes");
+                    assert(false);  // TODO
+                }
+                ltraceo(this, "Found %d match(es)", start_offset_bytes.length);
+
+                shapeidx = -1;
+                foreach(var shape in shapes) {
+                    ++shapeidx;
+                    var attr = new Pango.AttrShape<Shape.Base>.with_data(
+                        shape.get_inkP(), shape.get_logicalP(), shape,
+                        (data)=>{ return data.clone();} );
+
+                    // byte offsets of the placeholder
+                    attr.start_index = start_offset_bytes[shapeidx];
+                    attr.end_index = end_offset_bytes[shapeidx];
+
+
+                    shape_attrs.insert((owned)attr);
+                }
+
+            } // fill_shape_attrs()
+
+            /** Add shape_attrs to the list of attributes for a layout */
+            private void append_shape_attrs_to(Pango.Layout layout)
+            {
+                var old_attributes = layout.get_attributes();
+                if(old_attributes == null) {
+                    ltraceo(this, "Setting attributes to %p", shape_attrs);
+                    layout.set_attributes(shape_attrs); // OK even if shape_attrs==null
+                    return;
+                }
+
+                if(shape_attrs == null) {
+                    ltraceo(this, "Don't need to change the existing attrs");
+                    return;
+                }
+
+                // Normal case: add to the list
+                var dest = old_attributes.copy();
+                var iter = shape_attrs.get_iterator();
+                int entries = 0;
+                while(true) {
+                    var attrs = iter.get_attrs();
+                    if(attrs != null) {
+                        attrs.foreach((attr) => {
+                            var new_attr = attr.copy();
+                            ltraceo(new_attr, "Shape attr for %d", entries);
+                            dest.insert((owned)new_attr);
+                            ++entries;
+                        });
+                    }
+                    if(!iter.next()) {
+                        break;
+                    }
+                }
+                ldebugo(this, "Added %d attrs", entries);
+
+                // Refresh the layout if anything changed
+                if(entries > 0) {
+                    ltraceo(this, "Updating layout");
+                    layout.set_attributes(dest);
+                }
+
+                if(lenabled(TRACE)) {
+                    iter = layout.get_attributes().get_iterator();
+                    entries = 0;
+                    while(true) {
+                        var attrs = iter.get_attrs();
+                        if(attrs != null) {
+                            attrs.foreach((attr) => {
+                                ++entries;
+                                ltraceo(attr, "%s %u->%u", attr.klass.type.to_string(),
+                                attr.start_index, attr.end_index);
+                                if(attr.klass.type == Pango.AttrType.SHAPE) {
+                                    unowned Pango.AttrShape<Shape.Base> shape = (Pango.AttrShape<Shape.Base>)attr;
+                                    ltraceo(attr, "  shape: ink %s log %s",
+                                    prect_to_string(shape.ink_rect),
+                                    prect_to_string(shape.logical_rect));
+                                }
+                            });
+                        }
+                        if(!iter.next()) {
+                            break;
+                        }
+                    }
+                    ltraceo(this, "Total %d attrs", entries);
+                } // endif TRACE
+            } // append_shape_attrs_to()
+
+            /**
+             * Render a shape
+             */
+            private void render_shape(Cairo.Context cr, Pango.AttrShape<Shape.Base> attr, bool do_path)
+            {
+                ldebugo(this, "Rendering shape %p", attr);
+                unowned Shape.Base shape = attr.data;
+                assert(shape != null);
+                shape.render(cr, do_path);
+            } // render_shape()
+
+            /**
+             * Render a block or portion thereof.
+             *
+             * This is a helper for child classes.  If whole_markup is empty,
+             * this is a no-op.  Parameters are as in render().
+             *
+             * Requires the layout already be initialized.
+             * If any shapes are present, requires fill_shape_attrs() already have
+             * been called.
+             *
+             * Sets nlines_rendered.
+             */
+            protected RenderResult render_layout(Cairo.Context cr,
+                Pango.Layout layout,
+                int rightP, int bottomP)
+            {
+                double leftC, topC; // Where we started
+
+                cr.get_current_point(out leftC, out topC);
+                ldebugo(this,"layout %p starting at (%f, %f) limits (%f, %f)",
+                    layout, c2i(leftC), c2i(topC), p2i(rightP), p2i(bottomP));
+
+                if(get_whole_markup() == "") {
+                    return RenderResult.COMPLETE;
+                }
+
+                // If this is the first time we've touched this block,
+                // finalize and check the layout.
+                if(nlines_rendered == 0) {
+
+                    // Out of range
+                    if(c2p(topC) >= bottomP) {
+                        return RenderResult.NONE;
+                    }
+                    if(c2p(leftC) >= rightP ) {
+                        linfoo(this, "too wide: %f >= %f",
+                            c2i(leftC), p2i(rightP));
+                        return RenderResult.ERROR; // too wide
+                    }
+
+                    layout.set_width(rightP - c2p(leftC));
+                    layout.set_markup(get_whole_markup(), -1);
+                    lmemdumpo(this, "whole markup", get_whole_markup(), get_whole_markup().length);
+                    lmemdumpo(this, "layout text", layout.get_text(), layout.get_text().length);
+
+                    // Set up for shape rendering.
+
+                    // Find the object-replacement chars.  We have to fill AFTER
+                    // the set_markup() call because:
+                    // - the markup includes markup tags;
+                    // - the text omits those tags; and
+                    // - the byte offsets are in the text, not the markup.
+                    // Rather than parsing the markup ourselves, just get the text
+                    // the layout is actually using.
+
+                    fill_shape_attrs(layout.get_text());
+
+                    append_shape_attrs_to(layout);
+                    Pango.cairo_context_set_shape_renderer(
+                        layout.get_context(),
+                        (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
+                    );
+
+                    if(lenabled(LOG)) {
+                        Pango.Rectangle inkP, logicalP;
+                        layout.get_extents(out inkP, out logicalP);
+                        llogo(this, "layout ink: %s", prect_to_string(inkP));
+                        llogo(this, "layout log: %s", prect_to_string(logicalP));
+                    }
+
+                } // endif need to set up the layout
+
+                int lineno = 0;
+                int yP = c2p(topC); // Current Y
+
+                unowned SList<Pango.LayoutLine> lines = layout.get_lines_readonly();
+                unowned SList<Pango.LayoutLine> curr_line = lines;
+                bool did_render = false; // did we render anything during this call?
+
+                RenderResult retval = UNKNOWN;
+
+                ldebugo(this, "BEGIN - %u lines in layout", lines.length());
+                while(curr_line != null) {
+
+                    // Advance to the first line not yet rendered
+                    if(nlines_rendered > 0 && lineno < nlines_rendered) {
+                        llogo(this, "Skipping line %d", lineno);
+                        ++lineno;
+                        curr_line = curr_line.next;
+                        continue;
+                    }
+
+                    // Each time through the loop, (leftC, yP) is at the
+                    // upper-left corner of this line's box.
+
+                    // Can we fit this line?
+                    llogo(this, "Trying line %d", lineno);
+                    Pango.Rectangle inkP, logicalP;
+                    curr_line.data.get_extents(out inkP, out logicalP);
+                    if(lenabled(DEBUG)) {
+                        ltraceo(this, "  ink: %s", prect_to_string(inkP));
+                        ldebugo(this, "  log: %s", prect_to_string(logicalP));
+                    }
+
+                    if(yP + logicalP.height > bottomP) {
+                        // Done with what we can do for this page.
+                        // At least the current line is left, so this block is
+                        // not yet complete.
+                        nlines_rendered = lineno;
+                        retval = did_render ? RenderResult.PARTIAL : RenderResult.NONE;
+                        // TODO if nlines_rendered > 0, should we always return
+                        // PARTIAL since some of the block has already been
+                        // rendered?
+                        break;
+                    }
+
+                    int baseline_yP = yP - logicalP.y;
+
+                    if(lenabled(DEBUG)) { // draw the rectangles
+                        cr.save();
+                        cr.set_antialias(NONE);
+                        cr.set_line_width(0.5);
+                        if(lenabled(TRACE)) { // ink
+                            cr.set_source_rgb(0.5, 0.5, 1);
+                            cr.rectangle(leftC+p2c(inkP.x),
+                                p2c(baseline_yP+inkP.y),
+                                p2c(inkP.width), p2c(inkP.height));
+                            cr.stroke();
+                        }
+                        if(lenabled(DEBUG)) { // logical
+                            cr.set_source_rgb(0,0,1);
+                            cr.rectangle(leftC+p2c(logicalP.x),
+                                p2c(yP), p2c(logicalP.width),
+                                p2c(logicalP.height));
+                            cr.stroke();
+                        }
+                        cr.restore();
+                    }
+
+                    // Render this line
+                    ldebugo(this, "  - Rendering line %d, UL corner y %f", lineno, p2i(yP));
+                    // Move vertically to the baseline, which is the vertical
+                    // reference for the line.
+                    llogo(this, "    Baseline y %f", p2i(baseline_yP));
+                    cr.move_to(leftC, p2c(baseline_yP));
+                    Pango.cairo_show_layout_line(cr, curr_line.data); // UNSETS the current point
+                    did_render = true;
+
+                    // Advance to the next line
+                    yP += logicalP.height;
+                    cr.move_to(leftC, p2c(yP));
+
+                    if(lenabled(DEBUG)) {
+                        double currxC, curryC;
+                        cr.get_current_point(out currxC, out curryC);
+                        ldebugo(this,"  now at (%f,%f) %s", c2i(currxC), c2i(curryC),
+                            cr.has_current_point() ? "has pt" : "no pt");
+                    }
+
+                    ++lineno;
+                    curr_line = curr_line.next;
+
+                } // for each line
+
+                if(curr_line == null) {
+                    // we finished the block on this page
+                    nlines_rendered = 0;
+                    retval = COMPLETE;
+
+                    // Move the Pango current point to the bottom-left of the
+                    // last line's logical rectangle
+                    cr.move_to(leftC, p2c(yP));
+                }
+
+                ldebugo(this,"done - rendered %d lines - %s",
+                    nlines_rendered, retval.to_string());
+
+                return retval;
+            } // render_layout()
+
+            /**
+             * Render this block at the current position on the context.
+             *
+             * The caller must set the current position to the left margin
+             * of this block before calling this method.
+             *
+             * This method must leave the current position at the left margin
+             * and offset vertically by the amount of space consumed.
+             *
+             * rightP and bottomP are not hard limits, but say where the margins
+             * are:
+             * * Text rendered to the right of rightP is in the right margin.
+             * * Text rendered below bottomP is in the bottom margin.
+             *
+             * This function must not be called on two blocks at the same time
+             * if those blocks share a layout instance.
+             *
+             * This function may be called multiple times for the same block
+             * if the block is split across pages.
+             *
+             * @param cr        The context to render into
+             * @param rightP    The right limit w.r.t. the page, in Pango units
+             * @param bottomP   The bottom limit w.r.t. the page, in Pango units
+             */
+            public virtual RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                return render_layout(cr, layout, rightP, bottomP);
+            }
+
+            public Blk(Pango.Layout layout)
+            {
+                this.layout = layout;
+            }
+
+        } // class Blk
+
+        /**
+         * A block that renders a bullet and a text block
+         */
+        public class BulletBlk : Blk
+        {
+            /**
+             * A layout for the bullet.
+             *
+             * We need this so that we don't trash the main layout between pages
+             * if the block splits across pages.
+             */
+            private Pango.Layout bullet_layout;
+
+            /** The markup for the bullet */
+            private string bullet_markup;
+
+            /** The left edge of the bullet, w.r.t. the left margin */
+            private int bullet_leftP;
+
+            /**
+             * The left edge of the text, w.r.t. the left margin.
+             *
+             * Must be greater than bullet_leftP.
+             */
+            private int text_leftP;
+
+            public BulletBlk(Pango.Layout layout, Pango.Layout bullet_layout,
+                string bullet_markup, int bullet_leftP, int text_leftP)
+            requires(text_leftP > bullet_leftP)
+            {
+                base(layout);
+
+                this.bullet_layout = bullet_layout;
+                this.bullet_markup = bullet_markup;
+                this.bullet_leftP = bullet_leftP;
+                this.text_leftP = text_leftP;
+            }
+
+            /**
+             * Render the bullet and the text.
+             */
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                if(get_whole_markup() == "") {
+                    return RenderResult.COMPLETE;
+                }
+
+                double xC, yC, leftC, topC;
+                cr.get_current_point(out leftC, out topC);
+                if(lenabled(DEBUG)) { // DEBUG
+                    llogo(this, "Pre-render at (%f, %f)", c2i(leftC), c2i(topC));
+                }
+
+                // Out of range
+                if(c2p(topC) >= bottomP) {
+                    return RenderResult.NONE;
+                }
+
+                if(c2p(leftC) >= rightP || c2p(leftC)+bullet_leftP >= rightP ||
+                    c2p(leftC)+text_leftP >= rightP) {
+                    lerroro(this, "bullet render(): too wide");
+                    return RenderResult.ERROR;
+                }
+
+                // Try to render the markup.  This will fail if we don't have room.
+                cr.move_to(leftC + p2c(text_leftP), topC);
+                bool is_first_chunk = (nlines_rendered == 0);
+                var result = render_layout(cr, layout, rightP, bottomP);
+
+                // Move back to where the next block will start
+                cr.get_current_point(out xC, out yC); // where the copy left us
+                cr.move_to(leftC, yC);
+
+                if(!is_first_chunk) { // Nothing more to do
+                    return result;
+                }
+                if(result == NONE) { // None of the block fit on the page
+                    return result;
+                }
+
+                // Something rendered on the first page, so render the bullet.
+                // TODO shift the bullet down so it is centered on the first
+                // line of the text.
+                ldebugo(this, "Rendering bullet from layout %p - post-render at (%f, %f)",
+                    bullet_layout, c2i(xC), c2i(yC));
+                cr.move_to(leftC + p2c(bullet_leftP), topC);
+                bullet_layout.set_width(text_leftP - bullet_leftP);
+                bullet_layout.set_markup(bullet_markup, -1);
+                Pango.cairo_show_layout(cr, bullet_layout);
+
+                cr.move_to(leftC, yC);
+                ldebugo(this, "Rendered bullet - now at (%f, %f)", c2i(leftC), c2i(yC));
+
+                return result; // COMPLETE or PARTIAL from render_layout()
+            }
+        } // class BulletBlk
+
+        /**
+         * A block that renders a horizontal rule
+         */
+        public class HRBlk : Blk
+        {
+            /** The left edge of the rule, w.r.t. the left margin. */
+            private int leftP = 0;
+
+            /** The amount of vertical space the rule occupies */
+            private int heightP = c2p(12); // 12 pt --- assumes points for Cairo units
+
+            public HRBlk(Pango.Layout layout, int leftP)
+            {
+                base(layout);
+                this.leftP = leftP;
+            }
+
+            /**
+             * Render the rule
+             *
+             * This function ignores the current Cairo X position.
+             */
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                double xC, yC; // Cairo current points (Cairo.PdfSurface units are pts)
+                double leftC; // left margin
+                double heightC = heightP/Pango.SCALE;
+
+                cr.get_current_point(out xC, out yC);
+                leftC = xC;
+
+                // Out of range
+                if(c2p(yC) >= bottomP) {
+                    return RenderResult.NONE;
+                }
+                if(c2p(xC) >= rightP || leftP >= rightP) {
+                    return RenderResult.ERROR;
+                }
+
+                // check metrics.  The rule is never split across pages, so
+                // does not return PARTIAL.
+                if(c2p(yC) + heightP >= bottomP) {
+                    return RenderResult.NONE;
+                }
+
+                // render the rule
+                cr.save();
+                cr.set_source_rgb(0,0,0);
+                cr.set_line_width(0.75); // pt, I think
+                cr.move_to(leftC + p2c(leftP), yC + heightC*0.5);
+                cr.line_to(p2c(rightP), yC + heightC*0.5);
+                cr.stroke();
+                cr.restore();
+
+                // move 12 pts. down.  TODO make the vertical size a parameter.
+                cr.move_to(leftC, yC + heightC);
+
+                // ldebugo(this, "Render rule\n");
                 return RenderResult.COMPLETE;
             }
-
-            double xC, yC, leftC, topC;
-            cr.get_current_point(out leftC, out topC);
-            if(lenabled(DEBUG)) { // DEBUG
-                llogo(this, "Pre-render at (%f, %f)", c2i(leftC), c2i(topC));
-            }
-
-            // Out of range
-            if(c2p(topC) >= bottomP) {
-                return RenderResult.NONE;
-            }
-
-            if(c2p(leftC) >= rightP || c2p(leftC)+bullet_leftP >= rightP ||
-                c2p(leftC)+text_leftP >= rightP) {
-                lerroro(this, "bullet render(): too wide");
-                return RenderResult.ERROR;
-            }
-
-            // Try to render the markup.  This will fail if we don't have room.
-            cr.move_to(leftC + p2c(text_leftP), topC);
-            bool is_first_chunk = (nlines_rendered == 0);
-            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
-
-            // Move back to where the next block will start
-            cr.get_current_point(out xC, out yC);   // where the copy left us
-            cr.move_to(leftC, yC);
-
-            if(!is_first_chunk) {   // Nothing more to do
-                return result;
-            }
-            if(result == NONE) {    // None of the block fit on the page
-                return result;
-            }
-
-            // Something rendered on the first page, so render the bullet.
-            // TODO shift the bullet down so it is centered on the first
-            // line of the text.
-            ldebugo(this, "Rendering bullet from layout %p - post-render at (%f, %f)",
-                bullet_layout, c2i(xC), c2i(yC));
-            cr.move_to(leftC + p2c(bullet_leftP), topC);
-            bullet_layout.set_width(text_leftP - bullet_leftP);
-            bullet_layout.set_markup(bullet_markup, -1);
-            Pango.cairo_show_layout(cr, bullet_layout);
-
-            cr.move_to(leftC, yC);
-            ldebugo(this, "Rendered bullet - now at (%f, %f)", c2i(leftC), c2i(yC));
-
-            return result;  // COMPLETE or PARTIAL from render_simple()
-        }
-    } // class BulletBlk
-
-    /**
-     * A block that renders a horizontal rule
-     */
-    public class HRBlk : Blk
-    {
-        /** The left edge of the rule, w.r.t. the left margin. */
-        private int leftP = 0;
-
-        /** The amount of vertical space the rule occupies */
-        private int heightP = c2p(12);  // 12 pt --- assumes points for Cairo units
-
-        public HRBlk(Pango.Layout layout, int leftP)
-        {
-            base(layout);
-            this.leftP = leftP;
-        }
+        } // class HRBlk
 
         /**
-         * Render the rule
-         *
-         * This function ignores the current Cairo X position.
+         * A block that renders a block quote
          */
-        public override RenderResult render(Cairo.Context cr,
-            int rightP, int bottomP)
+        public class QuoteBlk : Blk
         {
-            double xC, yC;  // Cairo current points (Cairo.PdfSurface units are pts)
-            double leftC;   // left margin
-            double heightC = heightP/Pango.SCALE;
+            /**
+             * The left edge of the text, w.r.t. the left margin.
+             *
+             * Must be less than bullet_leftP.
+             */
+            private int text_leftP;
 
-            cr.get_current_point(out xC, out yC);
-            leftC = xC;
+            public QuoteBlk(Pango.Layout layout, int text_leftP)
+            {
+                base(layout);
 
-            // Out of range
-            if(c2p(yC) >= bottomP) {
-                return RenderResult.NONE;
-            }
-            if(c2p(xC) >= rightP || leftP >= rightP) {
-                return RenderResult.ERROR;
-            }
-
-            // check metrics.  The rule is never split across pages, so
-            // does not return PARTIAL.
-            if(c2p(yC) + heightP >= bottomP) {
-                return RenderResult.NONE;
+                this.text_leftP = text_leftP;
             }
 
-            // render the rule
-            cr.save();
-            cr.set_source_rgb(0,0,0);
-            cr.set_line_width(0.75);    // pt, I think
-            cr.move_to(leftC + p2c(leftP), yC + heightC*0.5);
-            cr.line_to(p2c(rightP), yC + heightC*0.5);
-            cr.stroke();
-            cr.restore();
+            /**
+             * Render the text and a sidebar.
+             */
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                if(get_whole_markup() == "") {
+                    return RenderResult.COMPLETE;
+                }
 
-            // move 12 pts. down.  TODO make the vertical size a parameter.
-            cr.move_to(leftC, yC + heightC);
+                double x1C, y1C; // Starting points
+                double x2C, y2C; // Ending points of the text block
 
-            // ldebugo(this, "Render rule\n");
-            return RenderResult.COMPLETE;
-        }
-    } // class HRBlk
+                cr.get_current_point(out x1C, out y1C);
 
-    /**
-     * A block that renders a block quote
-     */
-    public class QuoteBlk : Blk
-    {
-        /**
-         * The left edge of the text, w.r.t. the left margin.
-         *
-         * Must be less than bullet_leftP.
-         */
-        private int text_leftP;
+                // Out of range
+                if(c2p(x1C) >= bottomP) {
+                    return RenderResult.NONE;
+                }
+                if(c2p(x1C) >= rightP || text_leftP >= rightP) {
+                    return RenderResult.ERROR;
+                }
 
-        public QuoteBlk(Pango.Layout layout, int text_leftP)
-        {
-            base(layout);
+                // Try to render the markup
+                cr.move_to(x1C + p2c(text_leftP), y1C);
+                var result = render_layout(cr, layout, rightP, bottomP);
+                if(result != COMPLETE) {
+                    return result;
+                }
 
-            this.text_leftP = text_leftP;
-        }
+                cr.get_current_point(out x2C, out y2C);
 
-        /**
-         * Render the text and a sidebar.
-         */
-        public override RenderResult render(Cairo.Context cr,
-            int rightP, int bottomP)
-        {
-            string final_markup = markup + post_markup;
+                // render the sidebar
+                double xsC = x1C + p2c(text_leftP)*0.5;
+                cr.save();
+                cr.set_source_rgb(0.7,0.7,0.7);
+                cr.set_line_width(6.0);
+                cr.move_to(xsC, y1C);
+                cr.line_to(xsC, y2C);
+                cr.stroke();
+                cr.restore();
 
-            if(final_markup == "") {
-                return RenderResult.COMPLETE;
+                cr.move_to(x1C, y2C);
+
+                return COMPLETE;
             }
+        } // class QuoteBlk
 
-            double x1C, y1C;    // Starting points
-            double x2C, y2C;    // Ending points of the text block
-
-            cr.get_current_point(out x1C, out y1C);
-
-            // Out of range
-            if(c2p(x1C) >= bottomP) {
-                return RenderResult.NONE;
-            }
-            if(c2p(x1C) >= rightP || text_leftP >= rightP) {
-                return RenderResult.ERROR;
-            }
-
-            // Try to render the markup
-            cr.move_to(x1C + p2c(text_leftP), y1C);
-            var result = render_simple(cr, layout, rightP, bottomP, final_markup);
-            if(result != COMPLETE) {
-                return result;
-            }
-
-            cr.get_current_point(out x2C, out y2C);
-
-            // render the sidebar
-            double xsC = x1C + p2c(text_leftP)*0.5;
-            cr.save();
-            cr.set_source_rgb(0.7,0.7,0.7);
-            cr.set_line_width(6.0);
-            cr.move_to(xsC, y1C);
-            cr.line_to(xsC, y2C);
-            cr.stroke();
-            cr.restore();
-
-            cr.move_to(x1C, y2C);
-
-            return COMPLETE;
-        }
-    } // class QuoteBlk
-
-}} // namespaces
+    } // namespace Blocks
+} // namespace My

@@ -27,7 +27,7 @@ prettyprint:
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
 
 prep:
-	@:# TODO check that 'unowned var' doesn't exist in any vala file
+	@: # TODO check that 'unowned var' does not exist in any vala file
 	uncrustify -c $(top_srcdir)/.uncrustifyrc --check \
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
 	+$(MAKE) check
