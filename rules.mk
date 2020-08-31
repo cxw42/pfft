@@ -79,9 +79,10 @@ AM_VALAFLAGS = \
 
 # C settings, which are the same throughout.  LOCAL_CFLAGS is filled in
 # by each Makefile.am.
-AM_CFLAGS = $(LOCAL_CFLAGS) $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS)
-AM_CXXFLAGS = $(AM_CFLAGS)
-LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS)
+AM_CFLAGS = $(LOCAL_CFLAGS) $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+AM_CXXFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
+AM_CPPFLAGS = $(CODE_COVERAGE_CPPFLAGS)
+LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS) $(CODE_COVERAGE_LIBS)
 
 # Flags used by both the program and the tests --- anything that links
 # against all the libraries
@@ -102,3 +103,13 @@ MY_use_all_ldadd = \
 		$(top_builddir)/src/$(dir)/libpfft-$(dir).a \
 	) \
 	$(EOL)
+
+# For code coverage, per
+# https://www.gnu.org/software/autoconf-archive/ax_code_coverage.html
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
+
+CODE_COVERAGE_OUTPUT_FILE = $(PACKAGE_TARNAME)-coverage.info
+CODE_COVERAGE_OUTPUT_DIRECTORY = $(PACKAGE_TARNAME)-coverage
+
+include $(top_srcdir)/aminclude_static.am

@@ -44,7 +44,7 @@ Install Vala:
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl
+    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl lcov
 
 Initialize submodules:
 
@@ -63,6 +63,13 @@ Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
 
 In GLib 2.62+, the default output format is TAP.  Therefore, you can do
 `make build-tests && prove`.
+
+### Checking code coverage
+
+    ./configure --enable-code-coverage && make -j4 check-code-coverage
+
+This will print a summary to the console.  For the full report, open
+`pfft-<VERSION>-coverage/index.html` in a Web browser.
 
 ### Making a release
 
