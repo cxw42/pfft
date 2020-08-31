@@ -1,0 +1,11 @@
+# t/060-both-headleft.pfft
+# A test with both header.left and header.leftmarkup (throws)
+
+[pfft]
+version = 1
+
+[header]
+left = Hl
+leftmarkup = Hl<
+
+# vi: set ft=desktop: #

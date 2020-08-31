@@ -24,7 +24,7 @@ namespace My {
         /**
          * Convenience function to map filename "-" to stdout
          */
-        public void emit(string filename, string contents)
+        public static void emit(string filename, string contents)
         throws FileError
         {
             if(filename == "-") {

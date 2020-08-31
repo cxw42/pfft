@@ -26,7 +26,7 @@ AC_PROG_RANLIB
 
 dnl === Code coverage =====================================================
 
-dnl For some reason, the coverage data is referring to src/code/glib-2.0.vapi.
+dnl For some reason, the coverage data is referring to src/.../glib-2.0.vapi.
 dnl Inject code to strip that from the .info file so genhtml can succeed.
 dnl This is all very ugly.  For example, the variables in this section are
 dnl hardwired for use in a Makefile, since they assume Makefile syntax
@@ -44,7 +44,7 @@ AM_COND_IF(
     [CODE_COVERAGE_ENABLED],
     [ dnl then
         AC_SUBST([GENHTMLHACK], ['dnl
-            perl -n -i -e '"'"'print unless m{src/core/glib-2.0.vapi}..m{^end_of_record}'"'"' "$(CODE_COVERAGE_OUTPUT_FILE)" ; dnl
+            perl -n -i -e '"'"'print unless m{\b(?:src|t)/?.*?/glib-2.0.vapi}..m{^end_of_record}'"'"' "$(CODE_COVERAGE_OUTPUT_FILE)" ; dnl
             LANG=C $(GENHTMLREAL) dnl
         '])
     ]

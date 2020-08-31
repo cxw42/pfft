@@ -13,7 +13,26 @@ LDADD = $(MY_use_all_ldadd)
 
 # === Programs ============================================================
 
-test_programs = 001-basic.t
-dist_test_data = 001-basic.md
+# So we don't have to list the sources of every test program individually
+AM_DEFAULT_SOURCE_EXT = .vala
+# But that messes up the linker selection, so:
+CCLD = $(CXX)
 
-001_basic_t_SOURCES = 001-basic.vala
+test_programs = \
+	001-sanity-t \
+	010-core-util-t \
+	020-registry-t \
+	050-core-el-t \
+	060-core-template-t \
+	070-core-writer-t \
+	100-logging-t \
+	200-md4c-reader-t \
+	300-pango-markup-writer-t \
+	$(EOL)
+
+dist_test_data = \
+	060-core-template.pfft \
+	060-no-meta.pfft \
+	basic.md \
+	complex.md \
+	$(EOL)

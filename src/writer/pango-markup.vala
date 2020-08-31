@@ -132,10 +132,10 @@ namespace My {
             try {
                 re_newline = new Regex("\\R+");
                 re_command = new Regex("^pfft:\\s*(\\w+)");
-            } catch(RegexError e) {
+            } catch(RegexError e) { // LCOV_EXCL_START
                 lerroro(this, "Could not create required regexes --- I can't go on");
                 assert(false);  // die horribly --- something is very wrong!
-            }
+            }                       // LCOV_EXCL_STOP
         }
 
         /**
@@ -184,7 +184,7 @@ namespace My {
                 while(true) {   // Render this block, which may take more than one pass
                     // Parameters to render() are page-relative
                     if(surf.status() != Cairo.Status.SUCCESS) {
-                        lerroro(blk, "Surface status: %s", surf.status().to_string());
+                        lerroro(blk, "Surface status: %s", surf.status().to_string());  // LCOV_EXCL_LINE because I can't force this to happen
                     }
 
                     var ok = blk.render(cr, rightP, bottomP);
@@ -209,8 +209,10 @@ namespace My {
             // Save the PDF
             surf.finish();
             if(surf.status() != Cairo.Status.SUCCESS) {
+                // LCOV_EXCL_START because I can't force this to happen
                 throw new Error.WRITER("Could not save PDF: " +
                           surf.status().to_string());
+                // LCOV_EXCL_STOP
             }
 
         } // write_document()

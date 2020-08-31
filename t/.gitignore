@@ -2,7 +2,7 @@
 *.log
 
 # Test executables
-*.t
+*-t
 
 # Generated files
 [0-9]*.c
