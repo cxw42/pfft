@@ -60,12 +60,16 @@ MY_VALA_PKGS = \
 	--pkg gio-2.0 \
 	$(EOL)
 
-# Vala settings.  LOCAL_VALA_FLAGS is filled in by each Makefile.am with
-# any other valac options that Makefile.am needs.
-# TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
-# isn't being passed through.
+# Vala settings.
+# - LOCAL_VALA_FLAGS is filled in by each Makefile.am with any other valac
+#   options that Makefile.am needs.
+# - Always use the C++ compiler for the generated code, since the
+#   registry relies on it.
+# - TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
+#   isn't being passed through.
 AM_VALAFLAGS = \
 	$(LOCAL_VALA_FLAGS) \
+	--cc=$(CXX) \
 	$(MY_VALA_PKGS) \
 	$(USER_VALAFLAGS) \
 	$(EOL)
