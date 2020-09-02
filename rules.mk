@@ -15,7 +15,7 @@ MY_pgm_VALA = pfft.vala myconfig.vapi
 MY_pgm_EXTRASOURCES = pfft-shim.c
 
 # src/core
-MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
+MY_core_VALA = el.vala reader.vala registry.vala template.vala util.vala writer.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
 
 # src/logging

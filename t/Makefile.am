@@ -31,8 +31,13 @@ test_programs = \
 	$(EOL)
 
 dist_test_data = \
+	060-bad-version.pfft \
+	060-both-headleft.pfft \
 	060-core-template.pfft \
-	060-no-meta.pfft \
+	060-empty.pfft \
+	060-headfoot-markup.pfft \
+	060-no-magic.pfft \
 	basic.md \
 	complex.md \
 	$(EOL)
+:

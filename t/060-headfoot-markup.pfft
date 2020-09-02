@@ -1,0 +1,19 @@
+# t/060-headfoot-markup.pfft
+# A test with header and footer markup
+
+[pfft]
+version = 1
+
+# Header and footer: test for markup passed through.  These don't have to be
+# valid markup strings; we're just checking that they don't get escaped.
+[header]
+leftmarkup = Hl<
+centermarkup = Hc<
+rightmarkup = Hr<
+
+[footer]
+leftmarkup = Fl<
+centermarkup = Fc<
+rightmarkup = Fr<
+
+# vi: set ft=desktop: #
