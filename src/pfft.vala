@@ -470,7 +470,9 @@ namespace My {
 
                 retval.set_property(nv[0], val);
                 ldebugo(retval, "Set property %s from command line to %s",
-                    nv[0], Gst.Value.serialize(val));
+                    nv[0], val.type() == typeof(string) ? @"'$(val.get_string())'" :
+                    Gst.Value.serialize(val));
+
             } // foreach option
 
             return retval;

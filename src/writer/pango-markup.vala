@@ -84,7 +84,7 @@ namespace My {
         /** The Pango layout for bullets and numbers */
         Pango.Layout bullet_layout = null;
 
-        /** The Pango layout for the page numbers and headers */
+        /** The Pango layout for the */
         Pango.Layout pageno_layout = null;
 
         /** Current page */
@@ -108,6 +108,22 @@ namespace My {
         [Description(nick = "Header margin (in.)", blurb = "Space between the top of the text block and the top of the header, in inches")]
         public double headerskipI { get; set; default = 0.4; }
 
+        // Header parameters
+        [Description(nick = "Header markup, left", blurb = "Pango markup for the header, left side")]
+        public string headerl { get; set; default = ""; }
+        [Description(nick = "Header markup, center", blurb = "Pango markup for the header, middle")]
+        public string headerc { get; set; default = ""; }
+        [Description(nick = "Header markup, right", blurb = "Pango markup for the header, right side")]
+        public string headerr { get; set; default = ""; }
+
+        // Footer parameters
+        [Description(nick = "Footer markup, left", blurb = "Pango markup for the footer, left side")]
+        public string footerl { get; set; default = ""; }
+        [Description(nick = "Footer markup, center", blurb = "Pango markup for the footer, middle")]
+        public string footerc { get; set; default = "%p"; }
+        [Description(nick = "Footer markup, right", blurb = "Pango markup for the footer, right side")]
+        public string footerr { get; set; default = ""; }
+
         /** Used in process_node_into() */
         private Regex re_newline = null;
 
@@ -120,11 +136,13 @@ namespace My {
         private Regex re_command = null;
 
         /**
-         * Header markup
+         * Regex for placeholders in headers/footers.
          *
-         * TODO handle headers/footers in a more general way
+         * Currently supported placeholders are:
+         * * `%p`: page number
+         * * `%%`: a literal percent sign
          */
-        private string header_markup = "";
+        private Regex re_hf_placeholder = null;
 
         // Not a ctor since we create instances through g_object_new() --- see
         // https://gitlab.gnome.org/GNOME/vala/-/issues/650
@@ -132,6 +150,9 @@ namespace My {
             try {
                 re_newline = new Regex("\\R+");
                 re_command = new Regex("^pfft:\\s*(\\w+)");
+                re_hf_placeholder = new Regex("%(?<which>[p%])(?!\\w)");
+                // can't use \b in place of the negative lookahead because
+                // \b doesn't match between two non-word chars
             } catch(RegexError e) { // LCOV_EXCL_START
                 lerroro(this, "Could not create required regexes --- I can't go on");
                 assert(false);  // die horribly --- something is very wrong!
@@ -145,11 +166,11 @@ namespace My {
          * @param sourcefn  The filename of the source that @doc came from.
          * TODO make paper size a parameter
          */
-        public void write_document(string filename, Doc doc, string? sourcefn = null) throws FileError, My.Error
+        public void write_document(string filename, Doc doc, string? sourcefn = null)
+        throws FileError, My.Error
         {
             source_fn = (sourcefn == null) ? "" : sourcefn;
 
-            int hsizeP = i2p(hsizeI);
             int rightP = i2p(lmarginI+hsizeI);
             int bottomP = i2p(tmarginI+vsizeI);
 
@@ -166,8 +187,6 @@ namespace My {
             bullet_layout = Blocks.new_layout_12pt(cr);
 
             pageno_layout = Blocks.new_layout_12pt(cr); // Layout for page numbers
-            pageno_layout.set_width(hsizeP);
-            pageno_layout.set_alignment(CENTER);
 
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner
@@ -221,20 +240,10 @@ namespace My {
         void eject_page()
         {
             linfoo(this, "Finalizing page %d", pageno);
-
-            // render the page header on the page we just finished
-            if(header_markup != "") {
-                pageno_layout.set_markup(header_markup, -1);
-                cr.move_to(i2c(lmarginI), i2c(tmarginI-headerskipI));
-                Pango.cairo_show_layout(cr, pageno_layout);
-            }
-
-            // render the page number on the page we just finished
-            pageno_layout.set_text(pageno.to_string(), -1);
-            cr.move_to(i2c(lmarginI), i2c(tmarginI+vsizeI+footerskipI));
-            Pango.cairo_show_layout(cr, pageno_layout);
+            render_headers_footers();
             cr.show_page();
 
+            // Start the next page
             ++pageno;
             cr.new_path();
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
@@ -245,6 +254,106 @@ namespace My {
                 lmarginI, tmarginI);
 
         } // eject_page()
+
+        /** render the page header(s)/footer(s) on the page we just finished */
+        private void render_headers_footers()
+        {
+            int hsizeP = i2p(hsizeI);
+
+            double headeryI = tmarginI-headerskipI;
+            render_one_hf("headerL", headerl, hsizeP, LEFT, lmarginI, headeryI);
+            render_one_hf("headerC", headerc, hsizeP, CENTER, lmarginI, headeryI);
+            render_one_hf("headerR", headerr, hsizeP, RIGHT, lmarginI, headeryI);
+
+            double footeryI = tmarginI+vsizeI+footerskipI;
+            render_one_hf("footerL", footerl, hsizeP, LEFT, lmarginI, footeryI);
+            render_one_hf("footerC", footerc, hsizeP, CENTER, lmarginI, footeryI);
+            render_one_hf("footerR", footerr, hsizeP, RIGHT, lmarginI, footeryI);
+        }
+
+        /** Replace "%p" and other placeholders in header/footer text */
+        private bool replace_hf_placeholders (string ident, MatchInfo match_info, StringBuilder result)
+        {
+            bool ok = false;
+            ltraceo(this, "HF %s: checking placeholders", ident);
+
+            do { // once
+                if(match_info.get_match_count() == 0) {
+                    break;
+                }
+
+                string which = match_info.fetch_named("which");
+                llogo(this, "placeholder %s", which != null ? which : "<null>");
+                if(which == null) {
+                    break;
+                }
+
+                switch(which) {
+                case "p":
+                    result.append(pageno.to_string());
+                    ok = true;
+                    break;
+                case "%":
+                    result.append("%");
+                    ok = true;
+                    break;
+                default:
+                    break;
+                }
+            } while(false);
+
+            if(!ok) {
+                string fullmatch = match_info.fetch(0);
+                if(fullmatch == null) {
+                    fullmatch = "<null>";
+                }
+                lwarningo(this, @"I don't understand the placeholder '$fullmatch'");
+            }
+
+            return false;   // keep going
+        }
+
+        /**
+         * Render one header or footer.
+         *
+         * @param ident     Which header/footer.  Only used for log messages.
+         * @param markup    The Pango markup to render
+         * @param widthP    The width to use for the layout
+         * @param align     The alignment to use for the layout
+         * @param leftI     Where to render (X) with respect to the page
+         * @param topI      Where to render (Y) with respect to the page
+         */
+        private void render_one_hf(string ident, string markup, int widthP,
+            Pango.Alignment align, double leftI,
+            double topI)
+        {
+            if(markup == "") {
+                ltraceo(this, "HF %s: Skipping --- no markup", ident);
+                return;
+            }
+            ltraceo(this, "HF %s: Processing markup -%s-", ident, markup);
+
+            string m2;  // modified markup post placeholder processing
+            try {
+                m2 = re_hf_placeholder.replace_eval(markup, -1, 0, 0,
+                        (m, s)=>{ return replace_hf_placeholders(ident, m, s); });
+            } catch(RegexError e) {
+                lwarningo(this, "Got regex error: %s", e.message);
+                m2 = markup;
+            }
+
+            // By default, make the text smaller.  The user can override this
+            // with an express `<span>`.
+            m2 = @"<span size=\"small\">$m2</span>";
+
+            ltraceo(this, "HF %s: Rendering", ident);
+            pageno_layout.set_width(widthP);
+            pageno_layout.set_alignment(align);
+            pageno_layout.set_markup(m2, -1);
+            cr.move_to(i2c(leftI), i2c(topI));
+            Pango.cairo_show_layout(cr, pageno_layout);
+            ltraceo(this, "HF %s: Done", ident);
+        }
 
         ///////////////////////////////////////////////////////////////////
         // Generate blocks of markup from a Doc.
@@ -559,13 +668,6 @@ namespace My {
             switch(cmd) {
             case "":
                 // not a command
-                break;
-            case "header":
-                header_markup = blk.markup;
-                header_markup._strip();
-                linfoo(this, "Header markup set to -%s-", header_markup);
-                blk = null;     // discard the Blk we used to collect the text
-                blk = new Blk(layout);
                 break;
             default:
                 lwarningo(this, "Ignoring unknown command '%s'", cmd);

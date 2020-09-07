@@ -56,12 +56,13 @@ namespace My {
 
             /**
              * Render this shape at the current position.
-             * @param cr        The Cairo context
-             * @param do_path   See CairoShapeRendererFunc
              *
              * Leaves the current position at the right side of the rendering.
              * This is because shapes are inline (span-like), so there is
              * more text following the shape, in the general case.
+             *
+             * @param cr        The Cairo context
+             * @param do_path   See CairoShapeRendererFunc
              */
             public abstract void render(Cairo.Context cr, bool do_path);
 
@@ -71,10 +72,10 @@ namespace My {
         } // class Base
 
         /**
-         * An image
+         * An image.
          *
          * This class is based on C code by Mike Birch, which code he kindly
-         * placed in the public domain.  <https://immortalsofar.com/PangoDemo/>.
+         * placed in the public domain.  [[https://immortalsofar.com/PangoDemo/]].
          */
         public class Image : Base {
             /**
@@ -208,13 +209,14 @@ namespace My {
 
             /**
              * Create an Image referencing an external image file.
+             *
+             * NOTE: at present, assumes that @href is a path from the
+             * location of the source file to the location of a PNG file.
+             *
              * @param href      Where the referenced image is
              * @param doc_path  Where the referencing file is.
              *                  This is a string rather than a File so it
              *                  can later be expanded to URLs.
-             *
-             * NOTE: at present, assumes that @href is a path from the
-             * location of the source file to the location of a PNG file.
              */
             public Image.from_href(string href, string doc_path, int paddingP = -1)
             {
@@ -486,10 +488,11 @@ namespace My {
 
             /**
              * Initialize shape_attrs.
-             * @param text  The actual text in the layout --- NOT the markup
              *
              * Call only when the markup for the block has been finalized and
              * all add_shape() calls have been made.
+             *
+             * @param text  The actual text in the layout --- NOT the markup
              */
             protected void fill_shape_attrs(string text)
             {

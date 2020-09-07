@@ -100,6 +100,13 @@ Before submitting a PR, please run `make prep`.  This will:
   be left in the tree.  To remove the generated C files,
   `make maintainer-clean`.
 
+### Design decisions
+
+- Decisions about the exact appearance of an item should be made as late
+  as possible.  For example, in the `pango-markup` writer (the default),
+  headers and footers are set in smaller type by the writer, not the upstream
+  code that feeds markup to the writer.
+
 ## Thanks
 
 - <https://github.com/stefantalpalaru/vala-skeleton-autotools>

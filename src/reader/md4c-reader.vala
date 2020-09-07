@@ -177,7 +177,7 @@ namespace My
                 break;
             case CODE: newnode = node_of_ty(SPAN_CODE); break;
             case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
-            case U: newnode = node_of_ty(SPAN_UNDERLINE); break;
+            case SpanType.U: newnode = node_of_ty(SPAN_UNDERLINE); break;
             default:
                 printerr("Unsupported span type %s\n".printf(span_type.to_string()));
                 newnode = node_of_ty(SPAN_PLAIN);
