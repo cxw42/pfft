@@ -16,6 +16,9 @@ namespace My {
 
         /** Error while writing */
         WRITER,
+
+        /** Invalid conversion (units.vala) */
+        INVALID_CONVERSION,
     }
 
     /**

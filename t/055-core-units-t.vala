@@ -81,16 +81,22 @@ void test_bad_units()
 void test_units_unity()
 {
     try {
+        double dd = 72.27 /* tpt/in */ * 1157/1238 /* dd/tpt */;    // ~67.5/in.
+        double cc = dd/12;  // ~5.6/in.
+
+        assert_double_close(1.0/cc, Units.parsedim("1 cc"));
         assert_double_close(1.0/2.54, Units.parsedim("1 cm"));
+        assert_double_close(1.0/dd, Units.parsedim("1 dd"));
         assert_double_close(12.0, Units.parsedim("1 ft"));
+        assert_double_close(1.0, Units.parsedim("1 in"));
         assert_double_close(39.37, Units.parsedim("1 m"));
         assert_double_close(1.0/25.4, Units.parsedim("1 mm"));
-        assert_double_close(1.0/(25.4*4), Units.parsedim("1 Q"));
         assert_double_close(1.0/6, Units.parsedim("1 pc"));
         assert_double_close(1.0/72, Units.parsedim("1 pt"));
         assert_double_close(1.0/96, Units.parsedim("1 px"));
-        assert_double_close(1.0/72.27, Units.parsedim("1 tpt"));
+        assert_double_close(1.0/(25.4*4), Units.parsedim("1 Q"));
         assert_double_close(1.0/(65536*72.27), Units.parsedim("1 sp"));
+        assert_double_close(1.0/72.27, Units.parsedim("1 tpt"));
     } catch(My.Error e) {
         diag("Error: %s", e.message);
         assert_not_reached();
@@ -109,11 +115,13 @@ void test_quantity_and_unit()
 
 public static int main (string[] args)
 {
+    App.init_before_run();
     Test.init (ref args);
     Test.set_nonfatal_assertions();
     Test.add_func("/055-core-units/numbers", test_numbers);
     Test.add_func("/055-core-units/inches", test_inches);
     Test.add_func("/055-core-units/bad_numbers", test_bad_numbers);
+    Test.add_func("/055-core-units/bad_units", test_bad_units);
     Test.add_func("/055-core-units/units_unity", test_units_unity);
     Test.add_func("/055-core-units/quantity_and_unit", test_quantity_and_unit);
 
