@@ -75,7 +75,20 @@ void test_badcall()
 {
     File destf = null;
     string destfn;
-    FileUtils.close(FileUtils.open_tmp("pfft-t-XXXXXX", out destfn));
+
+    // Create a temporary file.  The ok+assert_not_reached() dance is to
+    // avoid unhandled-exception and unreachable-code warnings.
+    bool ok = true;
+    try {
+        FileUtils.close(FileUtils.open_tmp("pfft-t-XXXXXX", out destfn));
+    } catch {
+        ok = false;
+        assert_not_reached();
+    }
+    if(!ok) {
+        return;
+    }
+
     destf = File.new_for_path(destfn);
 
     var writer = new PangoMarkupWriter();

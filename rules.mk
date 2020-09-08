@@ -9,10 +9,13 @@ EOL =
 # that use these.
 
 # src/
-MY_pgm_VALA = pfft.vala myconfig.vapi
+MY_pgm_VALA = main.vala
+
+# src/app
+MY_app_VALA = pfft.vala myconfig.vapi
 # myconfig.vapi is under source control, so make sure to update it manually
 # if you add symbols to config.h.
-MY_pgm_EXTRASOURCES = pfft-shim.c
+MY_app_EXTRASOURCES = pfft-shim.c
 
 # src/core
 MY_core_VALA = el.vala reader.vala registry.vala template.vala util.vala writer.vala
@@ -39,7 +42,7 @@ MY_writer_VALA = pango-markup.vala pango-blocks.vala \
 MY_writer_EXTRASOURCES = register.c
 
 # subdirs.  Listed in the order they should appear on link lines.
-MY_subdirs = reader writer core logging
+MY_subdirs = app reader writer core logging
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \

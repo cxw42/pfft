@@ -1,5 +1,5 @@
 dnl === Basic setup =======================================================
-AC_INIT([pfft markdown-to-PDF converter], [0.0.2], [], [pfft], [https://github.com/cxw42/pfft])
+AC_INIT([pfft markdown-to-PDF converter], [0.0.3], [], [pfft], [https://github.com/cxw42/pfft])
 AC_PREREQ([2.65])
 AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
 AC_CONFIG_SRCDIR([rules.mk])    dnl make sure the srcdir is correctly specified
@@ -103,6 +103,7 @@ AC_CONFIG_FILES([
     Makefile
     doc/Makefile
     src/Makefile
+    src/app/Makefile
     src/core/Makefile
     src/logging/Makefile
     src/reader/Makefile
