@@ -91,3 +91,4 @@ stamp-*
 
 # Other
 *.pdf
+/zip/
