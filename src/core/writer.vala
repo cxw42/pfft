@@ -17,14 +17,16 @@ namespace My {
          * @param sourcefn  The filename of the source that @doc came from.
          *                  This can be used, e.g., to resolve relative paths
          *                  to images.
+         * @param template  The template selected by the user, if any
          */
-        public abstract void write_document(string filename, Doc doc, string? sourcefn = null)
+        public abstract void write_document(string filename, Doc doc,
+            string? sourcefn = null)
         throws FileError, My.Error;
 
         /**
          * Convenience function to map filename "-" to stdout
          */
-        public void emit(string filename, string contents)
+        public static void emit(string filename, string contents)
         throws FileError
         {
             if(filename == "-") {

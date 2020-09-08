@@ -29,6 +29,11 @@ namespace My {
 
     /**
      * Convenience function for registering a type.
+     * @param name      The handle of the type.  This can be different from any
+     *                  names the type may have in Vala or GLib.
+     * @param type      The type's GType
+     * @param filename  Only used for debugging
+     * @param lineno    Only used for debugging
      */
     [CCode(cheader_filename = "registry.h")]
     public extern void register_type(string name, GLib.Type type,

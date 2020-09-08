@@ -1,0 +1,44 @@
+# t/060-core-template.pfft
+# A test with deliberately odd, but valid, values
+
+[pfft]
+version = 1
+
+[page]
+# TODO support units.  For now, everything is in inches.
+# Maybe https://github.com/orangeduck/mpc ?
+
+# paperheightI - Paper height, in inches
+height = 21
+# paperwidthI - Paper width, in inches
+width = 22
+
+[margin]
+# lmarginI - Left margin, in inches
+left = 3
+# tmarginI - Top margin, in inches
+top = 4
+
+# Do these as margins instead
+# hsizeI - Width of the text block, in inches
+# vsizeI - Height of the text block, in inches
+right = 5
+bottom = 6
+
+# footerskipI - Space between the bottom of the text block and the top of the footer, in inches
+# headerskipI - Space between the top of the text block and the top of the header, in inches
+header = 7
+footer = 8
+
+# Header and footer: test for escaping of markup
+[header]
+left = Hl<
+center = Hc<
+right = Hr<
+
+[footer]
+left = Fl<
+center = Fc<
+right = Fr<
+
+# vi: set ft=desktop: #

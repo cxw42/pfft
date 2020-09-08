@@ -44,7 +44,7 @@ Install Vala:
 
 Install development dependencies for pfft:
 
-    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl
+    $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl lcov
 
 Initialize submodules:
 
@@ -63,6 +63,13 @@ Note: `libpango1.0-dev` pulls in Pango, Cairo, and pangocairo.
 
 In GLib 2.62+, the default output format is TAP.  Therefore, you can do
 `make build-tests && prove`.
+
+### Checking code coverage
+
+    ./configure --enable-code-coverage && make -j4 check-code-coverage
+
+This will print a summary to the console.  For the full report, open
+`pfft-<VERSION>-coverage/index.html` in a Web browser.
 
 ### Making a release
 
@@ -92,6 +99,13 @@ Before submitting a PR, please run `make prep`.  This will:
 - Even if you `make clean` or `make distclean`, generated .c files will still
   be left in the tree.  To remove the generated C files,
   `make maintainer-clean`.
+
+### Design decisions
+
+- Decisions about the exact appearance of an item should be made as late
+  as possible.  For example, in the `pango-markup` writer (the default),
+  headers and footers are set in smaller type by the writer, not the upstream
+  code that feeds markup to the writer.
 
 ## Thanks
 

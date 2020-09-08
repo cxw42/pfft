@@ -102,8 +102,16 @@ namespace My {
         [CCode (cheader_filename = "logging-c.h")]
         public extern bool lenabled(Gst.DebugLevel level);
 
+        /**
+         * A copy of g_canonicalize_filename, which was added to Glib after
+         * Ubuntu Bionic.
+         *
+         * This doesn't belong in a logging library, but since this is the LGPL
+         * part of pfft, here it is!
+         */
         [CCode (cheader_filename = "logging-c.h")]
         public extern string canonicalize_filename (string filename,
             string? relative_to = null);
+
     }
 }

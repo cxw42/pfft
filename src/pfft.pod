@@ -6,27 +6,89 @@ pfft - PDF From Formatted Text
 
 =head1 SYNOPSIS
 
-TODO
+  pfft [OPTION...] FILENAME... - produce a PDF from each FILENAME
 
-=head1 DESCRIPTION
-
-TODO
+Processes Markdown file FILENAME and outputs a PDF.
+Visit https://github.com/cxw42/pfft for more information.
 
 =head1 OPTIONS
 
-TODO
+=head2 Help Options
+
+=over
+
+=item -h, --help
+
+Show help options
+
+=back
+
+=head2 Application Options
+
+=over
+
+=item -V, --version
+
+Display version number
+
+=item -v, --verbose
+
+Verbosity.  Can be given up to five times, each time increasing verbosity.
+
+=item -q, --quiet
+
+Turn off output.  If both C<-q> and C<-v> are given, the C<-q> wins, and
+messages are not printed.
+
+=item -R, --reader=READER
+
+Which reader to use
+
+=item --ro=NAME=VALUE
+
+Set a reader option
+
+=item -o, --output=FILENAME
+
+Output filename (provided only one input filename is given)
+
+=item -W, --writer=WRITER
+
+Which writer to use
+
+=item --wo=NAME=VALUE
+
+Set a writer option
+
+=back
 
 =head1 ENVIRONMENT
 
-TODO
+=over
+
+=item C<GST_DEBUG>
+
+This controls the verbosity.  Set
+
+    GST_DEBUG='pfft:X'
+
+to set verbosity to level C<X>.  C<X=0> means no messages (like C<-q>), and
+C<X=9> means everything (like giving C<-v> five or more times).
+
+=back
 
 =head1 FILES
 
-TODO
+The default output filename is the same as the input filename, but with the
+extension changed to C<.pdf>.
+
+If you only specify one input filename on the command line, you can give the
+C<-o> option to set the output filename.
 
 =head1 EXAMPLES
 
-TODO
+    $ pfft foo.md                           # produces foo.pdf
+    $ GST_DEBUG='pfft:9' pfft -v foo.md     # _lots_ of debug output!
 
 =head1 AUTHOR
 
@@ -39,6 +101,8 @@ Please use the GitHub bug tracker at L<https://github.com/cxw42/pfft/issues>.
 =head1 COPYRIGHT
 
 Copyright (c) 2020, Christopher White.  All rights reserved.
+
+SPDX-License-Identifier: BSD-3-Clause
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -74,6 +138,19 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+=head2 LGPL portions
+
+Files in the C<src/logging> directory in the source distribution are
+licensed LGPL 2.1 or later (SPDX-License-Identifier: LGPL-2.1-or-later).
+They include functions that are:
+Copyright (c) 2020 Christopher White;
+Copyright (C) 1999,2000 Erik Walthinsen <omega@cse.ogi.edu>;
+Copyright 2000 Red Hat, Inc.; or
+Copyright (C) 1994-2018 Free Software Foundation, Inc.
+
+The full source of those portions is available to be copied from
+L<https://github.com/cxw42/pfft/tree/master/src/logging>.
 
 =head1 SEE ALSO
 

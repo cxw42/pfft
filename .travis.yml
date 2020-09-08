@@ -11,6 +11,7 @@ addons:
       - valadoc
       - graphviz-dev
       - help2man
+      - lcov
       - autotools-dev
       - libpango1.0-dev
       - libsnapd-glib-dev
@@ -28,11 +29,19 @@ before_script:
 
 script:
   - ./configure --disable-dependency-tracking
-  # The dependency tracking doesn't work on Travis for some reason --- 
+  # The dependency tracking doesn't work on Travis for some reason ---
   # e.g, https://travis-ci.org/github/cxw42/pfft/builds/718187356
   - make V=1
   - make test V=1
 
 after_failure:
+  - find . -name pfft-logging.h -exec sh -c 'echo "$0" ; cat "$0"' {} ';'
   - ls -alR
   - find . -name Makefile -exec sh -c 'echo "$0" ; cat "$0"' {} ';'
+
+after_success:
+  - |
+    make -j maintainer-clean ; ./bootstrap && \
+      ./configure --disable-dependency-tracking --enable-code-coverage USER_VALAFLAGS='-g' CFLAGS='-g -O0' && \
+      make -j4 check-code-coverage && \
+      bash <(curl -s https://codecov.io/bash) ; : -f pfft-coverage.info

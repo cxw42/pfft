@@ -15,7 +15,7 @@ MY_pgm_VALA = pfft.vala myconfig.vapi
 MY_pgm_EXTRASOURCES = pfft-shim.c
 
 # src/core
-MY_core_VALA = el.vala reader.vala util.vala writer.vala registry.vala
+MY_core_VALA = el.vala reader.vala registry.vala template.vala util.vala writer.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
 
 # src/logging
@@ -60,12 +60,16 @@ MY_VALA_PKGS = \
 	--pkg gio-2.0 \
 	$(EOL)
 
-# Vala settings.  LOCAL_VALA_FLAGS is filled in by each Makefile.am with
-# any other valac options that Makefile.am needs.
-# TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
-# isn't being passed through.
+# Vala settings.
+# - LOCAL_VALA_FLAGS is filled in by each Makefile.am with any other valac
+#   options that Makefile.am needs.
+# - Always use the C++ compiler for the generated code, since the
+#   registry relies on it.
+# - TODO remove USER_VALAFLAGS once I figure out why regular VALAFLAGS
+#   isn't being passed through.
 AM_VALAFLAGS = \
 	$(LOCAL_VALA_FLAGS) \
+	--cc=$(CXX) \
 	$(MY_VALA_PKGS) \
 	$(USER_VALAFLAGS) \
 	$(EOL)
@@ -75,9 +79,10 @@ AM_VALAFLAGS = \
 
 # C settings, which are the same throughout.  LOCAL_CFLAGS is filled in
 # by each Makefile.am.
-AM_CFLAGS = $(LOCAL_CFLAGS) $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS)
-AM_CXXFLAGS = $(AM_CFLAGS)
-LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS)
+AM_CFLAGS = $(LOCAL_CFLAGS) $(INPUT_CFLAGS) $(RENDER_CFLAGS) $(BASE_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+AM_CXXFLAGS = $(AM_CFLAGS) $(CODE_COVERAGE_CXXFLAGS)
+AM_CPPFLAGS = $(CODE_COVERAGE_CPPFLAGS)
+LIBS = $(INPUT_LIBS) $(RENDER_LIBS) $(BASE_LIBS) $(CODE_COVERAGE_LIBS)
 
 # Flags used by both the program and the tests --- anything that links
 # against all the libraries
@@ -98,3 +103,13 @@ MY_use_all_ldadd = \
 		$(top_builddir)/src/$(dir)/libpfft-$(dir).a \
 	) \
 	$(EOL)
+
+# For code coverage, per
+# https://www.gnu.org/software/autoconf-archive/ax_code_coverage.html
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
+
+CODE_COVERAGE_OUTPUT_FILE = $(PACKAGE_TARNAME)-coverage.info
+CODE_COVERAGE_OUTPUT_DIRECTORY = $(PACKAGE_TARNAME)-coverage
+
+include $(top_srcdir)/aminclude_static.am

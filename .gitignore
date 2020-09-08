@@ -45,6 +45,12 @@ pfft
 *.idb
 *.pdb
 
+# Coverage
+*.gcda
+*.gcno
+/*coverage.info
+/*coverage/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
@@ -63,6 +69,7 @@ dkms.conf
 
 # autotools
 /aclocal.m4
+/aminclude_static.am
 /autom4te.cache/
 /build-aux/
 conf*.dir/

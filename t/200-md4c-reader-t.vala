@@ -1,25 +1,14 @@
-// 001-basic.vala
+// t/200-md4c-reader-t.vala
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
 using My;
-/**
- * argv[0], for use by sanity()
- */
-private string program_name;
 
-void sanity()
-{
-    Test.message("%s: Running sanity test in %s() at %s:%d",
-                 program_name, GLib.Log.METHOD, GLib.Log.FILE, GLib.Log.LINE);
-    assert_true(true);
-}
-
-void loadfile()
+void test_loadfile()
 {
     bool did_load = false;
     try {
-        var fn = Test.build_filename(Test.FileType.DIST, "001-basic.md");
+        var fn = Test.build_filename(Test.FileType.DIST, "basic.md");
         Test.message("Loading filename %s", fn);
 
         var md = new MarkdownMd4cReader();
@@ -46,27 +35,20 @@ void loadfile()
         assert_true(node3.data.text == "Body");
     } catch(FileError e) {
         warning("file error: %s", e.message);
-        assert_true(false); // make sure the test doesn't pass
+        assert_not_reached();
     } catch(GLib.MarkupError e) {
         warning("%s", e.message);
-        assert_true(false); // make sure the test doesn't pass
+        assert_not_reached();
     }
     assert_true(did_load);
 }
 
 public static int main (string[] args)
 {
-    program_name = args[0];
-
-//    // find the dir containing this executable
-//    var me = File.new_for_commandline_arg(args[0]);
-//    mydir = me.get_parent();
-
     // run the tests
     Test.init (ref args);
     Test.set_nonfatal_assertions();
-    Test.add_func("/001-basic/sanity", sanity);
-    Test.add_func("/001-basic/loadfile", loadfile);
+    Test.add_func("/200-md4c-reader/loadfile", test_loadfile);
 
     return Test.run();
 }
