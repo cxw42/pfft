@@ -16,7 +16,21 @@ MY_pgm_EXTRASOURCES = pfft-shim.c
 
 # src/core
 MY_core_VALA = el.vala reader.vala registry.vala template.vala util.vala writer.vala
-MY_core_EXTRASOURCES = registry-impl.cpp
+MY_core_EXTRASOURCES = \
+	registry-impl.cpp \
+	$(EOL)
+
+# Files from src/units/units, which are symlinked into src/core to avoid
+# dependency-tracking failures.
+MY_core_EXTRASOURCES += \
+	commodities.cpp \
+	r20_conv.cpp \
+	unit_definitions.hpp \
+	units.cpp \
+	units_decl.hpp \
+	units.hpp \
+	x12_conv.cpp \
+	$(EOL)
 
 # src/logging
 MY_logging_VALA = logging.vala
