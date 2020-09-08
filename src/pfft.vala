@@ -138,17 +138,23 @@ namespace My {
         // }}}1
         // Main routines {{{1
 
+        public static void init_before_run()
+        {
+            Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
+            init_gstreamer();
+            linit();
+        }
+
         /**
          * Main routine.
+         *
+         * You must make sure init_before_run() is called before invoking this.
+         *
          * @param   args    A strv of the input arguments.  NOT the exact args[]
          *                  passed to main().
          */
         public int run(owned string[] args)
         {
-            Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
-            init_gstreamer();
-            linit();
-
             // get available readers and writers
             readers_ = new ClassMap();
             writers_ = new ClassMap();
@@ -509,17 +515,4 @@ namespace My {
     } // class App
 } // My
 
-/** main() */ // {{{1
-public static int main(string[] args)
-{
-    var app = new My.App();
-    var arg_copy = strdupv(args);
-    var status = app.run((owned)arg_copy);
-    if(status != 0) {
-        printerr ("Run '%s --help' to see a full list of available command line options.\n", args[0]);
-    }
-    return status;
-}
-
-// }}}1
 // vi: set fdm=marker: //
