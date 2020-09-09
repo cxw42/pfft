@@ -222,9 +222,9 @@ namespace My {
             {
                 Cairo.ImageSurface s;
 
-                string docfn = My.Log.canonicalize_filename(doc_path); // make absolute
+                string docfn = My.canonicalize_filename(doc_path); // make absolute
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
-                string imgfn = My.Log.canonicalize_filename(href, docdir);
+                string imgfn = My.canonicalize_filename(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
                 this(s, paddingP);
                 llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",

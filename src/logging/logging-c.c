@@ -34,7 +34,7 @@ void my_log_linit()
  */
 
 /**
- * my_log_canonicalize_filename:
+ * my_canonicalize_filename:
  * @filename: (type filename): the name of the file
  * @relative_to: (type filename) (nullable): the relative directory, or %NULL
  * to use the current working directory
@@ -59,7 +59,7 @@ void my_log_linit()
  * Since: 2.58
  */
 gchar *
-my_log_canonicalize_filename (const gchar *filename,
+my_canonicalize_filename (const gchar *filename,
                          const gchar *relative_to)
 {
   gchar *canon, *start, *p, *q;

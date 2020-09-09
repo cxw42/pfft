@@ -102,16 +102,57 @@ namespace My {
         [CCode (cheader_filename = "logging-c.h")]
         public extern bool lenabled(Gst.DebugLevel level);
 
-        /**
-         * A copy of g_canonicalize_filename, which was added to Glib after
-         * Ubuntu Bionic.
-         *
-         * This doesn't belong in a logging library, but since this is the LGPL
-         * part of pfft, here it is!
-         */
-        [CCode (cheader_filename = "logging-c.h")]
-        public extern string canonicalize_filename (string filename,
-            string? relative_to = null);
+    } // Log
 
-    }
-}
+    ////////////////////////////////////////////////////////////////////////
+    // Misc. LGPL functions
+
+    // These are in src/logging since that's the LGPL part of pfft.
+
+    /**
+     * A copy of g_canonicalize_filename, which was added to Glib after
+     * Ubuntu Bionic.
+     *
+     * This doesn't belong in a logging library, but since this is the LGPL
+     * part of pfft, here it is!
+     */
+    [CCode (cheader_filename = "logging-c.h")]
+    public extern string canonicalize_filename (string filename,
+        string? relative_to = null);
+
+    /**
+     * A copy of g_assert_cmpfloat(), which was added to GLib after Bionic.
+     */
+    [CCode (cheader_filename = "logging-c.h")]
+    public extern void assert_cmpfloat(double n1, string cmp, double n2);
+
+    /**
+     * A copy of g_assert_cmpfloat_with_epsilon(), which was added to GLib
+     * after Bionic.
+     */
+    [CCode (cheader_filename = "logging-c.h")]
+    public extern void assert_cmpfloat_with_epsilon(double n1, double n2, double epsilon);
+
+    /**
+     * g_assert_cmpfloat_with_epsilon(), but always using double.EPSILON.
+     */
+    [CCode (cheader_filename = "logging-c.h")]
+    public extern void assert_double_close(double n1, double n2);
+
+    /** Comparison operators for use with assert_cmpfloat() and friends */
+    namespace Cmp {
+        [CCode (cname="==")]
+        public extern const string EQ;
+        [CCode (cname="!=")]
+        public extern const string NE;
+        [CCode (cname="<")]
+        public extern const string LT;
+        [CCode (cname="<=")]
+        public extern const string LE;
+        [CCode (cname=">")]
+        public extern const string GT;
+        [CCode (cname=">=")]
+        public extern const string GE;
+    } // Cmp
+
+} // My
