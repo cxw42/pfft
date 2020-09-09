@@ -54,6 +54,21 @@ MY_all_VALA = \
 MY_VALA_C = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.c))
 MY_VALA_H = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.h))
 
+# Tests.  Listed here so they can be pretty-printed.
+MY_vala_TESTS = \
+	001-sanity-t \
+	010-core-util-t \
+	020-registry-t \
+	050-core-el-t \
+	055-core-units-t \
+	060-core-template-t \
+	070-core-writer-t \
+	100-logging-t \
+	200-md4c-reader-t \
+	300-pango-markup-writer-t \
+	305-pango-markup-utils-t \
+	$(EOL)
+
 # Vala dependencies
 MY_VALA_PKGS = \
 	--pkg pangocairo --pkg pango --pkg cairo \

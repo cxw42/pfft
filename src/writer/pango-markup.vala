@@ -9,14 +9,15 @@ using My.Log;
 namespace My {
 
     // Unit-conversion functions -----------------------------------------
+    // These are public only so they can be tested.
 
     /** Cairo to Pango units */
-    int c2p(double valC) {
+    public int c2p(double valC) {
         return (int)(valC*Pango.SCALE);
     }
 
     /** Pango to Cairo units */
-    double p2c(int valP) {
+    public double p2c(int valP) {
         return ((double)valP)/Pango.SCALE;
     }
 
@@ -26,7 +27,7 @@ namespace My {
      * This assumes that a Cairo unit is a point at 72 ppi.
      * This is the case for PDF surfaces.
      */
-    double c2i(double valC) {
+    public double c2i(double valC) {
         return valC/72;
     }
 
@@ -35,17 +36,17 @@ namespace My {
      *
      * Same assumptions as c2i().
      */
-    double i2c(double valI) {
+    public double i2c(double valI) {
         return valI*72;
     }
 
     /** Inches to Pango units */
-    int i2p(double valI) {
+    public int i2p(double valI) {
         return c2p(i2c(valI));
     }
 
     /** Pango units to inches */
-    double p2i(int valP) {
+    public double p2i(int valP) {
         return c2i(p2c(valP));
     }
 

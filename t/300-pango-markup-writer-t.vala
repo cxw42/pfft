@@ -45,7 +45,7 @@ void test_writefile()
 
         destf.load_contents (null, out contents, out etag_out);
         did_write = destf.query_exists() && (contents.length > 0);
-            // TODO make this check more sophisticated
+        // TODO make this check more sophisticated
 
     } catch(FileError e) {
         warning("file error: %s", e.message);
@@ -65,10 +65,10 @@ void test_writefile()
             destf.delete();
         }
     } catch(GLib.Error e) {
-        //ignore errors
+        // ignore errors
     }
 
-} //test_writefile()
+} // test_writefile()
 
 /** Test bad inputs to write_document */
 void test_badcall()
@@ -141,7 +141,7 @@ void test_badcall()
             destf.delete();
         }
     } catch(GLib.Error e) {
-        //ignore errors
+        // ignore errors
     }
 
 }

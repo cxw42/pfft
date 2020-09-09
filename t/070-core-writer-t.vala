@@ -19,7 +19,7 @@ void test_emit_file()
             var destf = File.new_for_path(destfn);
             destf.delete();
         } catch(GLib.Error e) {
-            //ignore errors
+            // ignore errors
         }
 
     } catch(FileError e) {

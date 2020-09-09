@@ -110,7 +110,7 @@ void test_bad_filename()
         try {
             destf.delete();
         } catch(GLib.Error e) {
-            //ignore errors
+            // ignore errors
         }
 
         var t = new Template.from_file(destfn);
@@ -163,7 +163,7 @@ void test_bad_version()
 // for coverage.
 void test_empty_file()
 {
-    for(int which = 0; which < 2 ; ++which) {
+    for(int which = 0; which < 2; ++which) {
         try {
             var fn = Test.build_filename(Test.FileType.DIST, "060-empty.pfft");
             Template template;

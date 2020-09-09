@@ -24,7 +24,9 @@ build-tests:
 
 prettyprint:
 	-$(AM_V_GEN)uncrustify -c $(top_srcdir)/.uncrustifyrc --replace \
-		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
+		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn)) \
+		$(foreach fn, $(MY_vala_TESTS), $(top_srcdir)/t/$(fn).vala) \
+		$(EOL)
 
 prep:
 	@: # TODO check that 'unowned var' does not exist in any vala file
