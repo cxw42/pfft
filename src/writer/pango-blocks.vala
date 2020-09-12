@@ -388,23 +388,30 @@ namespace My {
         ///////////////////////////////////////////////////////////////////////
 
         /**
-         * Create a layout with 12-pt text.
+         * Create a layout.
          *
-         * Here for convenience.
+         * Here for convenience.  Sets wrap mode and font parameters.
+         * Does not set width or text.
          *
          * @param cr The Cairo context with which this layout will be used
+         * @param fontsizeT The font size to use, in points.
          */
-        public static Pango.Layout new_layout_12pt(Cairo.Context cr)
+        public static Pango.Layout new_layout(Cairo.Context cr,
+            double fontsizeT)
         {
             var layout = Pango.cairo_create_layout(cr);
-
-            var font_description = new Pango.FontDescription();
-            font_description.set_family("Serif");
-            font_description.set_size(12 * Pango.SCALE); // 12-pt text
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
+            // Font
+            var font_description = new Pango.FontDescription();
+            font_description.set_family("Serif");
+            font_description.set_size((int)(fontsizeT * Pango.SCALE + 0.5));
+            layout.set_font_description(font_description);
+
+            // TODO layout.set_justify(do_justify);
+
             return layout;
-        } // new_layout_12pt()
+        } // new_layout()
 
         ///////////////////////////////////////////////////////////////////////
 

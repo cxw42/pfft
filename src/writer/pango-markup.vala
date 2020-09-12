@@ -91,7 +91,7 @@ namespace My {
         /** Current page */
         int pageno;
 
-        // Page parameters (unit suffixes: Inches, Cairo, Pango)
+        // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
         public double paperwidthI { get; set; default = 8.5; }
         [Description(nick = "Paper height (in.)", blurb = "Paper height, in inches")]
@@ -124,6 +124,10 @@ namespace My {
         public string footerc { get; set; default = "%p"; }
         [Description(nick = "Footer markup, right", blurb = "Pango markup for the footer, right side")]
         public string footerr { get; set; default = ""; }
+
+        // Font parameters
+        [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
+        public double fontsizeT { get; set; default = 12; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
@@ -184,10 +188,10 @@ namespace My {
 
             // Prepare to render
             cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout_12pt(cr);    // Layout for the copy
-            bullet_layout = Blocks.new_layout_12pt(cr);
+            layout = Blocks.new_layout(cr, fontsizeT);  // Layout for the copy
+            bullet_layout = Blocks.new_layout(cr, fontsizeT);
 
-            pageno_layout = Blocks.new_layout_12pt(cr); // Layout for page numbers
+            pageno_layout = Blocks.new_layout(cr, fontsizeT); // Layout for page numbers
 
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner

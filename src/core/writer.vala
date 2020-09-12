@@ -17,7 +17,6 @@ namespace My {
          * @param sourcefn  The filename of the source that @doc came from.
          *                  This can be used, e.g., to resolve relative paths
          *                  to images.
-         * @param template  The template selected by the user, if any
          */
         public abstract void write_document(string filename, Doc doc,
             string? sourcefn = null)

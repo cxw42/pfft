@@ -19,7 +19,7 @@ namespace My {
 
         // --- Accessors for the template's contents ---
 
-        // Page parameters (unit suffixes: Inches, Cairo, Pango)
+        // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
         public double paperwidthI { get; set; default = 8.5; }
         [Description(nick = "Paper height (in.)", blurb = "Paper height, in inches")]
@@ -55,6 +55,10 @@ namespace My {
         [Description(nick = "Footer markup, right", blurb = "Pango markup for the footer, right side")]
         public string footerr { get; set; default = ""; }
 
+        // Font parameters
+        [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
+        public double fontsizeT { get; set; default = 12; }
+
         // Private properties --- leading "P" marks them to be ignored by
         // other parts of pfft.
 
@@ -67,19 +71,48 @@ namespace My {
         /**
          * Set a double parameter from the keyfile.
          *
-         * Ignore keyfile errors; missing keys are not fatal.
+         * Ignores keyfile errors; missing keys are not fatal.  Has two modes:
+         * * In non-raw (default), loads the value as a dimension in inches.
+         *   Converts units if necessary.
+         * * In raw mode, loads a numerical value with no suffix.
+         *
+         * @param property  The property in this class to load
+         * @param section   The keyfile section to read from
+         * @param key       The keyfile key to load from
+         * @param raw       If true, load the raw number rather than parsing
+         *                  as a dimension.
          */
-        private void set_from_file_double(string property, string section, string key)
+        private void set_from_file_double(string property, string section, string key,
+            bool raw = false)
         {
-            double fromfile;
-            try {
-                fromfile = data.get_double(section, key);
-            } catch(KeyFileError e) {
-                return;
+            double newval;
+
+            if(raw) {
+                try {
+                    newval = data.get_double(section, key);
+                } catch(KeyFileError e) {
+                    return;
+                }
+
+            } else {    // non-raw
+                string text;
+                try {
+                    text = data.get_string(section, key);
+                } catch(KeyFileError e) {
+                    return;
+                }
+
+                try {
+                    newval = Units.parsedim(text);
+                } catch(My.Error e) {
+                    lerroro(this, "Could not understand the dimension for [%s]%s",
+                        section, key);
+                    return;
+                }
             }
 
             var wrapped = Value(typeof(double));
-            wrapped.set_double(fromfile);
+            wrapped.set_double(newval);
             set_property(property, wrapped);
         }
 
@@ -213,6 +246,11 @@ namespace My {
                     footerr = Markup.escape_text(footerr);
                 }
             } // footer
+
+            if(data.has_group("font")) {
+                set_from_file_double("fontsizeT", "font", "size", true);
+                ldebugo(this, "font size %f pt", fontsizeT);
+            }
 
             ldebugo(this, "Done processing template file %s", filename);
         } // Template.from_file()
