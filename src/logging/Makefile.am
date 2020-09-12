@@ -23,7 +23,7 @@ CLEANFILES = dummy.c
 
 # Remove GST_* function prototypes from pfft-logging.h
 $(hdrstamp): $(srcdir)/libpfft_logging_a_vala.stamp
-	perl -i -e 'local $$/; $$_ = <>; s/^void GST.*?;//gms; s/^gboolean my_log_lenabled.*?;//gms; print' $(srcdir)/pfft-logging.h
+	perl -i -e 'local $$/; $$_ = <>; s/^void (?:GST|my_assert).*?;//gms; s/^gboolean my_log_lenabled.*?;//gms; print' $(srcdir)/pfft-logging.h
 	touch $@
 
 MAINTAINERCLEANFILES = $(hdrstamp)

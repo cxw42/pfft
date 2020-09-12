@@ -66,6 +66,24 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+// and from glib/gmacros.h, licensed as follows:
+/* GLIB - Library of useful routines for C programming
+ * Copyright (C) 1995-1997  Peter Mattis, Spencer Kimball and Josh MacDonald
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef LOGGING_C_H_
 #define LOGGING_C_H_
 
@@ -123,6 +141,13 @@ my_canonicalize_filename (const gchar *filename,
                          const gchar *relative_to);
 
 /**
+ * my_approx_value:
+ *
+ * A copy of G_APPROX_VALUE, which was added to GLib after Bionic.
+ */
+#define my_approx_value(a, b, epsilon) \
+  (((a) > (b) ? (a) - (b) : (b) - (a)) < (epsilon))
+/**
  * my_assert_cmpfloat:
  *
  * A copy of g_assert_cmpfloat, which was added to GLib after Bionic.
@@ -143,7 +168,7 @@ my_canonicalize_filename (const gchar *filename,
 #define my_assert_cmpfloat_with_epsilon(n1,n2,epsilon) \
     G_STMT_START { \
         double __n1 = (n1), __n2 = (n2), __epsilon = (epsilon); \
-        if (G_APPROX_VALUE (__n1,  __n2, __epsilon)) ; else \
+        if (my_approx_value (__n1,  __n2, __epsilon)) ; else \
             g_assertion_message_cmpnum (G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC, \
                 #n1 " == " #n2 " (+/- " #epsilon ")", __n1, "==", __n2, 'f'); \
     } G_STMT_END
