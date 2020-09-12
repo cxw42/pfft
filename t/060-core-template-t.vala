@@ -39,6 +39,8 @@ void test_load_file()
         assert_true(template.footerc == "Fc&lt;");
         assert_true(template.footerr == "Fr&lt;");
 
+        assert_true(template.fontsizeT == 1337);
+
     } catch(KeyFileError e) {
         warning("keyfile error: %s", e.message);
         assert_not_reached();
@@ -163,16 +165,22 @@ void test_bad_version()
 // for coverage.
 void test_empty_file()
 {
-    for(int which = 0; which < 2; ++which) {
+    string[] tef_filenames = {
+        Test.build_filename(Test.FileType.DIST, "060-empty.pfft"),
+        Test.build_filename(Test.FileType.DIST, "060-empty-groups.pfft")
+    };
+
+    for(int which = 0; which < 1 + tef_filenames.length; ++which) {
         try {
-            var fn = Test.build_filename(Test.FileType.DIST, "060-empty.pfft");
             Template template;
             if(which == 0) {
-                diag(@"Loading from $fn");
-                template = new Template.from_file(fn);
-            } else {
                 diag("Testing default ctor");
                 template = new Template();
+
+            } else {
+                var fn = tef_filenames[which-1];
+                diag(@"Loading from $fn");
+                template = new Template.from_file(fn);
             }
 
             assert_true(template != null);
@@ -198,6 +206,8 @@ void test_empty_file()
             assert_true(template.footerc == "%p");
             assert_true(template.footerr == "");
 
+            assert_true(template.fontsizeT == 12);
+
         } catch(KeyFileError e) {
             diag("got keyfile error: %s", e.message);
             assert_not_reached();
@@ -205,6 +215,27 @@ void test_empty_file()
             diag("got file error: %s", e.message);
             assert_not_reached();
         }
+    } // for(which)
+}
+
+// Test invalid values in a valid file
+void test_invalid_values()
+{
+    try {
+        var fn = Test.build_filename(Test.FileType.DIST, "060-bad-values.pfft");
+        var template = new Template.from_file(fn);
+        assert_true(template != null);
+        if(template == null) {
+            return;
+        }
+
+        assert_true(template.paperheightI == 11);
+    } catch(KeyFileError e) {
+        diag("got keyfile error: %s", e.message);
+        assert_not_reached();
+    } catch(FileError e) {
+        diag("got file error: %s", e.message);
+        assert_not_reached();
     }
 }
 
@@ -219,6 +250,7 @@ public static int main (string[] args)
     Test.add_func("/060-core-template/bad_file", test_bad_file);
     Test.add_func("/060-core-template/bad_version", test_bad_version);
     Test.add_func("/060-core-template/empty_file", test_empty_file);
+    Test.add_func("/060-core-template/invalid_values", test_invalid_values);
 
     return Test.run();
 }

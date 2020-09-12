@@ -1,0 +1,9 @@
+# Empty groups, to trigger attempts to read the keys therein
+
+[pfft]
+version = 1
+
+[page]
+height = 42 notaunits
+
+# vi: set ft=desktop: #

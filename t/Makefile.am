@@ -21,9 +21,11 @@ CCLD = $(CXX)
 test_programs = $(MY_vala_TESTS)
 
 dist_test_data = \
+	060-bad-values.pfft \
 	060-bad-version.pfft \
 	060-both-headleft.pfft \
 	060-core-template.pfft \
+	060-empty-groups.pfft \
 	060-empty.pfft \
 	060-headfoot-markup.pfft \
 	060-no-magic.pfft \

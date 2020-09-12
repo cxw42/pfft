@@ -41,4 +41,7 @@ left = Fl<
 center = Fc<
 right = Fr<
 
+[font]
+size = 1337
+
 # vi: set ft=desktop: #
