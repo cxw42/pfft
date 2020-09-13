@@ -43,12 +43,69 @@ void test_loadfile()
     assert_true(did_load);
 }
 
+void test_image()
+{
+    try {
+        var fn = Test.build_filename(Test.FileType.DIST, "200-image.md");
+        Test.message("Loading filename %s", fn);
+
+        var md = new MarkdownMd4cReader();
+        Doc doc = md.read_document(fn);
+        assert_nonnull(doc);
+        Test.message("Got doc:\n%s\n", as_diag(doc.as_string()));
+        assert_true(doc.root.n_children() == 1);
+
+        // TODO find or write a deep-comparison library for Vala!
+        unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
+        assert_true(node0.n_children() == 1);
+        assert_true(node0.data.ty == Elem.Type.BLOCK_COPY);
+        unowned GLib.Node<Elem> node1 = node0.nth_child(0);
+        assert_true(node1.n_children() == 0);
+        assert_true(node1.data.ty == Elem.Type.SPAN_IMAGE);
+        assert_true(node1.data.href == "image.png");
+
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
+        warning("file error: %s", e.message);
+        assert_not_reached();
+    } catch(GLib.MarkupError e) {
+        warning("%s", e.message);
+        assert_not_reached();
+    }   // LCOV_EXCL_STOP
+}
+
+#if 0
+// TODO figure out how to trigger an md4c parse error
+void test_image_bad()
+{
+    try {
+        var fn = Test.build_filename(Test.FileType.DIST, "200-image-bad.md");
+        Test.message("Loading filename %s", fn);
+
+        var md = new MarkdownMd4cReader();
+        Doc doc = md.read_document(fn);
+        doc = null; // LCOV_EXCL_LINE - never happens if tests pass
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
+
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
+        warning("file error: %s", e.message);
+        assert_not_reached();
+    } catch(GLib.MarkupError e) {
+        warning("%s", e.message);
+        assert_true(e is GLib.MarkupError.PARSE);
+    }   // LCOV_EXCL_STOP
+}
+#endif
+
 public static int main (string[] args)
 {
     // run the tests
     Test.init (ref args);
     Test.set_nonfatal_assertions();
     Test.add_func("/200-md4c-reader/loadfile", test_loadfile);
+    Test.add_func("/200-md4c-reader/image", test_image);
+#if 0
+    Test.add_func("/200-md4c-reader/image_bad", test_image_bad);
+#endif
 
     return Test.run();
 }

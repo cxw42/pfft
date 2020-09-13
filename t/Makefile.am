@@ -29,6 +29,8 @@ dist_test_data = \
 	060-empty.pfft \
 	060-headfoot-markup.pfft \
 	060-no-magic.pfft \
+	200-image.md \
+	200-image-bad.md \
 	basic.md \
 	complex.md \
 	$(EOL)
