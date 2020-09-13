@@ -33,13 +33,13 @@ void test_loadfile()
         assert_true(node3.n_children() == 0);
         assert_true(node3.data.ty == Elem.Type.SPAN_PLAIN);
         assert_true(node3.data.text == "Body");
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         warning("file error: %s", e.message);
         assert_not_reached();
     } catch(GLib.MarkupError e) {
         warning("%s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
     assert_true(did_load);
 }
 

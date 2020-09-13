@@ -47,7 +47,7 @@ void test_writefile()
         did_write = destf.query_exists() && (contents.length > 0);
         // TODO make this check more sophisticated
 
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         warning("file error: %s", e.message);
         assert_not_reached();
     } catch(My.Error e) {
@@ -56,7 +56,7 @@ void test_writefile()
     } catch(GLib.Error e) {
         warning("glib error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
     assert_true(did_write);
 
     // Clean up
@@ -81,13 +81,13 @@ void test_badcall()
     bool ok = true;
     try {
         FileUtils.close(FileUtils.open_tmp("pfft-t-XXXXXX", out destfn));
-    } catch {
+    } catch {   // LCOV_EXCL_START - unreached if tests pass
         ok = false;
         assert_not_reached();
     }
     if(!ok) {
         return;
-    }
+    }   // LCOV_EXCL_STOP
 
     destf = File.new_for_path(destfn);
 
@@ -97,14 +97,14 @@ void test_badcall()
     try {
         var doc = create_dummy_doc();
         writer.write_document("", doc); // Should throw
-        assert_not_reached();
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(My.Error e) {
         printerr("got error: %s\n", e.message);
         assert_true(e is My.Error.WRITER);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         warning("file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 
     // Document with no nodes
     try {
@@ -112,28 +112,28 @@ void test_badcall()
         var doc = new Doc((owned)node);
         doc.root = null;
         writer.write_document(destfn, doc);
-        assert_not_reached();
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(My.Error e) {
         printerr("got error: %s\n", e.message);
         assert_true(e is My.Error.WRITER);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         warning("file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 
     // Document without a root node
     try {
         var node = node_of_ty(SPAN_PLAIN);
         var doc = new Doc((owned)node);
         writer.write_document(destfn, doc);
-        assert_not_reached();
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(My.Error e) {
         printerr("got error: %s\n", e.message);
         assert_true(e is My.Error.WRITER);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         warning("file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 
     // Clean up
     try {

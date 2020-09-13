@@ -22,10 +22,10 @@ void test_numbers()
         assert_true(0.5 == Units.parsedim("0.5"));
         assert_true(-0.5 == Units.parsedim("-.5"));
         assert_true(-0.5 == Units.parsedim("-0.5"));
-    } catch(My.Error e) {
+    } catch(My.Error e) {   // LCOV_EXCL_START - unreached if tests pass
         diag("Error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 void test_inches()
@@ -45,10 +45,10 @@ void test_inches()
             assert_true(0.5 == Units.parsedim("0.5" + unit));
             assert_true(-0.5 == Units.parsedim("-.5" + unit));
             assert_true(-0.5 == Units.parsedim("-0.5" + unit));
-        } catch(My.Error e) {
+        } catch(My.Error e) {   // LCOV_EXCL_START - unreached if tests pass
             diag("Error: %s", e.message);
             assert_not_reached();
-        }
+        }   // LCOV_EXCL_STOP
     }
 }
 
@@ -59,7 +59,7 @@ void test_bad_numbers()
     ) {
         try {
             Units.parsedim(num);
-            assert_not_reached();
+            assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
         } catch(My.Error e) {
             assert_true(e is My.Error.INVALID_CONVERSION);
         }
@@ -71,7 +71,7 @@ void test_bad_units()
     foreach(var unit in new string[] {".", "-.", "notaunit", "1a.3", "0x42"}) {
         try {
             Units.parsedim("1 " + unit);
-            assert_not_reached();
+            assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
         } catch(My.Error e) {
             assert_true(e is My.Error.INVALID_CONVERSION);
         }
@@ -97,20 +97,20 @@ void test_units_unity()
         assert_double_close(1.0/(25.4*4), Units.parsedim("1 Q"));
         assert_double_close(1.0/(65536*72.27), Units.parsedim("1 sp"));
         assert_double_close(1.0/72.27, Units.parsedim("1 tpt"));
-    } catch(My.Error e) {
+    } catch(My.Error e) {   // LCOV_EXCL_START - unreached if tests pass
         diag("Error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 void test_quantity_and_unit()
 {
     try {
         assert_double_close(1.0/72.27, Units.parsedim("65536 sp"));
-    } catch(My.Error e) {
+    } catch(My.Error e) {   // LCOV_EXCL_START - unreached if tests pass
         diag("Error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 public static int main (string[] args)

@@ -22,10 +22,10 @@ void test_emit_file()
             // ignore errors
         }
 
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         diag("got file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 public static int main (string[] args)

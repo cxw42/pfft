@@ -26,6 +26,12 @@ void test_register()
     assert_true(ty == typeof(TestClass));
 }
 
+void just_for_coverage()
+{
+    var o = new TestClass();
+    assert_nonnull(o);
+    assert_true(!o.meta);
+}
 
 public static int main (string[] args)
 {
@@ -33,6 +39,7 @@ public static int main (string[] args)
     Test.set_nonfatal_assertions();
     Test.add_func("/020-registry/get_registry", test_get_registry);
     Test.add_func("/020-registry/register", test_register);
+    Test.add_func("/020-registry/just_for_coverage", just_for_coverage);
 
     return Test.run();
 }
