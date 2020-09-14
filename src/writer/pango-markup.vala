@@ -194,7 +194,7 @@ namespace My {
 
             // Prepare to render
             cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout(cr, fontsizeT);  // Layout for the copy
+            layout = Blocks.new_layout(cr, fontsizeT, paragraphalign, justify);  // Layout for the copy
             bullet_layout = Blocks.new_layout(cr, fontsizeT);
 
             pageno_layout = Blocks.new_layout(cr, fontsizeT); // Layout for page numbers
@@ -209,6 +209,7 @@ namespace My {
             // Render
             pageno = 1;
 
+            linfoo(this, "Beginning rendering");
             foreach(var blk in blocks) {
                 ldebugo(blk, "start render");
                 while(true) {   // Render this block, which may take more than one pass
@@ -244,6 +245,7 @@ namespace My {
                           surf.status().to_string());
                 // LCOV_EXCL_STOP
             }
+            linfoo(this, "Done rendering");
 
         } // write_document()
 

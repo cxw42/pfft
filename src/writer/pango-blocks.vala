@@ -397,7 +397,7 @@ namespace My {
          * @param fontsizeT The font size to use, in points.
          */
         public static Pango.Layout new_layout(Cairo.Context cr,
-            double fontsizeT)
+            double fontsizeT, My.Alignment align = LEFT, bool justify = false)
         {
             var layout = Pango.cairo_create_layout(cr);
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
@@ -408,7 +408,16 @@ namespace My {
             font_description.set_size((int)(fontsizeT * Pango.SCALE + 0.5));
             layout.set_font_description(font_description);
 
-            // TODO layout.set_justify(do_justify);
+            // Paragraph
+            Pango.Alignment palign = LEFT;
+            switch(align) {
+            case LEFT: palign = LEFT; break;
+            case CENTER: palign = CENTER; break;
+            case RIGHT: palign = RIGHT; break;
+            default: lfixme("Invalid alignment %s", align.to_string()); break;
+            }
+            layout.set_alignment(palign);
+            layout.set_justify(justify);
 
             return layout;
         } // new_layout()

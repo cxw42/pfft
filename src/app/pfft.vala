@@ -467,7 +467,7 @@ namespace My {
                 }
 
                 retval.set_property(nv[0], val);
-                ldebugo(retval, "Set property %s from command line to %s",
+                linfoo(retval, "Set property %s from command line to %s",
                     nv[0], val.type() == typeof(string) ? @"'$(val.get_string())'" :
                     Gst.Value.serialize(val));
 
@@ -498,7 +498,7 @@ namespace My {
                 Value v = Value(prop.value_type);
                 tmpl.get_property(propname, ref v);
                 instance.set_property(propname, v);
-                ldebugo(instance, "Set property %s from template to %s",
+                linfoo(instance, "Set property %s from template to %s",
                     propname, Gst.Value.serialize(v));
             }
         } // set_props_from_template()
