@@ -22,15 +22,17 @@ void test_load_file()
         var ver = template.data.get_integer("pfft", "version");
         assert_true(ver==1);
 
-        // Note: direct float comparisons
+        // Note: direct float comparisons since these are ints in the file
         assert_true(template.paperheightI == 21);
         assert_true(template.paperwidthI == 22);
         assert_true(template.lmarginI == 3);
         assert_true(template.tmarginI == 4);
         assert_true(template.vsizeI == (21-4-6));
         assert_true(template.hsizeI == (22-3-5));
-        assert_true(template.headerskipI == 7);
-        assert_true(template.footerskipI == 8);
+
+        // These have units
+        assert_double_close(template.headerskipI, 1);   // 72 pt
+        assert_double_close(template.footerskipI, 1);   // 2.54 cm
 
         assert_true(template.headerl == "Hl&lt;");
         assert_true(template.headerc == "Hc&lt;");
@@ -40,6 +42,9 @@ void test_load_file()
         assert_true(template.footerr == "Fr&lt;");
 
         assert_true(template.fontsizeT == 1337);
+
+        assert_true(template.paragraphalign == RIGHT);
+        assert_true(template.justify);
 
     } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
         warning("keyfile error: %s", e.message);
@@ -100,6 +105,7 @@ void test_both_headleft()
         assert_not_reached();
     }   // LCOV_EXCL_STOP
 }
+
 void test_bad_filename()
 {
     File destf = null;
@@ -208,6 +214,9 @@ void test_empty_file()
 
             assert_true(template.fontsizeT == 12);
 
+            assert_true(template.paragraphalign == LEFT);
+            assert_true(!template.justify);
+
         } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
             diag("got keyfile error: %s", e.message);
             assert_not_reached();
@@ -230,6 +239,7 @@ void test_invalid_values()
         }   // LCOV_EXCL_STOP
 
         assert_true(template.paperheightI == 11);
+        assert_true(template.fontsizeT == 12.0);
     } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
         diag("got keyfile error: %s", e.message);
         assert_not_reached();
@@ -241,6 +251,7 @@ void test_invalid_values()
 
 public static int main (string[] args)
 {
+    App.init_before_run();
     Test.init (ref args);
     Test.set_nonfatal_assertions();
     Test.add_func("/060-core-template/load_file", test_load_file);

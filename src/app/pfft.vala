@@ -9,14 +9,6 @@ namespace My {
     extern void init_gstreamer();   // from pfft-shim.c
 
     // Types {{{1
-    /**
-     * Our own definition for gst_value_deserialize().
-     *
-     * Per <https://gitlab.gnome.org/GNOME/vala/-/issues/1014>, older
-     * valac versions have an incorrect binding for gst_value_deserialize().
-     */
-    [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
-    extern bool deserialize_value (ref GLib.Value dest, string src);
 
     /**
      * Map from friendly names to GTypes.

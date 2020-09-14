@@ -129,6 +129,12 @@ namespace My {
         [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
         public double fontsizeT { get; set; default = 12; }
 
+        // Paragraph parameters
+        [Description(nick = "Text alignment", blurb = "Normal paragraph alignment (left/center/right)")]
+        public Alignment paragraphalign { get; set; default = LEFT; }
+        [Description(nick = "Justify text", blurb = "If true, block-justify.  The 'paragraphalign' property controls justification of partial lines.")]
+        public bool justify { get; set; default = false; }
+
         /** Used in process_node_into() */
         private Regex re_newline = null;
 

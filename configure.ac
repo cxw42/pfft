@@ -64,7 +64,15 @@ dnl === Dependencies ======================================================
 PKG_PROG_PKG_CONFIG([0.24])
 
 dnl use fewer variables for terser Makefiles.
-PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
+
+dnl pango: 1.18+ for pango_layout_set_justify()
+PKG_CHECK_MODULES([RENDER],[
+    pangocairo
+    pango >= 1.18
+    cairo
+])
+
+dnl glib: 2.38+ for g_test_build_filename()
 PKG_CHECK_MODULES([BASE],[
     gee-0.8
     gstreamer-1.0
@@ -72,7 +80,6 @@ PKG_CHECK_MODULES([BASE],[
     gio-2.0
     glib-2.0 >= 2.38
 ])
-    dnl glib version: See g_test_build_filename()
 
 dnl === Tests =============================================================
 

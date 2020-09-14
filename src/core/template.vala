@@ -6,6 +6,16 @@ using My.Log;
 
 namespace My {
 
+    /** Text alignment */
+    public enum Alignment {
+        /** Left-justified */
+        LEFT,
+        /** Centered */
+        CENTER,
+        /** Right-justified */
+        RIGHT,
+    }
+
     /**
      * A document template defining document appearance &c.
      */
@@ -59,61 +69,77 @@ namespace My {
         [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
         public double fontsizeT { get; set; default = 12; }
 
+        // Paragraph parameters
+        [Description(nick = "Text alignment", blurb = "Normal paragraph alignment (left/center/right)")]
+        public Alignment paragraphalign { get; set; default = LEFT; }
+        [Description(nick = "Justify text", blurb = "If true, block-justify.  The 'paragraphalign' property controls justification of partial lines.")]
+        public bool justify { get; set; default = false; }
+
         // Private properties --- leading "P" marks them to be ignored by
         // other parts of pfft.
 
-        /** Temporary holder for use with set_from_file_double(). */
+        /** Temporary holder for use with set_from_file() */
         [Description(nick = "Private use")]
         public double PtempI { get; set; }
 
-        // --- Routines --------------------------------
+        // --- Key parsers -----------------------------
+
+        // There is a fair amount of duplication here because the accessors
+        // in KeyFile change with type.  TODO refactor to reduce duplication
+        // (if possible).
 
         /**
-         * Set a double parameter from the keyfile.
+         * A function that can parse a string into a Value.
          *
-         * Ignores keyfile errors; missing keys are not fatal.  Has two modes:
-         * * In non-raw (default), loads the value as a dimension in inches.
-         *   Converts units if necessary.
-         * * In raw mode, loads a numerical value with no suffix.
+         * @param section   The keyfile section the string came from
+         * @param key       The keyfile key the string came from
+         * @param text      The string read from the keyfile
+         * @param val       The value to fill in.  It already has the property's
+         *                  type when this is called.
          *
-         * @param property  The property in this class to load
-         * @param section   The keyfile section to read from
-         * @param key       The keyfile key to load from
-         * @param raw       If true, load the raw number rather than parsing
-         *                  as a dimension.
+         * @return          True on success; false otherwise.
          */
-        private void set_from_file_double(string property, string section, string key,
-            bool raw = false)
+        private delegate bool ValueParser(string section, string key,
+            string text, ref Value val);
+
+        /**
+         * A ValueParser that uses deserialize_value().
+         */
+        private bool default_value_parser(string section, string key,
+            string text, ref Value val)
         {
+            if(!deserialize_value(ref val, text)) {
+                lerroro(this, "Could not understand key [%s]%s as a %s",
+                    section, key, val.type().to_string());
+                return false;
+            }
+            return true;
+        }
+
+        /**
+         * A ValueParser for dimensions.
+         *
+         * Only works on doubles.
+         */
+        private bool dimension(string section, string key,
+            string text, ref Value val)
+        {
+            if(val.type() != typeof(double)) { // LCOV_EXCL_START - unreachable unless I made a mistake
+                lfixmeo(this, "Trying to call parse_dimension() on a non-double");
+                return false;
+            }   // LCOV_EXCL_STOP
+
             double newval;
-
-            if(raw) {
-                try {
-                    newval = data.get_double(section, key);
-                } catch(KeyFileError e) {
-                    return;
-                }
-
-            } else {    // non-raw
-                string text;
-                try {
-                    text = data.get_string(section, key);
-                } catch(KeyFileError e) {
-                    return;
-                }
-
-                try {
-                    newval = Units.parsedim(text);
-                } catch(My.Error e) {
-                    lerroro(this, "Could not understand the dimension for [%s]%s",
-                        section, key);
-                    return;
-                }
+            try {
+                newval = Units.parsedim(text);
+            } catch(My.Error e) {
+                lerroro(this, "Could not understand the dimension for [%s]%s",
+                    section, key);
+                return false;
             }
 
-            var wrapped = Value(typeof(double));
-            wrapped.set_double(newval);
-            set_property(property, wrapped);
+            val.set_double(newval);
+            return true;
         }
 
         /**
@@ -150,6 +176,46 @@ namespace My {
             return retval;
         } // set_from_file_string()
 
+        /**
+         * Deserialize a parameter from a (possibly-localized) string in the keyfile.
+         *
+         * Ignores keyfile errors; missing keys are not fatal.
+         *
+         * This function reads the locale string for the given key,
+         * then attempts to deserialize it using deserialize_value().
+         *
+         * @param property  The property in this class to load.  The type of
+         *                  this property is used as the type to deserialize.
+         * @param section   The keyfile section to read from
+         * @param key       The keyfile key to load from
+         * @param parse     A function that can parse a value
+         */
+        private void set_from_file(string property, string section, string key,
+            ValueParser parse = default_value_parser)
+        {
+            string text;
+
+            ObjectClass ocl = (ObjectClass) get_type().class_ref();
+            var prop_meta = ocl.find_property(property);
+            if(prop_meta == null) { // LCOV_EXCL_START - unreachable unless I made a mistake
+                lfixmeo(this, "Could not find property %s", property);
+                return;
+            }   // LCOV_EXCL_STOP
+            var wrapped = Value(prop_meta.value_type);
+
+            try {
+                text = data.get_locale_string(section, key);
+            } catch(KeyFileError e) {
+                return;
+            }
+
+            if(!parse(section, key, text, ref wrapped)) {
+                return;
+            }
+
+            set_property(property, wrapped);
+        }
+
         /** Throw if the given group has both keys */
         void error_if_both_keys(string section, string k1, string k2) throws KeyFileError
         {
@@ -157,6 +223,8 @@ namespace My {
                 throw new KeyFileError.PARSE(@"Section $section has keys $k1 and $k2, and I don't know which you want to use.  Please remove one of them.");
             }
         }
+
+        // --- Constructors ----------------------------
 
         /** Default ctor --- leave all the properties at their default values. */
         public Template()
@@ -177,38 +245,38 @@ namespace My {
 
             ldebugo(this, "Loaded key file %s", filename);
             PtempI = -1;
-            set_from_file_double("PtempI", "pfft", "version");
+            set_from_file("PtempI", "pfft", "version", dimension);
             if(PtempI != 1) {  // float equality OK here
                 throw new KeyFileError.PARSE("I don't know which file version this is");
             }
 
             // Load whatever data we have
             if(data.has_group("page")) {
-                set_from_file_double("paperheightI", "page", "height");
+                set_from_file("paperheightI", "page", "height", dimension);
                 ldebugo(this, "paper height %f in", paperheightI);
-                set_from_file_double("paperwidthI", "page", "width");
+                set_from_file("paperwidthI", "page", "width", dimension);
                 ldebugo(this, "paper width %f in", paperwidthI);
             } // page
 
             if(data.has_group("margin")) {
-                set_from_file_double("headerskipI", "margin", "header");
+                set_from_file("headerskipI", "margin", "header", dimension);
                 ldebugo(this, "header skip %f in", headerskipI);
-                set_from_file_double("footerskipI", "margin", "footer");
+                set_from_file("footerskipI", "margin", "footer", dimension);
                 ldebugo(this, "footer skip %f in", footerskipI);
 
-                set_from_file_double("tmarginI", "margin", "top");
-                set_from_file_double("lmarginI", "margin", "left");
+                set_from_file("tmarginI", "margin", "top", dimension);
+                set_from_file("lmarginI", "margin", "left", dimension);
 
                 // Margin->hsize/vsize
                 PtempI = -1;
-                set_from_file_double("PtempI", "margin", "bottom");
+                set_from_file("PtempI", "margin", "bottom", dimension);
                 if(PtempI>=0) {
                     vsizeI = paperheightI - tmarginI - PtempI;
                 }
                 ldebugo(this, "vsize %f in", vsizeI);
 
                 PtempI = -1;
-                set_from_file_double("PtempI", "margin", "right");
+                set_from_file("PtempI", "margin", "right", dimension);
                 if(PtempI>=0) {
                     hsizeI = paperwidthI - lmarginI - PtempI;
                 }
@@ -248,8 +316,13 @@ namespace My {
             } // footer
 
             if(data.has_group("font")) {
-                set_from_file_double("fontsizeT", "font", "size", true);
+                set_from_file("fontsizeT", "font", "size");
                 ldebugo(this, "font size %f pt", fontsizeT);
+            }
+
+            if(data.has_group("paragraph")) {
+                set_from_file("paragraphalign", "paragraph", "align");
+                set_from_file("justify", "paragraph", "justify");
             }
 
             ldebugo(this, "Done processing template file %s", filename);
