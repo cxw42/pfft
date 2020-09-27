@@ -11,17 +11,17 @@ void test_linit()   // for coverage
 void test_canonicalize()    // for coverage
 {
     string t;
-    t = My.Log.canonicalize_filename("/foo", null);
+    t = My.canonicalize_filename("/foo", null);
     assert_true(t == "/foo");
-    t = My.Log.canonicalize_filename("foo", "/bar");
+    t = My.canonicalize_filename("foo", "/bar");
     assert_true(t == "/bar/foo");
-    t = My.Log.canonicalize_filename("//foo", null);
+    t = My.canonicalize_filename("//foo", null);
     assert_true(t == "//foo");
-    t = My.Log.canonicalize_filename("///foo", null);
+    t = My.canonicalize_filename("///foo", null);
     assert_true(t == "/foo");
-    t = My.Log.canonicalize_filename("/foo/./bar", null);
+    t = My.canonicalize_filename("/foo/./bar", null);
     assert_true(t == "/foo/bar");
-    t = My.Log.canonicalize_filename("/foo/bar/..", null);
+    t = My.canonicalize_filename("/foo/bar/..", null);
     assert_true(t == "/foo");
 }
 

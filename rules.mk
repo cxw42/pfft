@@ -9,13 +9,16 @@ EOL =
 # that use these.
 
 # src/
-MY_pgm_VALA = pfft.vala myconfig.vapi
+MY_pgm_VALA = main.vala
+
+# src/app
+MY_app_VALA = pfft.vala myconfig.vapi
 # myconfig.vapi is under source control, so make sure to update it manually
 # if you add symbols to config.h.
-MY_pgm_EXTRASOURCES = pfft-shim.c
+MY_app_EXTRASOURCES = pfft-shim.c
 
 # src/core
-MY_core_VALA = el.vala reader.vala registry.vala template.vala util.vala writer.vala
+MY_core_VALA = el.vala reader.vala registry.vala template.vala units.vala util.vala writer.vala
 MY_core_EXTRASOURCES = registry-impl.cpp
 
 # src/logging
@@ -39,7 +42,7 @@ MY_writer_VALA = pango-markup.vala pango-blocks.vala \
 MY_writer_EXTRASOURCES = register.c
 
 # subdirs.  Listed in the order they should appear on link lines.
-MY_subdirs = reader writer core logging
+MY_subdirs = app reader writer core logging
 
 MY_all_VALA = \
 	$(MY_pgm_VALA) \
@@ -50,6 +53,21 @@ MY_all_VALA = \
 
 MY_VALA_C = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.c))
 MY_VALA_H = $(foreach fn, $(MY_all_VALA), $(fn:.vala=.h))
+
+# Tests.  Listed here so they can be pretty-printed.
+MY_vala_TESTS = \
+	001-sanity-t \
+	010-core-util-t \
+	020-registry-t \
+	050-core-el-t \
+	055-core-units-t \
+	060-core-template-t \
+	070-core-writer-t \
+	100-logging-t \
+	200-md4c-reader-t \
+	300-pango-markup-writer-t \
+	305-pango-markup-utils-t \
+	$(EOL)
 
 # Vala dependencies
 MY_VALA_PKGS = \

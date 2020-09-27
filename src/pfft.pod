@@ -152,6 +152,18 @@ Copyright (C) 1994-2018 Free Software Foundation, Inc.
 The full source of those portions is available to be copied from
 L<https://github.com/cxw42/pfft/tree/master/src/logging>.
 
+=head2 Other libraries used
+
+=head3 md4c
+
+From L<https://github.com/mity/md4c>.  Copyright © 2016-2020 Martin Mitáš.
+Licensed MIT.
+
+=head3 Regexp::Common
+
+From L<https://metacpan.org/pod/release/ABIGAIL/Regexp-Common-2017060201/lib/Regexp/Common.pm>.
+Copyright (c) 2001 - 2017, Damian Conway and Abigail.  Licensed BSD-3-Clause.
+
 =head1 SEE ALSO
 
 pandoc(1), pdflatex(1) --- much more capable, but much heavier.

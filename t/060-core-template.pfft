@@ -25,10 +25,10 @@ top = 4
 right = 5
 bottom = 6
 
-# footerskipI - Space between the bottom of the text block and the top of the footer, in inches
-# headerskipI - Space between the top of the text block and the top of the header, in inches
-header = 7
-footer = 8
+# footerskipI - Space between the bottom of the text block and the top of the footer
+# headerskipI - Space between the top of the text block and the top of the header
+header = 72 pt
+footer = 2.54 cm
 
 # Header and footer: test for escaping of markup
 [header]
@@ -40,5 +40,12 @@ right = Hr<
 left = Fl<
 center = Fc<
 right = Fr<
+
+[font]
+size = 1337
+
+[paragraph]
+align = right
+justify = yes
 
 # vi: set ft=desktop: #

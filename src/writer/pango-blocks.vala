@@ -222,9 +222,9 @@ namespace My {
             {
                 Cairo.ImageSurface s;
 
-                string docfn = My.Log.canonicalize_filename(doc_path); // make absolute
+                string docfn = My.canonicalize_filename(doc_path); // make absolute
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
-                string imgfn = My.Log.canonicalize_filename(href, docdir);
+                string imgfn = My.canonicalize_filename(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
                 this(s, paddingP);
                 llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
@@ -388,23 +388,39 @@ namespace My {
         ///////////////////////////////////////////////////////////////////////
 
         /**
-         * Create a layout with 12-pt text.
+         * Create a layout.
          *
-         * Here for convenience.
+         * Here for convenience.  Sets wrap mode and font parameters.
+         * Does not set width or text.
          *
          * @param cr The Cairo context with which this layout will be used
+         * @param fontsizeT The font size to use, in points.
          */
-        public static Pango.Layout new_layout_12pt(Cairo.Context cr)
+        public static Pango.Layout new_layout(Cairo.Context cr,
+            double fontsizeT, My.Alignment align = LEFT, bool justify = false)
         {
             var layout = Pango.cairo_create_layout(cr);
-
-            var font_description = new Pango.FontDescription();
-            font_description.set_family("Serif");
-            font_description.set_size(12 * Pango.SCALE); // 12-pt text
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
+            // Font
+            var font_description = new Pango.FontDescription();
+            font_description.set_family("Serif");
+            font_description.set_size((int)(fontsizeT * Pango.SCALE + 0.5));
+            layout.set_font_description(font_description);
+
+            // Paragraph
+            Pango.Alignment palign = LEFT;
+            switch(align) {
+            case LEFT: palign = LEFT; break;
+            case CENTER: palign = CENTER; break;
+            case RIGHT: palign = RIGHT; break;
+            default: lfixme("Invalid alignment %s", align.to_string()); break;
+            }
+            layout.set_alignment(palign);
+            layout.set_justify(justify);
+
             return layout;
-        } // new_layout_12pt()
+        } // new_layout()
 
         ///////////////////////////////////////////////////////////////////////
 

@@ -12,7 +12,7 @@ void test_load_file()
         var template = new Template.from_file(fn);
         assert_true(template != null);
         if(template == null) {
-            return;
+            return; // LCOV_EXCL_LINE - never happens if tests pass
         }
 
         assert_true(template.data.has_group("pfft"));
@@ -22,15 +22,17 @@ void test_load_file()
         var ver = template.data.get_integer("pfft", "version");
         assert_true(ver==1);
 
-        // Note: direct float comparisons
+        // Note: direct float comparisons since these are ints in the file
         assert_true(template.paperheightI == 21);
         assert_true(template.paperwidthI == 22);
         assert_true(template.lmarginI == 3);
         assert_true(template.tmarginI == 4);
         assert_true(template.vsizeI == (21-4-6));
         assert_true(template.hsizeI == (22-3-5));
-        assert_true(template.headerskipI == 7);
-        assert_true(template.footerskipI == 8);
+
+        // These have units
+        assert_double_close(template.headerskipI, 1);   // 72 pt
+        assert_double_close(template.footerskipI, 1);   // 2.54 cm
 
         assert_true(template.headerl == "Hl&lt;");
         assert_true(template.headerc == "Hc&lt;");
@@ -39,13 +41,18 @@ void test_load_file()
         assert_true(template.footerc == "Fc&lt;");
         assert_true(template.footerr == "Fr&lt;");
 
-    } catch(KeyFileError e) {
+        assert_true(template.fontsizeT == 1337);
+
+        assert_true(template.paragraphalign == RIGHT);
+        assert_true(template.justify);
+
+    } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
         warning("keyfile error: %s", e.message);
         assert_not_reached();
     } catch(FileError e) {
         warning("file error: %s", e.message);
         assert_not_reached();
-    }
+    } // LCOV_EXCL_STOP
 }
 
 // Test header and footer markup
@@ -55,9 +62,9 @@ void test_headfoot_markup()
         var fn = Test.build_filename(Test.FileType.DIST, "060-headfoot-markup.pfft");
         var template = new Template.from_file(fn);
         assert_true(template != null);
-        if(template == null) {
+        if(template == null) {  // LCOV_EXCL_START - unreached if tests pass
             return;
-        }
+        }   // LCOV_EXCL_STOP
 
         assert_true(template.data.has_group("pfft"));
 
@@ -72,13 +79,13 @@ void test_headfoot_markup()
         assert_true(template.footerc == "Fc<");
         assert_true(template.footerr == "Fr<");
 
-    } catch(KeyFileError e) {
+    } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
         warning("keyfile error: %s", e.message);
         assert_not_reached();
     } catch(FileError e) {
         warning("file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 // Test header.left and header.leftmarkup in one file.  I am using this as a
@@ -88,16 +95,17 @@ void test_both_headleft()
     try {
         var fn = Test.build_filename(Test.FileType.DIST, "060-both-headleft.pfft");
         var template = new Template.from_file(fn);
-        template = null;   // suppress "unused" warning
-        assert_not_reached();
+        template = null;   // suppress "unused" warning // LCOV_EXCL_LINE - never happens if tests pass
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(KeyFileError e) {
         diag("got keyfile error: %s", e.message);
         assert_true(e is KeyFileError.PARSE);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         diag("got file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
+
 void test_bad_filename()
 {
     File destf = null;
@@ -110,19 +118,19 @@ void test_bad_filename()
         try {
             destf.delete();
         } catch(GLib.Error e) {
-            //ignore errors
+            // ignore errors
         }
 
         var t = new Template.from_file(destfn);
-        t = null;   // suppress "unused" warning
-        assert_not_reached();
+        t = null;   // suppress "unused" warning    // LCOV_EXCL_LINE - never happens if tests pass
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(FileError e) {
         diag("got file error: %s", e.message);
         assert_true(e is FileError.FAILED || e is FileError.NOENT);
-    } catch {
+    } catch {   // LCOV_EXCL_START - unreached if tests pass
         warning("Unhandled error");
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 // Test an invalid file
@@ -131,15 +139,15 @@ void test_bad_file()
     try {
         var fn = Test.build_filename(Test.FileType.DIST, "060-no-magic.pfft");
         var template = new Template.from_file(fn);
-        template = null;   // suppress "unused" warning
-        assert_not_reached();
+        template = null;   // suppress "unused" warning // LCOV_EXCL_LINE - never happens if tests pass
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(KeyFileError e) {
         diag("got keyfile error: %s", e.message);
         assert_true(e is KeyFileError.GROUP_NOT_FOUND);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         diag("got file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 // Test a file of a version we don't recognize
@@ -148,37 +156,43 @@ void test_bad_version()
     try {
         var fn = Test.build_filename(Test.FileType.DIST, "060-bad-version.pfft");
         var template = new Template.from_file(fn);
-        template = null;   // suppress "unused" warning
-        assert_not_reached();
+        template = null;   // suppress "unused" warning // LCOV_EXCL_LINE - never happens if tests pass
+        assert_not_reached();   // LCOV_EXCL_LINE - never happens if tests pass
     } catch(KeyFileError e) {
         diag("got keyfile error: %s", e.message);
         assert_true(e is KeyFileError.PARSE);
-    } catch(FileError e) {
+    } catch(FileError e) {  // LCOV_EXCL_START - unreached if tests pass
         diag("got file error: %s", e.message);
         assert_not_reached();
-    }
+    }   // LCOV_EXCL_STOP
 }
 
 // Test a valid but content-free file.  Also test the default constructor,
 // for coverage.
 void test_empty_file()
 {
-    for(int which = 0; which < 2 ; ++which) {
+    string[] tef_filenames = {
+        Test.build_filename(Test.FileType.DIST, "060-empty.pfft"),
+        Test.build_filename(Test.FileType.DIST, "060-empty-groups.pfft")
+    };
+
+    for(int which = 0; which < 1 + tef_filenames.length; ++which) {
         try {
-            var fn = Test.build_filename(Test.FileType.DIST, "060-empty.pfft");
             Template template;
             if(which == 0) {
-                diag(@"Loading from $fn");
-                template = new Template.from_file(fn);
-            } else {
                 diag("Testing default ctor");
                 template = new Template();
+
+            } else {
+                var fn = tef_filenames[which-1];
+                diag(@"Loading from $fn");
+                template = new Template.from_file(fn);
             }
 
             assert_true(template != null);
-            if(template == null) {
+            if(template == null) {  // LCOV_EXCL_START - unreached if tests pass
                 continue;
-            }
+            }   // LCOV_EXCL_STOP
 
             // Check the default values.
             // Caution: direct float comparisons
@@ -198,18 +212,46 @@ void test_empty_file()
             assert_true(template.footerc == "%p");
             assert_true(template.footerr == "");
 
-        } catch(KeyFileError e) {
+            assert_true(template.fontsizeT == 12);
+
+            assert_true(template.paragraphalign == LEFT);
+            assert_true(!template.justify);
+
+        } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
             diag("got keyfile error: %s", e.message);
             assert_not_reached();
         } catch(FileError e) {
             diag("got file error: %s", e.message);
             assert_not_reached();
-        }
-    }
+        }   // LCOV_EXCL_STOP
+    } // for(which)
+}
+
+// Test invalid values in a valid file
+void test_invalid_values()
+{
+    try {
+        var fn = Test.build_filename(Test.FileType.DIST, "060-bad-values.pfft");
+        var template = new Template.from_file(fn);
+        assert_true(template != null);
+        if(template == null) {  // LCOV_EXCL_START - unreached if tests pass
+            return;
+        }   // LCOV_EXCL_STOP
+
+        assert_true(template.paperheightI == 11);
+        assert_true(template.fontsizeT == 12.0);
+    } catch(KeyFileError e) {   // LCOV_EXCL_START - unreached if tests pass
+        diag("got keyfile error: %s", e.message);
+        assert_not_reached();
+    } catch(FileError e) {
+        diag("got file error: %s", e.message);
+        assert_not_reached();
+    }   // LCOV_EXCL_STOP
 }
 
 public static int main (string[] args)
 {
+    App.init_before_run();
     Test.init (ref args);
     Test.set_nonfatal_assertions();
     Test.add_func("/060-core-template/load_file", test_load_file);
@@ -219,6 +261,7 @@ public static int main (string[] args)
     Test.add_func("/060-core-template/bad_file", test_bad_file);
     Test.add_func("/060-core-template/bad_version", test_bad_version);
     Test.add_func("/060-core-template/empty_file", test_empty_file);
+    Test.add_func("/060-core-template/invalid_values", test_invalid_values);
 
     return Test.run();
 }

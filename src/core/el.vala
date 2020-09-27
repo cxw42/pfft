@@ -8,6 +8,15 @@
 namespace My {
 
     /**
+     * Our own definition for gst_value_deserialize().
+     *
+     * Per <https://gitlab.gnome.org/GNOME/vala/-/issues/1014>, older
+     * valac versions have an incorrect binding for gst_value_deserialize().
+     */
+    [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
+    public extern bool deserialize_value (ref GLib.Value dest, string src);
+
+    /**
      * Data of a node in the Markdown tree.
      *
      * Each instance holds a unit of text that should be rendered with common

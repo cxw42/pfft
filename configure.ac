@@ -1,5 +1,5 @@
 dnl === Basic setup =======================================================
-AC_INIT([pfft markdown-to-PDF converter], [0.0.2], [], [pfft], [https://github.com/cxw42/pfft])
+AC_INIT([pfft markdown-to-PDF converter], [0.0.3], [], [pfft], [https://github.com/cxw42/pfft])
 AC_PREREQ([2.65])
 AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
 AC_CONFIG_SRCDIR([rules.mk])    dnl make sure the srcdir is correctly specified
@@ -64,7 +64,15 @@ dnl === Dependencies ======================================================
 PKG_PROG_PKG_CONFIG([0.24])
 
 dnl use fewer variables for terser Makefiles.
-PKG_CHECK_MODULES([RENDER],[pangocairo pango cairo])
+
+dnl pango: 1.18+ for pango_layout_set_justify()
+PKG_CHECK_MODULES([RENDER],[
+    pangocairo
+    pango >= 1.18
+    cairo
+])
+
+dnl glib: 2.38+ for g_test_build_filename()
 PKG_CHECK_MODULES([BASE],[
     gee-0.8
     gstreamer-1.0
@@ -72,7 +80,6 @@ PKG_CHECK_MODULES([BASE],[
     gio-2.0
     glib-2.0 >= 2.38
 ])
-    dnl glib version: See g_test_build_filename()
 
 dnl === Tests =============================================================
 
@@ -103,6 +110,7 @@ AC_CONFIG_FILES([
     Makefile
     doc/Makefile
     src/Makefile
+    src/app/Makefile
     src/core/Makefile
     src/logging/Makefile
     src/reader/Makefile

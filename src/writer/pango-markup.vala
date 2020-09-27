@@ -9,14 +9,15 @@ using My.Log;
 namespace My {
 
     // Unit-conversion functions -----------------------------------------
+    // These are public only so they can be tested.
 
     /** Cairo to Pango units */
-    int c2p(double valC) {
+    public int c2p(double valC) {
         return (int)(valC*Pango.SCALE);
     }
 
     /** Pango to Cairo units */
-    double p2c(int valP) {
+    public double p2c(int valP) {
         return ((double)valP)/Pango.SCALE;
     }
 
@@ -26,7 +27,7 @@ namespace My {
      * This assumes that a Cairo unit is a point at 72 ppi.
      * This is the case for PDF surfaces.
      */
-    double c2i(double valC) {
+    public double c2i(double valC) {
         return valC/72;
     }
 
@@ -35,17 +36,17 @@ namespace My {
      *
      * Same assumptions as c2i().
      */
-    double i2c(double valI) {
+    public double i2c(double valI) {
         return valI*72;
     }
 
     /** Inches to Pango units */
-    int i2p(double valI) {
+    public int i2p(double valI) {
         return c2p(i2c(valI));
     }
 
     /** Pango units to inches */
-    double p2i(int valP) {
+    public double p2i(int valP) {
         return c2i(p2c(valP));
     }
 
@@ -90,7 +91,7 @@ namespace My {
         /** Current page */
         int pageno;
 
-        // Page parameters (unit suffixes: Inches, Cairo, Pango)
+        // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
         public double paperwidthI { get; set; default = 8.5; }
         [Description(nick = "Paper height (in.)", blurb = "Paper height, in inches")]
@@ -123,6 +124,16 @@ namespace My {
         public string footerc { get; set; default = "%p"; }
         [Description(nick = "Footer markup, right", blurb = "Pango markup for the footer, right side")]
         public string footerr { get; set; default = ""; }
+
+        // Font parameters
+        [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
+        public double fontsizeT { get; set; default = 12; }
+
+        // Paragraph parameters
+        [Description(nick = "Text alignment", blurb = "Normal paragraph alignment (left/center/right)")]
+        public Alignment paragraphalign { get; set; default = LEFT; }
+        [Description(nick = "Justify text", blurb = "If true, block-justify.  The 'paragraphalign' property controls justification of partial lines.")]
+        public bool justify { get; set; default = false; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
@@ -183,10 +194,10 @@ namespace My {
 
             // Prepare to render
             cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout_12pt(cr);    // Layout for the copy
-            bullet_layout = Blocks.new_layout_12pt(cr);
+            layout = Blocks.new_layout(cr, fontsizeT, paragraphalign, justify);  // Layout for the copy
+            bullet_layout = Blocks.new_layout(cr, fontsizeT);
 
-            pageno_layout = Blocks.new_layout_12pt(cr); // Layout for page numbers
+            pageno_layout = Blocks.new_layout(cr, fontsizeT); // Layout for page numbers
 
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner
@@ -198,6 +209,7 @@ namespace My {
             // Render
             pageno = 1;
 
+            linfoo(this, "Beginning rendering");
             foreach(var blk in blocks) {
                 ldebugo(blk, "start render");
                 while(true) {   // Render this block, which may take more than one pass
@@ -233,6 +245,7 @@ namespace My {
                           surf.status().to_string());
                 // LCOV_EXCL_STOP
             }
+            linfoo(this, "Done rendering");
 
         } // write_document()
 

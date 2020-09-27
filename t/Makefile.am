@@ -18,25 +18,19 @@ AM_DEFAULT_SOURCE_EXT = .vala
 # But that messes up the linker selection, so:
 CCLD = $(CXX)
 
-test_programs = \
-	001-sanity-t \
-	010-core-util-t \
-	020-registry-t \
-	050-core-el-t \
-	060-core-template-t \
-	070-core-writer-t \
-	100-logging-t \
-	200-md4c-reader-t \
-	300-pango-markup-writer-t \
-	$(EOL)
+test_programs = $(MY_vala_TESTS)
 
 dist_test_data = \
+	060-bad-values.pfft \
 	060-bad-version.pfft \
 	060-both-headleft.pfft \
 	060-core-template.pfft \
+	060-empty-groups.pfft \
 	060-empty.pfft \
 	060-headfoot-markup.pfft \
 	060-no-magic.pfft \
+	200-image.md \
+	200-image-bad.md \
 	basic.md \
 	complex.md \
 	$(EOL)

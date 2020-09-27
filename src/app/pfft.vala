@@ -9,14 +9,6 @@ namespace My {
     extern void init_gstreamer();   // from pfft-shim.c
 
     // Types {{{1
-    /**
-     * Our own definition for gst_value_deserialize().
-     *
-     * Per <https://gitlab.gnome.org/GNOME/vala/-/issues/1014>, older
-     * valac versions have an incorrect binding for gst_value_deserialize().
-     */
-    [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
-    extern bool deserialize_value (ref GLib.Value dest, string src);
 
     /**
      * Map from friendly names to GTypes.
@@ -138,17 +130,23 @@ namespace My {
         // }}}1
         // Main routines {{{1
 
+        public static void init_before_run()
+        {
+            Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
+            init_gstreamer();
+            linit();
+        }
+
         /**
          * Main routine.
+         *
+         * You must make sure init_before_run() is called before invoking this.
+         *
          * @param   args    A strv of the input arguments.  NOT the exact args[]
          *                  passed to main().
          */
         public int run(owned string[] args)
         {
-            Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
-            init_gstreamer();
-            linit();
-
             // get available readers and writers
             readers_ = new ClassMap();
             writers_ = new ClassMap();
@@ -469,7 +467,7 @@ namespace My {
                 }
 
                 retval.set_property(nv[0], val);
-                ldebugo(retval, "Set property %s from command line to %s",
+                linfoo(retval, "Set property %s from command line to %s",
                     nv[0], val.type() == typeof(string) ? @"'$(val.get_string())'" :
                     Gst.Value.serialize(val));
 
@@ -500,7 +498,7 @@ namespace My {
                 Value v = Value(prop.value_type);
                 tmpl.get_property(propname, ref v);
                 instance.set_property(propname, v);
-                ldebugo(instance, "Set property %s from template to %s",
+                linfoo(instance, "Set property %s from template to %s",
                     propname, Gst.Value.serialize(v));
             }
         } // set_props_from_template()
@@ -509,17 +507,4 @@ namespace My {
     } // class App
 } // My
 
-/** main() */ // {{{1
-public static int main(string[] args)
-{
-    var app = new My.App();
-    var arg_copy = strdupv(args);
-    var status = app.run((owned)arg_copy);
-    if(status != 0) {
-        printerr ("Run '%s --help' to see a full list of available command line options.\n", args[0]);
-    }
-    return status;
-}
-
-// }}}1
 // vi: set fdm=marker: //
