@@ -11,6 +11,7 @@ GST_DEBUG_CATEGORY(my_log_category);
 void my_log_linit()
 {
     GST_DEBUG_CATEGORY_INIT(my_log_category, "pfft", 0, "");
+    GST_INFO("pfft logging initialized");
 }
 
 // the following is copied from

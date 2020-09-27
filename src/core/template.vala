@@ -328,6 +328,43 @@ namespace My {
             ldebugo(this, "Done processing template file %s", filename);
         } // Template.from_file()
 
+        // --- Using templates -------------------------
+
+        /**
+         * Copy property values into an object.
+         *
+         * For each non-private property that exists both in this template and
+         * the target instance, the value will be copied from the target to the
+         * new instance.
+         *
+         * @param target        The instance to update.  Modified in place.
+         */
+        public void set_props_on(Object target)
+        {
+            // property accessor for the instance we are creating
+            ObjectClass ocl = (ObjectClass) target.get_type().class_ref ();
+
+            // property accessor for the template
+            ObjectClass tocl = (ObjectClass) this.get_type().class_ref ();
+
+            // Set properties from the template
+            foreach(var tprop in tocl.list_properties()) {
+                string propname = tprop.get_name();
+                ldebugo(target, "Trying template property %s", propname);
+                var prop = ocl.find_property(propname);
+                if(prop == null || propname[0] == 'P' || prop.value_type != tprop.value_type) {
+                    ldebugo(target, "  --- skipping");
+                    continue;
+                }
+
+                Value v = Value(prop.value_type);
+                this.get_property(propname, ref v);
+                target.set_property(propname, v);
+                linfoo(target, "Set property %s from template to %s",
+                    propname, Gst.Value.serialize(v));
+            }
+        } // set_props_on()
+
     } // class Template
 
-}
+} // namespace My
