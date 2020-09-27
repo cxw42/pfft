@@ -22,6 +22,8 @@ build-tests:
 
 # Misc.
 
+EXTRA_DIST += README.md CONTRIBUTING.md coverage.sh
+
 prettyprint:
 	-$(AM_V_GEN)uncrustify -c $(top_srcdir)/.uncrustifyrc --replace \
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn)) \
