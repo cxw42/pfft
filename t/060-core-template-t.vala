@@ -249,6 +249,28 @@ void test_invalid_values()
     }   // LCOV_EXCL_STOP
 }
 
+// Dummy class for set_props_on
+class TestClass060 : Object
+{
+    [Description(nick = "Font name", blurb = "Font of body text")]
+    public string fontname { get; set; default = "Nonstandard"; }
+
+    [Description(nick = "The Answer", blurb = "Indeed")]
+    public int answer { get; set; default = 42; }
+}
+
+// Copy properties
+void test_set_props_on()
+{
+    var dummy = new TestClass060();
+    var template = new Template();
+    assert_true(dummy.fontname == "Nonstandard");
+    assert_true(dummy.answer == 42);
+    template.set_props_on(dummy);
+    assert_true(dummy.fontname == "Serif");
+    assert_true(dummy.answer == 42);
+}
+
 public static int main (string[] args)
 {
     App.init_before_run();
@@ -262,6 +284,7 @@ public static int main (string[] args)
     Test.add_func("/060-core-template/bad_version", test_bad_version);
     Test.add_func("/060-core-template/empty_file", test_empty_file);
     Test.add_func("/060-core-template/invalid_values", test_invalid_values);
+    Test.add_func("/060-core-template/set_props_on", test_set_props_on);
 
     return Test.run();
 }

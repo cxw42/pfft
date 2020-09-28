@@ -32,7 +32,7 @@ namespace My {
             for(int i=0; i<num_opts; ++i) {
                 var optspec = options[i];
                 var nv = optspec.split("=", 2);
-                if(nv.length != 2) {
+                if(nv.length != 2 || nv[0].length < 1 || nv[1].length < 1) {
                     throw new KeyFileError.INVALID_VALUE(
                               "%s: Invalid option %s".printf(class_name, optspec));
                 }
@@ -78,7 +78,7 @@ namespace My {
          * @param options       Optional 'property=value' assigments.
          * @return The new instance, or null.
          */
-        public Object create_instance(string class_name,
+        public Object? create_instance(string class_name,
             Template? template, string[]? options) throws KeyFileError
         {
             if(!this.has_key(class_name)) {

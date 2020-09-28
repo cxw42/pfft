@@ -59,6 +59,7 @@ MY_vala_TESTS = \
 	001-sanity-t \
 	010-core-util-t \
 	020-registry-t \
+	021-registry-classmap-t \
 	050-core-el-t \
 	055-core-units-t \
 	060-core-template-t \
