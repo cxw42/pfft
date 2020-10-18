@@ -228,8 +228,17 @@ namespace My {
 
                     // We got PARTIAL or NONE, so we need to start a new page.
                     eject_page();
+                    if(pageno > 20) {   // XXX
+                        lfixmeo(this, "Aborting after 20 pages");
+                        break;
+                    }
                 }
                 ldebugo(blk, "end render");
+
+                if(pageno > 20) {   // XXX
+                    lfixmeo(this, "Aborting after 20 pages");
+                    break;
+                }
             }
 
             // We only eject in the loop above when a block demands it.
