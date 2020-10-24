@@ -126,6 +126,8 @@ namespace My {
         public string footerr { get; set; default = ""; }
 
         // Font parameters
+        [Description(nick = "Font name", blurb = "Font of body text")]
+        public string fontname { get; set; default = "Serif"; }
         [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
         public double fontsizeT { get; set; default = 12; }
 
@@ -194,10 +196,11 @@ namespace My {
 
             // Prepare to render
             cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout(cr, fontsizeT, paragraphalign, justify);  // Layout for the copy
-            bullet_layout = Blocks.new_layout(cr, fontsizeT);
+            layout = Blocks.new_layout(cr, fontname, fontsizeT, paragraphalign,
+                                       justify);  // Layout for the copy
+            bullet_layout = Blocks.new_layout(cr, fontname, fontsizeT);
 
-            pageno_layout = Blocks.new_layout(cr, fontsizeT); // Layout for page numbers
+            pageno_layout = Blocks.new_layout(cr, fontname, fontsizeT); // Layout for page numbers
 
             cr.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner
@@ -205,6 +208,15 @@ namespace My {
             // Break the text into individually-rendered blocks.
             // Must be done after `layout` is created.
             var blocks = make_blocks(doc);
+
+#if 0
+            // DEBUG - check the type of font
+            var pcfm = Pango.CairoFontMap.get_default() as Pango.CairoFontMap;
+            if(pcfm != null) {
+                var fty = pcfm.get_font_type();
+                print("Font type is %d\n", (int)fty);
+            }
+#endif
 
             // Render
             pageno = 1;

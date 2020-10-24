@@ -41,6 +41,7 @@ void test_load_file()
         assert_true(template.footerc == "Fc&lt;");
         assert_true(template.footerr == "Fr&lt;");
 
+        assert_true(template.fontname == "Deep Thought");
         assert_true(template.fontsizeT == 1337);
 
         assert_true(template.paragraphalign == RIGHT);
@@ -212,6 +213,7 @@ void test_empty_file()
             assert_true(template.footerc == "%p");
             assert_true(template.footerr == "");
 
+            assert_true(template.fontname == "Serif");
             assert_true(template.fontsizeT == 12);
 
             assert_true(template.paragraphalign == LEFT);

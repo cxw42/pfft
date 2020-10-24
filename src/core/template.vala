@@ -66,6 +66,8 @@ namespace My {
         public string footerr { get; set; default = ""; }
 
         // Font parameters
+        [Description(nick = "Font name", blurb = "Font of body text")]
+        public string fontname { get; set; default = "Serif"; }
         [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
         public double fontsizeT { get; set; default = 12; }
 
@@ -316,6 +318,7 @@ namespace My {
             } // footer
 
             if(data.has_group("font")) {
+                set_from_file("fontname", "font", "name");
                 set_from_file("fontsizeT", "font", "size");
                 ldebugo(this, "font size %f pt", fontsizeT);
             }

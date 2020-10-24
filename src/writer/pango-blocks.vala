@@ -395,19 +395,24 @@ namespace My {
          * Here for convenience.  Sets wrap mode and font parameters.
          * Does not set width or text.
          *
-         * @param cr The Cairo context with which this layout will be used
+         * @param cr        The Cairo context with which this layout will be used
+         * @param fontname  The name of the font (a Pango family list and
+         *                  style options)
          * @param fontsizeT The font size to use, in points.
+         * @param align     The alignment of the text in the layout
+         * @param justify   If true, block-justify the text in the layout.
          */
         public static Pango.Layout new_layout(Cairo.Context cr,
-            double fontsizeT, My.Alignment align = LEFT, bool justify = false)
+            string fontname, double fontsizeT, My.Alignment align = LEFT,
+            bool justify = false)
         {
             var layout = Pango.cairo_create_layout(cr);
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
             // Font
-            var font_description = new Pango.FontDescription();
-            font_description.set_family("Serif");
-            font_description.set_size((int)(fontsizeT * Pango.SCALE + 0.5));
+            var font_description = Pango.FontDescription.from_string(
+                "%s %f".printf(fontname, fontsizeT)
+            );
             layout.set_font_description(font_description);
 
             // Paragraph
