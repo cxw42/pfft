@@ -40,8 +40,11 @@ Language: English
 ## CHAPTER IV - RIVER DEPOSITS
 
 The characteristic features of river deposits and the forms which they assume
-may be treated under three heads: (1) valley deposits, (2) basin deposits, and
-(3) deltas.  
+may be treated under three heads:
+
+1. valley deposits,
+2. basin deposits, and
+3. deltas.
 
 ### VALLEY DEPOSITS
 
@@ -260,7 +263,7 @@ suffer drowning at times of flood or are mired in swampy places, logs of wood,
 and the stems and leaves of plants are examples of the variety of the remains
 of land and fresh-water organisms which are entombed in river deposits and
 sealed away as a record of the life of the time, and as proof that the deposits
-were laid by streams and not beneath the sea.  
+were laid by streams and not beneath the sea.
 
 ### BASIN DEPOSITS
 
