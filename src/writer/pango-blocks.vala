@@ -239,6 +239,28 @@ namespace My {
 
     namespace Blocks {
 
+        /**
+         * Category of blocks for paragraph spacing.
+         *
+         * Stored here for convenience, but only used by PangoMarkupWriter.
+         */
+        protected enum ParskipCategory {
+            /** Running text */
+            COPY,
+            /** Bulleted or numbered lists */
+            LIST,
+            /** Headers */
+            HEADER,
+            /**
+             * Other.
+             *
+             * For now, I am grouping code blocks, images, and anything not
+             * in the above categories under OTHER.  This might change
+             * in the future.
+             */
+            OTHER,
+        }
+
         /** Placeholder character used for images */
         public string OBJ_REPL_CHAR()
         {
@@ -466,6 +488,15 @@ namespace My {
             /** A cached version of markup + post_markup */
             private string whole_markup = null;
 
+            /**
+             * The parskip category.
+             *
+             * The default is OTHER so that a newly-added block type
+             * will be spaced apart from body copy if that type does
+             * not specify otherwise.
+             */
+            public ParskipCategory parskip_category { get; set; default = OTHER; }
+
             /** Return the cached markup + post_markup */
             protected string get_whole_markup()
             {
@@ -508,6 +539,16 @@ namespace My {
 
             /** Attributes representing the shapes */
             protected Pango.AttrList shape_attrs = null;
+
+            /**
+             * Whether the block is "void", i.e., has no effect on the page.
+             *
+             * Void blocks can be treated as if they do not exist.
+             */
+            public virtual bool is_void()
+            {
+                return false;
+            }
 
             /**
              * Initialize shape_attrs.
@@ -664,6 +705,14 @@ namespace My {
              * been called.
              *
              * Sets nlines_rendered.
+             *
+             * @param cr        The Cairo context for the current page
+             * @param layout    The Pango layout to use
+             * @param rightP    The right edge of the available area,
+             *                  page-relative, Pango units
+             * @param bottomP   The bottom edge of the available area,
+             *                  page-relative, Pango units
+             * @return The result of the rendering
              */
             protected RenderResult render_layout(Cairo.Context cr,
                 Pango.Layout layout,
@@ -950,6 +999,35 @@ namespace My {
         } // class Blk
 
         /**
+         * A block for body copy or headers.
+         *
+         * This is a thin wrapper around Blk to carry the non-OTHER
+         * parskip_category and handle is_void.
+         */
+        public class ParaBlk : Blk
+        {
+            /**
+             * Constructor.
+             * @param layout    The layout to use
+             * @param is_header If true, parskip_category is ParskipCategory.HEADER;
+             *                  if false (default), parskip_category is
+             *                  ParskipCategory.COPY.
+             */
+            public ParaBlk(Pango.Layout layout, bool is_header = false)
+            {
+                base(layout);
+                this.parskip_category = is_header ? ParskipCategory.HEADER :
+                    ParskipCategory.COPY;
+            }
+
+            public override bool is_void()
+            {
+                return (get_whole_markup() == "");
+            }
+
+        } // class ParaBlk
+
+        /**
          * A block that renders a bullet and a text block
          */
         public class BulletBlk : Blk
@@ -981,6 +1059,7 @@ namespace My {
             {
                 base(layout);
 
+                this.parskip_category = LIST;
                 this.bullet_layout = bullet_layout;
                 this.bullet_markup = bullet_markup;
                 this.bullet_leftP = bullet_leftP;
@@ -1061,6 +1140,7 @@ namespace My {
             public HRBlk(Pango.Layout layout, int leftP)
             {
                 base(layout);
+                this.parskip_category = OTHER;
                 this.leftP = leftP;
             }
 
@@ -1126,6 +1206,7 @@ namespace My {
             {
                 base(layout);
 
+                this.parskip_category = OTHER;
                 this.text_leftP = text_leftP;
             }
 
