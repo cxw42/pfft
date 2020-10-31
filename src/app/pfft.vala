@@ -8,18 +8,6 @@ namespace My {
 
     extern void init_gstreamer();   // from pfft-shim.c
 
-    // Types {{{1
-
-    /**
-     * Map from friendly names to GTypes.
-     *
-     * Used to store and sort readers and writers.
-     * This is a typedef.
-     */
-    private class ClassMap : Gee.TreeMap<string, GLib.Type> { }
-
-    // }}}1
-
     /**
      * Main application class for pfft
      */
@@ -134,7 +122,7 @@ namespace My {
         {
             Intl.setlocale (LocaleCategory.ALL, "");    // init locale from environment
             init_gstreamer();
-            linit();
+            Log.linit();
         }
 
         /**
@@ -212,8 +200,8 @@ namespace My {
             Reader reader;
             var reader_name = opt_reader_name ?? reader_default_;
             try {
-                reader = create_instance(
-                    readers_, reader_name, opt_reader_options) as Reader;
+                reader = readers_.create_instance(
+                    reader_name, template_, opt_reader_options) as Reader;
             } catch(KeyFileError e) {
                 printerr ("Could not create reader: %s\n", e.message);
                 return 1;
@@ -222,8 +210,8 @@ namespace My {
             Writer writer;
             var writer_name = opt_writer_name ?? writer_default_;
             try {
-                writer = create_instance(
-                    writers_, writer_name, opt_writer_options) as Writer;
+                writer = writers_.create_instance(
+                    writer_name, template_, opt_writer_options) as Writer;
             } catch(KeyFileError e) {
                 printerr ("Could not create writer: %s\n", e.message);
                 return 1;
@@ -416,92 +404,6 @@ namespace My {
 
             return sb.str;
         } // get_classmap_help
-
-        /**
-         * Create an instance and set its properties.
-         *
-         * Sets properties from template_ first, then from @options.
-         */
-        private Object create_instance(ClassMap m, string class_name,
-            string[]? options) throws KeyFileError
-        {
-            if(!m.has_key(class_name)) {
-                throw new KeyFileError.KEY_NOT_FOUND(
-                          "%s: Class not registered".printf(class_name));
-            }
-
-            var type = m.get(class_name);
-            Object retval = Object.new(type);
-            set_props_from_template(type, retval, template_);
-
-            if(options == null) {
-                return retval;  // *** EXIT POINT ***
-            }
-
-            // property accessor for the instance we are creating
-            ObjectClass ocl = (ObjectClass) type.class_ref ();
-
-            // Assign the properties
-            var num_opts = (options == null) ? 0 : strv_length(options);
-            for(int i=0; i<num_opts; ++i) {
-                var optspec = options[i];
-                var nv = optspec.split("=", 2);
-                if(nv.length != 2) {
-                    throw new KeyFileError.INVALID_VALUE(
-                              "%s: Invalid option %s".printf(class_name, optspec));
-                }
-
-                // print("Trying %p->%s := %s\n", retval, nv[0], nv[1]);
-                var prop = ocl.find_property(nv[0]);
-                if(prop == null || prop.get_name()[0] == 'P') { // skip unknown, private
-                    throw new KeyFileError.KEY_NOT_FOUND(
-                              "%s: %s is not an option I understand".printf(
-                                  class_name, nv[0]));
-                }
-
-                var val = GLib.Value(prop.value_type);
-                if(!deserialize_value(ref val, nv[1])) {
-                    throw new KeyFileError.INVALID_VALUE(
-                              "%s: Invalid value %s for option %s".printf(
-                                  class_name, nv[1], nv[0]));
-                }
-
-                retval.set_property(nv[0], val);
-                linfoo(retval, "Set property %s from command line to %s",
-                    nv[0], val.type() == typeof(string) ? @"'$(val.get_string())'" :
-                    Gst.Value.serialize(val));
-
-            } // foreach option
-
-            return retval;
-        } // create_instance()
-
-        private void set_props_from_template(GLib.Type instance_type,
-            Object instance, Template tmpl)
-        {
-            // property accessor for the instance we are creating
-            ObjectClass ocl = (ObjectClass) instance_type.class_ref ();
-
-            // property accessor for the template
-            ObjectClass tocl = (ObjectClass) tmpl.get_type().class_ref ();
-
-            // Set properties from the template
-            foreach(var tprop in tocl.list_properties()) {
-                string propname = tprop.get_name();
-                ldebugo(instance, "Trying template property %s", propname);
-                var prop = ocl.find_property(propname);
-                if(prop == null || propname[0] == 'P' || prop.value_type != tprop.value_type) {
-                    ldebugo(instance, "--- skipping");
-                    continue;
-                }
-
-                Value v = Value(prop.value_type);
-                tmpl.get_property(propname, ref v);
-                instance.set_property(propname, v);
-                linfoo(instance, "Set property %s from template to %s",
-                    propname, Gst.Value.serialize(v));
-            }
-        } // set_props_from_template()
 
         // }}}1
     } // class App

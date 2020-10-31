@@ -8,7 +8,103 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+using My.Log;
+
 namespace My {
+
+    /**
+     * Map from friendly names to GTypes.
+     *
+     * Used to store and sort readers and writers.
+     */
+    public class ClassMap : Gee.TreeMap<string, GLib.Type> {
+
+        /** Set object properties from 'name=value' pairs */
+        private static void set_options_on(Object target, string[] options,
+            string class_name)
+        throws KeyFileError
+        {
+            // property accessor for the instance we are creating
+            ObjectClass ocl = (ObjectClass) target.get_type().class_ref ();
+
+            // Assign the properties
+            var num_opts = (options == null) ? 0 : strv_length(options);
+            for(int i=0; i<num_opts; ++i) {
+                var optspec = options[i];
+                var nv = optspec.split("=", 2);
+                if(nv.length != 2 || nv[0].length < 1 || nv[1].length < 1) {
+                    throw new KeyFileError.INVALID_VALUE(
+                              "%s: Invalid option %s".printf(class_name, optspec));
+                }
+
+                var prop = ocl.find_property(nv[0]);
+                if(prop == null || prop.get_name()[0] == 'P') { // skip unknown, private
+                    throw new KeyFileError.KEY_NOT_FOUND(
+                              "%s: %s is not an option I understand".printf(
+                                  class_name, nv[0]));
+                }
+
+                var val = GLib.Value(prop.value_type);
+                if(!deserialize_value(ref val, nv[1])) {
+                    throw new KeyFileError.INVALID_VALUE(
+                              "%s: Invalid value %s for option %s".printf(
+                                  class_name, nv[1], nv[0]));
+                }
+
+                // TODO unit conversion for properties with dimen values, a la
+                // Template.
+
+                target.set_property(nv[0], val);
+                linfoo(target, "Set property %s from command line to %s",
+                    nv[0], val.type() == typeof(string) ? @"'$(val.get_string())'" :
+                    Gst.Value.serialize(val)    // LCOV_EXCL_LINE - can't guarantee this will fire during tests
+                );
+
+            } // foreach option
+        } // set_options_on()
+
+        /**
+         * Create an instance and set its properties.
+         *
+         * Sets properties from @template first, then from @options.
+         * @param m             The class registry to use
+         * @param class_name    The name of the class to instantiate.
+         *                      This may be different from the name in the
+         *                      source code.
+         * @param template      Optional My.Template.  Properties that exist
+         *                      both in the template and the target class
+         *                      will be copied from the target to the
+         *                      new instance.
+         * @param options       Optional 'property=value' assigments.
+         * @return The new instance, or null.
+         */
+        public Object? create_instance(string class_name,
+            Template? template, string[]? options) throws KeyFileError
+        {
+            if(!this.has_key(class_name)) {
+                throw new KeyFileError.KEY_NOT_FOUND(
+                          "%s: Class not registered".printf(class_name));
+            }
+
+            var type = this.get(class_name);
+            Object retval = Object.new(type);
+
+            if(retval == null) {
+                return null;    // LCOV_EXCL_LINE - I don't know any way to force this to happen during testing
+            }
+
+            if(template!=null) {
+                template.set_props_on(retval);
+            }
+
+            if(options != null) {
+                set_options_on(retval, options, class_name);
+            }
+
+            return retval;
+        } // create_instance()
+    } // class ClassMap
+
     /**
      * Get a reference to the registry of classes.
      *
@@ -50,4 +146,5 @@ namespace My {
      * Out of all classes that implement a particular interface, that is.
      */
     public const string CLASS_META_NICK_DEFAULT = "default";
+
 } // My

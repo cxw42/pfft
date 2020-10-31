@@ -67,29 +67,30 @@ namespace My {
         [Description(nick = "default", blurb = "Write PDFs using the Pango rendering library")]
         public bool meta {get; default = false; }
 
-        // TODO make paper size a property
-
         /** The path to the source document */
-        string source_fn;
+        string source_fn_;
 
         /** The Cairo context for the document we are writing */
-        Cairo.Context cr = null;
+        Cairo.Context cr_ = null;
 
         // TODO: provide Blk instances with a layout factory instead of layouts,
         // so that each Blk can have its own layout and they won't step on
         // each other.
 
         /** The Pango layout for the text of the document we are writing */
-        Pango.Layout layout = null;
+        Pango.Layout layout_ = null;
 
         /** The Pango layout for bullets and numbers */
-        Pango.Layout bullet_layout = null;
+        Pango.Layout bullet_layout_ = null;
 
         /** The Pango layout for the */
-        Pango.Layout pageno_layout = null;
+        Pango.Layout pageno_layout_ = null;
 
         /** Current page */
-        int pageno;
+        private int pageno_;
+
+        /** True if this block is the first on the current page */
+        private bool first_on_page_;
 
         // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
@@ -126,6 +127,8 @@ namespace My {
         public string footerr { get; set; default = ""; }
 
         // Font parameters
+        [Description(nick = "Font name", blurb = "Font of body text")]
+        public string fontname { get; set; default = "Serif"; }
         [Description(nick = "Font size (pt.)", blurb = "Size of body text, in points (72/in.)")]
         public double fontsizeT { get; set; default = 12; }
 
@@ -134,6 +137,8 @@ namespace My {
         public Alignment paragraphalign { get; set; default = LEFT; }
         [Description(nick = "Justify text", blurb = "If true, block-justify.  The 'paragraphalign' property controls justification of partial lines.")]
         public bool justify { get; set; default = false; }
+        [Description(nick = "Paragraph skip (in.)", blurb = "Space between paragraphs, in inches")]
+        public double parskipI { get; set; default = 12.0/72.0; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
@@ -180,7 +185,7 @@ namespace My {
         public void write_document(string filename, Doc doc, string? sourcefn = null)
         throws FileError, My.Error
         {
-            source_fn = (sourcefn == null) ? "" : sourcefn;
+            source_fn_ = (sourcefn == null) ? "" : sourcefn;
 
             int rightP = i2p(lmarginI+hsizeI);
             int bottomP = i2p(tmarginI+vsizeI);
@@ -193,24 +198,41 @@ namespace My {
             }
 
             // Prepare to render
-            cr = new Cairo.Context(surf);
-            layout = Blocks.new_layout(cr, fontsizeT, paragraphalign, justify);  // Layout for the copy
-            bullet_layout = Blocks.new_layout(cr, fontsizeT);
+            cr_ = new Cairo.Context(surf);
+            layout_ = Blocks.new_layout(cr_, fontname, fontsizeT, paragraphalign,
+                    justify);                     // Layout for the copy
+            bullet_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT);
 
-            pageno_layout = Blocks.new_layout(cr, fontsizeT); // Layout for page numbers
+            pageno_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT); // Layout for page numbers
 
-            cr.move_to(i2c(lmarginI), i2c(tmarginI));
+            cr_.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner
 
             // Break the text into individually-rendered blocks.
-            // Must be done after `layout` is created.
+            // Must be done after `layout_` is created.
             var blocks = make_blocks(doc);
 
+#if 0
+            // DEBUG - check the type of font
+            var pcfm = Pango.CairoFontMap.get_default() as Pango.CairoFontMap;
+            if(pcfm != null) {
+                var fty = pcfm.get_font_type();
+                print("Font type is %d\n", (int)fty);
+            }
+#endif
+
             // Render
-            pageno = 1;
+            pageno_ = 1;
+            first_on_page_ = true;
+            Blk prev_blk = null;
 
             linfoo(this, "Beginning rendering");
             foreach(var blk in blocks) {
+                if(blk.is_void()) {
+                    ldebugo(blk, "skipping void block");
+                    continue;
+                }
+
                 ldebugo(blk, "start render");
                 while(true) {   // Render this block, which may take more than one pass
                     // Parameters to render() are page-relative
@@ -218,7 +240,35 @@ namespace My {
                         lerroro(blk, "Surface status: %s", surf.status().to_string());  // LCOV_EXCL_LINE because I can't force this to happen
                     }
 
-                    var ok = blk.render(cr, rightP, bottomP);
+                    // Parskip
+
+                    llogo(blk, "parskip check: %s; %s; %s; %s",
+                        first_on_page_ ? "first on page" : "not first on page",
+                        prev_blk != null ? "has prev blk" : "no prev blk",
+                        blk.parskip_category.to_string(),
+                        (prev_blk != null && prev_blk.parskip_category != blk.parskip_category) ?
+                        "differs from prevblk category" : "no prev, or same as prev category"
+                    );
+
+                    // FIXME: a document starting with a header gets parskip
+                    // before the header because of the empty block we left
+                    // right at the beginning.
+
+                    if(!first_on_page_ && prev_blk != null &&
+                        ( blk.parskip_category == COPY ||
+                        prev_blk.parskip_category != blk.parskip_category)
+                    ) {
+                        llogo(blk, "Applying parskip %f in.", parskipI);
+                        cr_.rel_move_to(0, i2c(parskipI));
+                    }
+
+                    // Render
+
+                    var ok = blk.render(cr_, rightP, bottomP);
+                    if(ok == COMPLETE || ok == PARTIAL) {
+                        first_on_page_ = false;
+                    }
+
                     if(ok == RenderResult.COMPLETE) {
                         break;  // Move on to the next block
                     } else if(ok == RenderResult.ERROR) {
@@ -230,7 +280,9 @@ namespace My {
                     eject_page();
                 }
                 ldebugo(blk, "end render");
-            }
+
+                prev_blk = blk;
+            } // foreack blk
 
             // We only eject in the loop above when a block demands it.
             // Therefore, there should always be a page to eject here,
@@ -252,18 +304,19 @@ namespace My {
         /** Finish the current page and write it out */
         void eject_page()
         {
-            linfoo(this, "Finalizing page %d", pageno);
+            linfoo(this, "Finalizing page %d", pageno_);
             render_headers_footers();
-            cr.show_page();
+            cr_.show_page();
 
             // Start the next page
-            ++pageno;
-            cr.new_path();
-            cr.move_to(i2c(lmarginI), i2c(tmarginI));
+            ++pageno_;
+            first_on_page_ = true;
+            cr_.new_path();
+            cr_.move_to(i2c(lmarginI), i2c(tmarginI));
             double leftC, topC;
-            cr.get_current_point(out leftC, out topC);
-            linfoo(this, "Starting page %d at (%f,%f) %s l %f t %f", pageno,
-                c2i(leftC), c2i(topC), cr.has_current_point() ? "has pt" : "no pt",
+            cr_.get_current_point(out leftC, out topC);
+            linfoo(this, "Starting page %d at (%f,%f) %s l %f t %f", pageno_,
+                c2i(leftC), c2i(topC), cr_.has_current_point() ? "has pt" : "no pt",
                 lmarginI, tmarginI);
 
         } // eject_page()
@@ -303,7 +356,7 @@ namespace My {
 
                 switch(which) {
                 case "p":
-                    result.append(pageno.to_string());
+                    result.append(pageno_.to_string());
                     ok = true;
                     break;
                 case "%":
@@ -360,17 +413,17 @@ namespace My {
             m2 = @"<span size=\"small\">$m2</span>";
 
             ltraceo(this, "HF %s: Rendering", ident);
-            pageno_layout.set_width(widthP);
-            pageno_layout.set_alignment(align);
-            pageno_layout.set_markup(m2, -1);
-            cr.move_to(i2c(leftI), i2c(topI));
-            Pango.cairo_show_layout(cr, pageno_layout);
+            pageno_layout_.set_width(widthP);
+            pageno_layout_.set_alignment(align);
+            pageno_layout_.set_markup(m2, -1);
+            cr_.move_to(i2c(leftI), i2c(topI));
+            Pango.cairo_show_layout(cr_, pageno_layout_);
             ltraceo(this, "HF %s: Done", ident);
         }
 
         ///////////////////////////////////////////////////////////////////
         // Generate blocks of markup from a Doc.
-        // The methods in this section assume cr and layout members are valid
+        // The methods in this section assume cr_ and layout_ members are valid
 
         /** Markup for header levels */
         private string[] header_attributes = {
@@ -462,7 +515,7 @@ namespace My {
             var state = new State();
 
             // Open a Blk that will be filled if the first thing in the Doc is copy
-            var first_blk = new Blk(layout);
+            var first_blk = new ParaBlk(layout_);
 
             // Fill the list
             var last_blk = process_node_into(doc.root, el, (owned)first_blk, retval, state);
@@ -485,7 +538,6 @@ namespace My {
         private void commit(owned Blk blk, LinkedList<Blk> retval)
         {
             if(!retval.is_empty && retval.last() == blk) return;
-            // XXX DEBUG
             llogo(blk, "commit: adding blk with markup <%s> and post-markup <%s>",
                 blk.markup, blk.post_markup);
             retval.add(blk);
@@ -528,7 +580,7 @@ namespace My {
             // --- divs -----------------------------------------
             case BLOCK_HEADER:
                 commit(blk, retval);
-                blk = new Blk(layout);
+                blk = new ParaBlk(layout_, true);
                 sb.append_printf("<span %s>%s",
                     header_attributes[el.header_level],
                     text_markup);
@@ -545,7 +597,7 @@ namespace My {
 
             case BLOCK_QUOTE:
                 commit(blk, retval);
-                blk = new QuoteBlk(layout, 36*Pango.SCALE);
+                blk = new QuoteBlk(layout_, 36*Pango.SCALE);
                 sb.append(text_markup);
                 complete = true;
                 break;
@@ -573,7 +625,7 @@ namespace My {
                 // TODO? change this?
                 int margin = state.levels[lidx].is_bullet() ? 18 : 36;
 
-                blk = new BulletBlk(layout, bullet_layout, "%s%s".printf(
+                blk = new BulletBlk(layout_, bullet_layout_, "%s%s".printf(
                             state.levels[lidx].render(state.last_numbers[lidx]),
                             state.levels[lidx].is_bullet() ? "" : "."
                         ),
@@ -587,14 +639,14 @@ namespace My {
 
             case BLOCK_HR:
                 commit(blk, retval);
-                blk = new HRBlk(layout, 0);
+                blk = new HRBlk(layout_, 0);
                 complete = true;
                 // TODO figure out how to handle rules inside indented lists
                 break;
 
             case BLOCK_CODE:
                 commit(blk, retval);
-                blk = new Blk(layout);
+                blk = new Blk(layout_);
 
                 state = state.clone();
 
@@ -642,7 +694,7 @@ namespace My {
                 break;
             case SPAN_IMAGE:
                 sb.append(OBJ_REPL_CHAR());
-                var shape = new Shape.Image.from_href(el.href, source_fn);
+                var shape = new Shape.Image.from_href(el.href, source_fn_);
                 blk.add_shape(shape);
                 break;
 
@@ -690,7 +742,7 @@ namespace My {
             if(complete) {
                 // lmemdumpo(blk, "Block markup", blk.markup, blk.markup.length);
                 commit(blk, retval);
-                blk = new Blk(layout);
+                blk = new ParaBlk(layout_);
             }
 
             return (owned)blk;
