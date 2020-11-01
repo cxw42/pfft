@@ -417,7 +417,8 @@ namespace My {
          * Here for convenience.  Sets wrap mode and font parameters.
          * Does not set width or text.
          *
-         * @param cr        The Cairo context with which this layout will be used
+         * @param cr        The Cairo context with which this layout will be
+         *                  used.  The device units of cr must be points.
          * @param fontname  The name of the font (a Pango family list and
          *                  style options)
          * @param fontsizeT The font size to use, in points.
@@ -432,10 +433,22 @@ namespace My {
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
 
             // Font
-            var font_description = Pango.FontDescription.from_string(
-                "%s %f".printf(fontname, fontsizeT)
-            );
+            var font_description = Pango.FontDescription.from_string(fontname);
+            font_description.set_absolute_size(c2p(fontsizeT));
             layout.set_font_description(font_description);
+
+            if(lenabled(DEBUG)) {
+                var metrics = layout.get_context().get_metrics(font_description, null);
+                ldebugo(layout, "approx char width       %f", p2i(metrics.get_approximate_char_width()));
+                ldebugo(layout, "approx digit width      %f", p2i(metrics.get_approximate_digit_width()));
+                ldebugo(layout, "ascent                  %f", p2i(metrics.get_ascent()));
+                ldebugo(layout, "descent                 %f", p2i(metrics.get_descent()));
+                // Requires Pango 1.44+ => ldebugo(layout, "line height             %f", p2i(metrics.get_height()));
+                ldebugo(layout, "strikethrough position  %f", p2i(metrics.get_strikethrough_position()));
+                ldebugo(layout, "strikethrough thickness %f", p2i(metrics.get_strikethrough_thickness()));
+                ldebugo(layout, "underline position      %f", p2i(metrics.get_underline_position()));
+                ldebugo(layout, "underline thickness     %f", p2i(metrics.get_underline_thickness()));
+            }
 
             // Paragraph
             Pango.Alignment palign = LEFT;
