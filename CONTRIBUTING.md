@@ -72,6 +72,13 @@ open `pfft-coverage/index.html` in a Web browser.
 
 This will build `pfft-VERSION.tar.gz` and check it.
 
+### Building a Debian package
+
+1. Install build dependencies (one-time step):
+   `sudo apt install -y debhelper devscripts`
+2. After cloning, run `dpkg-buildpackage -us -uc` in the source directory.
+   The package will be left in the parent directory.
+
 ## Pull requests
 
 PRs are welcome!  I prefer PRs with one commit that adds tests and a subsequent

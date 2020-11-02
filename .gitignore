@@ -86,6 +86,20 @@ stamp-*
 *.stamp-*
 .Tpo
 
+# dpkg-buildpackage output and other release files
+*.debhelper.log
+.debhelper/
+debian/autoreconf.*
+debian/pfft.debhelper.log
+debian/pfft/
+debian/files
+debian/tmp
+/pfft-*
+*.deb
+*.substvars
+*.changes
+*.buildinfo
+
 # Generated Vala files
 *.vapi
 

@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+# Copyright (c) 2020 Christopher White <cxwembedded@gmail.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
+export DH_ALWAYS_EXCLUDE=*.a:*.la
+
+%:
+	dh $@

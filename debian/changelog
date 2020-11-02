@@ -1,0 +1,5 @@
+pfft (0.0.5-1) UNRELEASED; urgency=medium
+
+  * First version to be packaged as a deb
+
+ -- Christopher White <cxwembedded@gmail.com>  Sun, 01 Nov 2020 21:35:00 -0500
