@@ -13,7 +13,7 @@ namespace My {
 
     /** Cairo to Pango units */
     public int c2p(double valC) {
-        return (int)(valC*Pango.SCALE);
+        return (int)(valC*Pango.SCALE + 0.5);
     }
 
     /** Pango to Cairo units */
@@ -571,8 +571,8 @@ namespace My {
 
             var state = state_in;
 
-            ldebug("process_node_into: %s%s %p = '%s'",
-                string.nfill(node.depth()*4, ' '), el.ty.to_string(), node,
+            ldebugo(node, "process_node_into: %s%s = '%s'",
+                string.nfill(node.depth()*4, ' '), el.ty.to_string(),
                 text_markup);
 
             // Reminder: parameters to Blk instances are relative to the
@@ -602,7 +602,7 @@ namespace My {
 
             case BLOCK_QUOTE:
                 commit(blk, retval);
-                blk = new QuoteBlk(layout_, 36*Pango.SCALE);
+                blk = new QuoteBlk(layout_, i2p(0.5));
                 sb.append(text_markup);
                 complete = true;
                 break;
@@ -651,7 +651,7 @@ namespace My {
 
             case BLOCK_CODE:
                 commit(blk, retval);
-                blk = new Blk(layout_);
+                blk = new CodeBlk(layout_, i2p(0.25));
 
                 state = state.clone();
 
@@ -664,7 +664,9 @@ namespace My {
                     // Let the rest of the function run to collect the text
                 } else {    // a normal code block
                     state.obeylines = true;
-                    sb.append_printf("<tt>%s ", text_markup);
+                    sb.append_printf("<tt>%s%s", text_markup,
+                        text_markup.length > 0 ? " " : "");
+                    // NOTE: does a code block ever have text of its own?
                     blk.post_markup = "</tt>" + blk.post_markup;
                 }
                 trim_trailing_whitespace = true;    // trim trailing \n, if any
@@ -710,6 +712,7 @@ namespace My {
             }
 
             blk.markup += sb.str;
+            lmemdumpo(blk, "Markup after appending sb", blk.markup, blk.markup.length);
 
             // process children
             for(uint i = 0; i < node.n_children(); ++i) {
@@ -720,6 +723,8 @@ namespace My {
             }
 
             blk.markup += post_children_markup;
+            lmemdumpo(blk, "Markup after appending post_children_markup",
+                blk.markup, blk.markup.length);
 
             // Join lines
             if(!state.obeylines) {
