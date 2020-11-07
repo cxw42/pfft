@@ -92,6 +92,11 @@ namespace My {
         /** True if this block is the first on the current page */
         private bool first_on_page_;
 
+        // Rendering parameters
+        [Description(nick = "Black & white", blurb = "If set, output monochrome")]
+        public bool bw { get; set; default = false; }
+        // TODO actually respond to bw!
+
         // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
         public double paperwidthI { get; set; default = 8.5; }
