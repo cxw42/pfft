@@ -89,6 +89,7 @@ Before submitting a PR, please run `make prep`.  This will:
 - `make prettyprint` (conform to the coding style)
 - `make check` (must pass the tests!)
 - `make all build-tests && prove -v` (runs the tests a different way)
+- `make html` (make sure there are no valadoc errors)
 - `make distcheck` (make sure the tarball will build)
 
 ## Notes on compiling Vala sources

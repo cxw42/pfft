@@ -10,7 +10,7 @@ namespace My {
     /**
      * Our own definition for gst_value_deserialize().
      *
-     * Per <https://gitlab.gnome.org/GNOME/vala/-/issues/1014>, older
+     * Per [[https://gitlab.gnome.org/GNOME/vala/-/issues/1014]], older
      * valac versions have an incorrect binding for gst_value_deserialize().
      */
     [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
