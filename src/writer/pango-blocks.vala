@@ -90,6 +90,7 @@ namespace My {
              */
             private Pango.Rectangle? inkP = null;
 
+            /** Backing store for the paddingP property */
             private int paddingP_stg;
 
             /** The size of the padding */
@@ -105,6 +106,19 @@ namespace My {
 
             /** Default padding */
             public const double DEFAULT_PADDING_IN = 0.05;
+
+            /** Backing storage for caption property */
+            private string caption_stg = "";
+
+            /**
+             * Image caption, if any.
+             *
+             * NOTE: Image does not render the caption; it just stores it.
+             * This is to reduce the chance of circular references between
+             * Blk and Image instances, or between Layout and Image instances.
+             * See {@link My.Blocks.ParaBlk.render} for an example of caption rendering.
+             */
+            public string caption { get { return caption_stg; } }
 
             /**
              * The logical rectangle, including padding
@@ -196,19 +210,21 @@ namespace My {
 
             public override Shape.Base clone()
             {
-                Image retval = new Image(this.image, this.paddingP);
+                Image retval = new Image(this.image, this.caption, this.paddingP);
                 return retval;
             }
 
             /**
              * Constructor
              * @param image     The image
+             * @param caption   The image caption, if any.
              * @param paddingP  The padding, in Pango units.  -1 (the default)
              *                  means to use DEFAULT_PADDING_IN.
              */
-            public Image(Cairo.ImageSurface image, int paddingP = -1)
+            public Image(Cairo.ImageSurface image, string caption = "", int paddingP = -1)
             {
                 this.image = image;
+                this.caption_stg = caption;
                 this.paddingP = (paddingP == -1) ? i2p(DEFAULT_PADDING_IN) : paddingP;
             }     // ctor
 
@@ -224,8 +240,11 @@ namespace My {
              * @param doc_path  Where the referencing file is.
              *                  This is a string rather than a File so it
              *                  can later be expanded to URLs.
+             * @param caption   The image caption, if any.
+             * @param paddingP  Extra padding around the image, if any
              */
-            public Image.from_href(string href, string doc_path, int paddingP = -1)
+            public Image.from_href(string href, string doc_path,
+                string caption = "", int paddingP = -1)
             {
                 Cairo.ImageSurface s;
 
@@ -233,10 +252,14 @@ namespace My {
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
                 string imgfn = My.canonicalize_filename(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
-                this(s, paddingP);
-                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
+
+                this(s, caption, paddingP);
+
+                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f, caption `%s'",
                     imgfn, href, doc_path, s,
-                    c2i(image.get_width()), c2i(image.get_height()));
+                    c2i(image.get_width()), c2i(image.get_height()),
+                    this.caption
+                );
             }     // Image.from_href()
 
         }     // class Image
@@ -444,6 +467,7 @@ namespace My {
 
             if(lenabled(DEBUG)) {
                 var metrics = layout.get_context().get_metrics(font_description, null);
+                ldebugo(layout, "--- Font metrics ----------------------------");
                 ldebugo(layout, "approx char width       %f", p2i(metrics.get_approximate_char_width()));
                 ldebugo(layout, "approx digit width      %f", p2i(metrics.get_approximate_digit_width()));
                 ldebugo(layout, "ascent                  %f", p2i(metrics.get_ascent()));
@@ -522,6 +546,12 @@ namespace My {
                     whole_markup = markup + post_markup;
                 }
                 return whole_markup;
+            }
+
+            /** Invalidate the cached whole_markup() */
+            protected void recalc_whole_markup()
+            {
+                whole_markup = null;
             }
 
             /**
@@ -1019,8 +1049,14 @@ namespace My {
         /**
          * A block for body copy or headers.
          *
-         * This is a thin wrapper around Blk to carry the non-OTHER
+         * This is a wrapper around Blk to carry the non-OTHER
          * parskip_category and handle is_void.
+         *
+         * It also special-cases some things:
+         *
+         * * Images: if the only thing in a paragraph is an image, and that
+         * image has a non-empty, non-whitespace title, the image will be
+         * rendered centered, with the title below it as a caption.
          */
         public class ParaBlk : Blk
         {
@@ -1041,6 +1077,59 @@ namespace My {
             public override bool is_void()
             {
                 return (get_whole_markup() == "");
+            }
+
+            /**
+             * Test whether this is an image special case.
+             *
+             * If the block has no content other than exactly one
+             * shape, and that shape is an image with a nonempty,
+             * not-all-whitespace caption, returns the caption.
+             * Otherwise, returns "".
+             */
+            private string special_case_caption()
+            {
+                if(shapes == null) return "";
+
+                // Test the existing markup.  This has the convenient side
+                // effect that it keeps us from adding the caption to the
+                // text multiple times, if layout() is called more than once.
+                if(get_whole_markup() != OBJ_REPL_CHAR()) return "";
+
+                int nshapes = 0;
+                string caption = "";
+                foreach(Shape.Base shape in shapes) {
+                    if(++nshapes > 1) return "";
+                    var image = shape as Shape.Image;
+                    if(image == null) return "";
+                    caption = image.caption;
+                    caption._strip();
+                    if(caption == "") return "";    // no need to keep looping
+                }
+
+                return caption;     // if we get here, it's the special case
+            }
+
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                // Special case images
+                var caption = special_case_caption();
+                if(caption != "") {
+                    post_markup += "\n" + Markup.escape_text(caption);
+                    recalc_whole_markup();
+
+                    // Make a new layout with the attributes we need.
+                    // This is in case layout() is called multiple times.
+                    layout = layout.copy();
+                    layout.set_alignment(CENTER);
+                    llogo(this, "Image special case");
+                    lmemdumpo(this, "modified markup", get_whole_markup(),
+                        get_whole_markup().length);
+                }
+
+                // Render
+                return render_layout(cr, layout, rightP, bottomP);
             }
 
         }     // class ParaBlk

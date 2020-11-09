@@ -701,7 +701,8 @@ namespace My {
                 break;
             case SPAN_IMAGE:
                 sb.append(OBJ_REPL_CHAR());
-                var shape = new Shape.Image.from_href(el.href, source_fn_);
+                var shape = new Shape.Image.from_href(el.href, source_fn_,
+                        el.info_string);
                 blk.add_shape(shape);
                 break;
 
