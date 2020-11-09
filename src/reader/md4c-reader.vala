@@ -174,6 +174,7 @@ namespace My
                 get_img_detail(detail, out href, out title);
                 newnode.data.href = href;
                 newnode.data.info_string = title;
+                llog("%sImage href=`%s', title=`%s'", self.indent_, href, title);
                 break;
             case CODE: newnode = node_of_ty(SPAN_CODE); break;
             case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
@@ -195,7 +196,7 @@ namespace My
         private static int leave_span_(SpanType span_type, void *detail, void *userdata)
         {
             var self = (MarkdownMd4cReader)userdata;
-            llog("left span %s", span_type.to_string());
+            llog("%sleft span %s", self.indent_, span_type.to_string());
 
             // Move back into the parent span
             self.node_ = self.node_.parent;
