@@ -61,6 +61,9 @@ namespace My
         /** The current node */
         private unowned GLib.Node<Elem> node_;
 
+        /** Tag for special blocks */
+        private static string SBTAG = "pfft:";
+
         /**
          * md4c callback for entering blocks.
          *
@@ -107,10 +110,33 @@ namespace My
                 break;
 
             case CODE:
-                newnode = node_of_ty(BLOCK_CODE);
-                newnode.data.info_string = get_info_string(detail);
-                newnode.data.info_string._chomp();
-                ldebugo(self, "Info string -%s-",  newnode.data.info_string);
+                var infostr = get_info_string(detail);
+                infostr._chomp();
+
+                // Check for a special block
+                if(substr(infostr, 0, SBTAG.length) == SBTAG) {
+                    newnode = node_of_ty(BLOCK_SPECIAL);
+
+                    var command = substr(infostr, SBTAG.length);
+                    if(command == null) {
+                        command = "";
+                    } else {
+                        command._strip();
+                    }
+
+                    if(command == "") {
+                        lwarningo(newnode, "Special block with no command after '%s'", SBTAG);
+                        command = "";   // no nulls down the line
+                    }
+
+                    newnode.data.info_string = command;
+
+                } else {    // normal code block
+                    newnode = node_of_ty(BLOCK_CODE);
+                    newnode.data.info_string = infostr;
+                }
+                llogo(newnode, "%s, info string -%s-", newnode.data.ty.to_string(),
+                    newnode.data.info_string);
                 break;
 
             case P:

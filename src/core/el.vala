@@ -66,6 +66,19 @@ namespace My {
             BLOCK_HR,
             /** Source code */
             BLOCK_CODE,
+
+            /**
+             * Special paragraph.
+             *
+             * E.g., in Markdown, paragraphs like
+             * {{{
+             *  ```pfft: some_type
+             *  content
+             *  ```
+             * }}}
+             */
+            BLOCK_SPECIAL,
+
             // TODO? tables, html
 
             // Spans: character-level elements.

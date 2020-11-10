@@ -5,6 +5,9 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+// TODO add blocks for notice/warning with embedded icons made using
+// https://github.com/akrinke/svg2cairo
+
 using My.Log;
 
 namespace My {
