@@ -600,6 +600,8 @@ namespace My {
                 complete = true;
                 break;
 
+            // TODO case BLOCK_SPECIAL
+
             case BLOCK_QUOTE:
                 commit(blk, retval);
                 blk = new QuoteBlk(layout_, i2p(0.5));
@@ -708,7 +710,7 @@ namespace My {
 
             // --------------------------------------------------
             default:
-                warning("Unknown elem type %s", el.ty.to_string());
+                lwarningo(el, "Unknown elem type %s", el.ty.to_string());
                 break;
             }
 
