@@ -22,7 +22,7 @@ MY_core_VALA = el.vala reader.vala registry.vala template.vala units.vala util.v
 MY_core_EXTRASOURCES = registry-impl.cpp
 
 # src/logging
-MY_logging_VALA = logging.vala
+MY_logging_VALA = logging.vala strings.vala
 MY_logging_EXTRASOURCES = logging-c.h logging-c.c
 
 # src/reader

@@ -93,6 +93,7 @@
 #define GST_CAT_DEFAULT my_log_category
 
 #include <float.h>
+#include <string.h>
 #include <gst/gst.h>
 
 /**
@@ -180,5 +181,9 @@ my_canonicalize_filename (const gchar *filename,
  */
 #define my_assert_double_close(n1,n2) \
     my_assert_cmpfloat_with_epsilon((n1), (n2), DBL_EPSILON)
+
+// Fake out the compiler --- see strings.vala
+#define pfft_memchr(s, c, n) memchr((s), (c), (n))
+#define pfft_strndup(s, n) g_strndup((s), (n))
 
 #endif /* LOGGING_C_H_ */
