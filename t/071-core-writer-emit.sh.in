@@ -1,18 +1,19 @@
 #!/bin/bash
+# @configure_input@
 # t/071-core-writer-emit.sh - test My.Writer.emit("-", "...")
 
 set -eEuo pipefail
 
-here="$(cd "$(dirname "$0")" &>/dev/null ; pwd)"
+here="@abs_top_builddir@/t"
 retval=
 
 echo '1..1'
 
 if "$here/071-core-writer-emit-t" 'emit' | grep -q -E '^magicmessage$' ; then
-    echo 'ok 1'
+    echo 'ok 1 /071-core-writer-emit-sh/magicmessage'
     retval=0
 else
-    echo 'not ok 1'
+    echo 'not ok 1 /071-core-writer-emit-sh/magicmessage'
     retval=1
 fi
 

@@ -117,6 +117,8 @@ AC_CONFIG_FILES([
     src/writer/Makefile
     t/Makefile
 ])
+AC_CONFIG_FILES([t/071-core-writer-emit.sh],
+    [chmod a+x t/071-core-writer-emit.sh])
 
 AM_SILENT_RULES([yes])
 AC_OUTPUT

@@ -25,11 +25,25 @@ namespace My
 
         /**
          * Read a document.
+         * @param   filename    The file to read
          * @return A node tree of the document
          */
         public Doc read_document(string filename) throws FileError, MarkupError
         {
-            make_tree_for(filename);
+            // Read it in
+            string contents;
+            FileUtils.get_contents(filename, out contents);
+            return read_string(contents);
+        }
+
+        /**
+         * Produce a document for a string.
+         * @param   contents    The string to parse
+         * @return A node tree of the document
+         */
+        public Doc read_string(string contents) throws MarkupError
+        {
+            make_tree_for(contents);
             return new Doc((owned)root_);
         }
 
@@ -126,7 +140,6 @@ namespace My
 
                     if(command == "") {
                         lwarningo(newnode, "Special block with no command after '%s'", SBTAG);
-                        command = "";   // no nulls down the line
                     }
 
                     newnode.data.info_string = command;
@@ -257,12 +270,8 @@ namespace My
          *
          * Fills in root_.
          */
-        private void make_tree_for(string filename) throws FileError, MarkupError
+        private void make_tree_for(string contents) throws MarkupError
         {
-            // Read it in
-            string contents;
-            FileUtils.get_contents(filename, out contents);
-
             // Set up the parse
 
             root_ = node_of_ty(Elem.Type.ROOT);
@@ -271,6 +280,7 @@ namespace My
             // Processing functions.  NOTE: no closure in the current binding.
 
             Md4c.Parser parser = new Parser();
+            parser.flags = Dialect.GitHub | UNDERLINE;
             parser.enter_block = enter_block_;
             parser.leave_block = leave_block_;
             parser.enter_span = enter_span_;
