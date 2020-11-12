@@ -32,8 +32,7 @@ public static int main (string[] args)
 {
     Test.init (ref args);
     Test.set_nonfatal_assertions();
-    Test.add_func("/060-core-writer/emit_file", test_emit_file);
-    // TODO also test the write-to-stdout code path
+    Test.add_func("/070-core-writer/emit_file", test_emit_file);
 
     return Test.run();
 }

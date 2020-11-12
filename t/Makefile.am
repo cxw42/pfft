@@ -19,6 +19,7 @@ AM_DEFAULT_SOURCE_EXT = .vala
 CCLD = $(CXX)
 
 test_programs = $(MY_vala_TESTS)
+test_scripts = $(MY_script_TESTS)
 
 dist_test_data = \
 	060-bad-values.pfft \
