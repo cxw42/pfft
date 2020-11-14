@@ -7,6 +7,7 @@ if [[ ! -x ./config.status ]] || \
         ! ./config.status --config | grep -- '--enable-code-coverage'
 then
     ./bootstrap
+    touch `git ls-files '*.vala' '*.c' '*.h'`   # Force rebuilding
     ./configure --enable-code-coverage USER_VALAFLAGS='-g' CFLAGS='-g -O0' "$@"
 fi
 
