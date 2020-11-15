@@ -1,7 +1,7 @@
 Source: pfft
 Priority: optional
 Maintainer: Christopher White <cxwembedded@gmail.com>
-Build-Depends: debhelper (>= 8.0.0), devscripts
+Build-Depends: debhelper (>= 9), devscripts
 Standards-Version: 4.1.0
 Section: utils
 
