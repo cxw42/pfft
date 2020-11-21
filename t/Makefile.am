@@ -19,7 +19,9 @@ AM_DEFAULT_SOURCE_EXT = .vala
 CCLD = $(CXX)
 
 test_programs = $(MY_vala_TESTS)
+dist_test_scripts = $(MY_script_TESTS)
 
+# Files that tests rely on
 dist_test_data = \
 	060-bad-values.pfft \
 	060-bad-version.pfft \
@@ -29,9 +31,20 @@ dist_test_data = \
 	060-empty.pfft \
 	060-headfoot-markup.pfft \
 	060-no-magic.pfft \
+	200-codeblock.md \
 	200-image.md \
 	200-image-bad.md \
+	200-special.md \
+	200-special-nocmd.md \
 	basic.md \
+	$(EOL)
+
+# Other sample files
+dist_test_data += \
+	basic2para.md \
 	complex.md \
+	elements-of-geology.md \
+	image.md \
+	README.md \
 	$(EOL)
 :

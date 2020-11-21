@@ -67,7 +67,6 @@ namespace My {
          * Create an instance and set its properties.
          *
          * Sets properties from @template first, then from @options.
-         * @param m             The class registry to use
          * @param class_name    The name of the class to instantiate.
          *                      This may be different from the name in the
          *                      source code.

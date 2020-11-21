@@ -5,6 +5,9 @@
 // Copyright (c) 2020 Christopher White.  All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
+// TODO add blocks for notice/warning with embedded icons made using
+// https://github.com/akrinke/svg2cairo
+
 using My.Log;
 
 namespace My {
@@ -39,8 +42,13 @@ namespace My {
         /** None of the block fit on the page */
         NONE,
         /** Unknown status */
-        UNKNOWN,
-    }
+        UNKNOWN;
+
+        /** Return true if something was rendered */
+        public bool rendered() {
+            return (this == COMPLETE || this == PARTIAL);
+        }
+    } // RenderResult
 
 
     /** Shapes that can be rendered inline with text */
@@ -71,7 +79,7 @@ namespace My {
             /** Clone this shape */
             public abstract Shape.Base clone();
 
-        } // class Base
+        }     // class Base
 
         /**
          * An image.
@@ -85,6 +93,7 @@ namespace My {
              */
             private Pango.Rectangle? inkP = null;
 
+            /** Backing store for the paddingP property */
             private int paddingP_stg;
 
             /** The size of the padding */
@@ -100,6 +109,19 @@ namespace My {
 
             /** Default padding */
             public const double DEFAULT_PADDING_IN = 0.05;
+
+            /** Backing storage for caption property */
+            private string caption_stg = "";
+
+            /**
+             * Image caption, if any.
+             *
+             * NOTE: Image does not render the caption; it just stores it.
+             * This is to reduce the chance of circular references between
+             * Blk and Image instances, or between Layout and Image instances.
+             * See {@link My.Blocks.ParaBlk.render} for an example of caption rendering.
+             */
+            public string caption { get { return caption_stg; } }
 
             /**
              * The logical rectangle, including padding
@@ -123,7 +145,7 @@ namespace My {
 
                 inkP = Pango.Rectangle();
                 inkP.x = paddingP;
-                inkP.y = -htP;  // Bottom of the image sits on the baseline
+                inkP.y = -htP;     // Bottom of the image sits on the baseline
                 inkP.width = wdP;
                 inkP.height = htP;
 
@@ -147,9 +169,9 @@ namespace My {
 
             public override void render(Cairo.Context cr, bool do_path)
             {
-                assert(!do_path);   // XXX handle this more gracefully
+                assert(!do_path);     // XXX handle this more gracefully
 
-                double leftC, topC; // Where we started
+                double leftC, topC;     // Where we started
                 cr.get_current_point(out leftC, out topC);
 
                 // Figure out where to put the image.  Use the ink rectangle
@@ -175,12 +197,12 @@ namespace My {
                 cr.fill();
 
                 cr.set_line_width(0.5);
-                if(lenabled(TRACE)) { // ink
+                if(lenabled(TRACE)) {     // ink
                     cr.set_source_rgb(1,0.5,0.5);
                     cr.rectangle(leftC + p2c(inkP.x), topC + p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
                 }
-                if(lenabled(DEBUG)) { // logical
+                if(lenabled(DEBUG)) {     // logical
                     cr.set_source_rgb(1,0,0);
                     cr.rectangle(leftC + p2c(logP.x), topC + p2c(logP.y), p2c(logP.width), p2c(logP.height));
                     cr.stroke();
@@ -191,21 +213,23 @@ namespace My {
 
             public override Shape.Base clone()
             {
-                Image retval = new Image(this.image, this.paddingP);
+                Image retval = new Image(this.image, this.caption, this.paddingP);
                 return retval;
             }
 
             /**
              * Constructor
              * @param image     The image
+             * @param caption   The image caption, if any.
              * @param paddingP  The padding, in Pango units.  -1 (the default)
              *                  means to use DEFAULT_PADDING_IN.
              */
-            public Image(Cairo.ImageSurface image, int paddingP = -1)
+            public Image(Cairo.ImageSurface image, string caption = "", int paddingP = -1)
             {
                 this.image = image;
+                this.caption_stg = caption;
                 this.paddingP = (paddingP == -1) ? i2p(DEFAULT_PADDING_IN) : paddingP;
-            } // ctor
+            }     // ctor
 
             // constructors that load from files
 
@@ -219,23 +243,30 @@ namespace My {
              * @param doc_path  Where the referencing file is.
              *                  This is a string rather than a File so it
              *                  can later be expanded to URLs.
+             * @param caption   The image caption, if any.
+             * @param paddingP  Extra padding around the image, if any
              */
-            public Image.from_href(string href, string doc_path, int paddingP = -1)
+            public Image.from_href(string href, string doc_path,
+                string caption = "", int paddingP = -1)
             {
                 Cairo.ImageSurface s;
 
-                string docfn = My.canonicalize_filename(doc_path); // make absolute
+                string docfn = My.canonicalize_filename(doc_path);     // make absolute
                 string docdir = File.new_for_path(docfn).get_parent().get_path();
                 string imgfn = My.canonicalize_filename(href, docdir);
                 s = new Cairo.ImageSurface.from_png(imgfn);
-                this(s, paddingP);
-                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f",
-                    imgfn, href, doc_path, s,
-                    c2i(image.get_width()), c2i(image.get_height()));
-            } // Image.from_href()
 
-        } // class Image
-    } // namespace Shape
+                this(s, caption, paddingP);
+
+                llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f, caption `%s'",
+                    imgfn, href, doc_path, s,
+                    c2i(image.get_width()), c2i(image.get_height()),
+                    this.caption
+                );
+            }     // Image.from_href()
+
+        }     // class Image
+    }     // namespace Shape
 
     namespace Blocks {
 
@@ -264,7 +295,7 @@ namespace My {
         /** Placeholder character used for images */
         public string OBJ_REPL_CHAR()
         {
-            return U(0xfffc); // Unicode OBJECT REPLACEMENT CHARACTER
+            return U(0xfffc);     // Unicode OBJECT REPLACEMENT CHARACTER
         }
 
         /** Types of bullets/numbers */
@@ -307,8 +338,8 @@ namespace My {
                 // Modified from https://www.perlmonks.org/?node_id=1168587 by
                 // MidLifeXis, https://www.perlmonks.org/?node_id=272364
                 var sb = new StringBuilder();
-                uint n = num - 1; // shift to 0-based
-                uint adj = 0;   // 0 the first time through, then -1
+                uint n = num - 1;     // shift to 0-based
+                uint adj = 0;     // 0 the first time through, then -1
 
                 do {
                     sb.prepend(aplus(n%26 + adj));
@@ -328,8 +359,8 @@ namespace My {
                 var sb = new StringBuilder();
 
                 string control = "m2d5c2l5x2v5i";
-                int j, k; // mysterious indices into `control`
-                uint u, v; // mysterious numbers
+                int j, k;     // mysterious indices into `control`
+                uint u, v;     // mysterious numbers
                 j = 0;
                 v = 1000;
 
@@ -338,7 +369,7 @@ namespace My {
                         sb.append_c(control[j]);
                         num -= v;
                     }
-                    if(num <= 0) { // nonpositive input produces no output
+                    if(num <= 0) {     // nonpositive input produces no output
                         break;
                     }
 
@@ -359,7 +390,7 @@ namespace My {
                 }
 
                 return sb.str;
-            } // roman()
+            }     // roman()
 
             private static string smallU(uint codepoint)
             {
@@ -407,7 +438,7 @@ namespace My {
                     return num.to_string();
                 }
             }
-        } // enum IndentType
+        }     // enum IndentType
 
         ///////////////////////////////////////////////////////////////////////
 
@@ -439,6 +470,7 @@ namespace My {
 
             if(lenabled(DEBUG)) {
                 var metrics = layout.get_context().get_metrics(font_description, null);
+                ldebugo(layout, "--- Font metrics ----------------------------");
                 ldebugo(layout, "approx char width       %f", p2i(metrics.get_approximate_char_width()));
                 ldebugo(layout, "approx digit width      %f", p2i(metrics.get_approximate_digit_width()));
                 ldebugo(layout, "ascent                  %f", p2i(metrics.get_ascent()));
@@ -462,7 +494,7 @@ namespace My {
             layout.set_justify(justify);
 
             return layout;
-        } // new_layout()
+        }     // new_layout()
 
         ///////////////////////////////////////////////////////////////////////
 
@@ -519,6 +551,12 @@ namespace My {
                 return whole_markup;
             }
 
+            /** Invalidate the cached whole_markup() */
+            protected void recalc_whole_markup()
+            {
+                whole_markup = null;
+            }
+
             /**
              * A layout instance to use.
              *
@@ -548,7 +586,7 @@ namespace My {
                     shapes = new Gee.LinkedList<Shape.Base>();
                 }
                 shapes.add(shape);
-            } // add_shape()
+            }     // add_shape()
 
             /** Attributes representing the shapes */
             protected Pango.AttrList shape_attrs = null;
@@ -582,13 +620,13 @@ namespace My {
                 // is the same as the number of shapes
                 int[] start_offset_bytes = {};
                 int[] end_offset_bytes = {};
-                var re = new Regex(OBJ_REPL_CHAR());    // TODO move out of this fn, or handle/forward the RegexError
+                var re = new Regex(OBJ_REPL_CHAR());     // TODO move out of this fn, or handle/forward the RegexError
                 MatchInfo matches;
                 // lmemdumpo(this, "OBJ_REPL_CHAR", OBJ_REPL_CHAR(), OBJ_REPL_CHAR().length);
                 // lmemdumpo(this, "whole_markup", get_whole_markup(), get_whole_markup().length);
                 if(!re.match_full(text, -1, 0, 0, out matches)) {
                     lerroro(this, "No obj repl chars");
-                    assert(false);  // TODO
+                    assert(false);     // TODO
                 }
                 int shapeidx = -1;
                 while(matches.matches()) {
@@ -596,7 +634,7 @@ namespace My {
                     int start_pos, end_pos;
                     if(!matches.fetch_pos(0, out start_pos, out end_pos)) {
                         lerroro(this, "Could not fetch match position");
-                        assert(false);  // TODO
+                        assert(false);     // TODO
                     }
                     ltraceo(this, "shape %d repl char %d->%d", shapeidx, start_pos, end_pos);
                     start_offset_bytes += start_pos;
@@ -606,7 +644,7 @@ namespace My {
 
                 if(start_offset_bytes.length != shapes.size) {
                     lerroro(this, "Wrong number of obj repl chars/shapes");
-                    assert(false);  // TODO
+                    assert(false);     // TODO
                 }
                 ltraceo(this, "Found %d match(es)", start_offset_bytes.length);
 
@@ -625,7 +663,7 @@ namespace My {
                     shape_attrs.insert((owned)attr);
                 }
 
-            } // fill_shape_attrs()
+            }     // fill_shape_attrs()
 
             /** Add shape_attrs to the list of attributes for a layout */
             private void append_shape_attrs_to(Pango.Layout layout)
@@ -633,7 +671,7 @@ namespace My {
                 var old_attributes = layout.get_attributes();
                 if(old_attributes == null) {
                     ltraceo(this, "Setting attributes to %p", shape_attrs);
-                    layout.set_attributes(shape_attrs); // OK even if shape_attrs==null
+                    layout.set_attributes(shape_attrs);     // OK even if shape_attrs==null
                     return;
                 }
 
@@ -691,8 +729,8 @@ namespace My {
                         }
                     }
                     ltraceo(this, "Total %d attrs", entries);
-                } // endif TRACE
-            } // append_shape_attrs_to()
+                }     // endif TRACE
+            }     // append_shape_attrs_to()
 
             /**
              * Render a shape
@@ -703,7 +741,7 @@ namespace My {
                 unowned Shape.Base shape = attr.data;
                 assert(shape != null);
                 shape.render(cr, do_path);
-            } // render_shape()
+            }     // render_shape()
 
             /**
              * Render a block or portion thereof.
@@ -731,7 +769,7 @@ namespace My {
                 Pango.Layout layout,
                 int rightP, int bottomP)
             {
-                double leftC, topC; // Where we started
+                double leftC, topC;     // Where we started
 
                 // Layout coords: Origin at the upper-left of the layout;
                 // positive X to the right and positive Y down.
@@ -758,7 +796,7 @@ namespace My {
                     if(c2p(leftC) >= rightP ) {
                         linfoo(this, "too wide: %f >= %f",
                             c2i(leftC), p2i(rightP));
-                        return RenderResult.ERROR; // too wide
+                        return RenderResult.ERROR;     // too wide
                     }
 
                     layout.set_width(rightP - c2p(leftC));
@@ -798,12 +836,12 @@ namespace My {
 
                 } else {
                     layout.get_extents(out layout_inkP, out layout_logicalP);
-                } // endif need to set up the layout else
+                }     // endif need to set up the layout else
 
                 int lineno = 0;
-                int yP = c2p(topC); // Current Y
+                int yP = c2p(topC);     // Current Y
 
-                yP += layout_logicalP.y;  // Leave room if the layout extends above its top (y=0)?
+                yP += layout_logicalP.y;     // Leave room if the layout extends above its top (y=0)?
                 // TODO only adjust yP on the first page of a layout?
 
                 var iter = layout.get_iter();
@@ -816,7 +854,7 @@ namespace My {
                 // I can tell from inspecting the source).
                 unowned Pango.LayoutLine curr_line = iter.get_line();
                 bool rendered_last_line = false;
-                bool did_render = false; // did we render anything during this call?
+                bool did_render = false;     // did we render anything during this call?
 
                 RenderResult retval = UNKNOWN;
 
@@ -829,7 +867,7 @@ namespace My {
                 Pango.Rectangle line_inkP, line_logicalP;
 
                 ldebugo(this, "BEGIN - %d lines in layout", layout.get_line_count());
-                while(true) {   // Iterate over lines.  Manual condition checks below.
+                while(true) {     // Iterate over lines.  Manual condition checks below.
 
                     // Advance to the first line not yet rendered
                     if(nlines_rendered > 0 && lineno < nlines_rendered) {
@@ -841,7 +879,7 @@ namespace My {
                         if(!iter.next_line()) {
                             // TODO can this happen?
                             lerroro(this, "Ran of the end of iter %p", iter);
-                            return RenderResult.ERROR;  // ???
+                            return RenderResult.ERROR;     // ???
                         }
 
                         curr_line = iter.get_line();
@@ -893,11 +931,11 @@ namespace My {
                     net_inkP.width = line_inkP.width;
                     net_inkP.height = line_inkP.height;
 
-                    if(lenabled(DEBUG)) { // draw the rectangles
+                    if(lenabled(DEBUG)) {     // draw the rectangles
                         cr.save();
                         cr.set_antialias(NONE);
                         cr.set_line_width(0.5);
-                        if(lenabled(TRACE)) { // ink: less-saturated blue
+                        if(lenabled(TRACE)) {     // ink: less-saturated blue
                             cr.set_source_rgb(0.5, 0.5, 1);
                             cr.rectangle(
                                 p2c(net_inkP.x),
@@ -907,7 +945,7 @@ namespace My {
                             );
                             cr.stroke();
                         }
-                        if(lenabled(DEBUG)) { // logical: more-saturated blue
+                        if(lenabled(DEBUG)) {     // logical: more-saturated blue
                             cr.set_source_rgb(0,0,1);
                             cr.rectangle(
                                 p2c(net_logicalP.x),
@@ -936,7 +974,7 @@ namespace My {
                     llogo(this, "    Rendering at (%f, %f)", p2i(this_xP), p2i(this_yP));
 
                     cr.move_to(p2c(this_xP), p2c(this_yP));
-                    Pango.cairo_show_layout_line(cr, curr_line); // UNSETS the current point
+                    Pango.cairo_show_layout_line(cr, curr_line);     // UNSETS the current point
                     did_render = true;
 
                     // Advance to the next line
@@ -956,7 +994,7 @@ namespace My {
                     }
                     ++lineno;
                     curr_line = iter.get_line();
-                } // for each line
+                }     // for each line
 
                 if(rendered_last_line) {
                     // we finished the block while we were on this page
@@ -972,7 +1010,7 @@ namespace My {
                     nlines_rendered, retval.to_string());
 
                 return retval;
-            } // render_layout()
+            }     // render_layout()
 
             /**
              * Render this block at the current position on the context.
@@ -1009,13 +1047,19 @@ namespace My {
                 this.layout = layout;
             }
 
-        } // class Blk
+        }     // class Blk
 
         /**
          * A block for body copy or headers.
          *
-         * This is a thin wrapper around Blk to carry the non-OTHER
+         * This is a wrapper around Blk to carry the non-OTHER
          * parskip_category and handle is_void.
+         *
+         * It also special-cases some things:
+         *
+         * * Images: if the only thing in a paragraph is an image, and that
+         * image has a non-empty, non-whitespace title, the image will be
+         * rendered centered, with the title below it as a caption.
          */
         public class ParaBlk : Blk
         {
@@ -1038,7 +1082,60 @@ namespace My {
                 return (get_whole_markup() == "");
             }
 
-        } // class ParaBlk
+            /**
+             * Test whether this is an image special case.
+             *
+             * If the block has no content other than exactly one
+             * shape, and that shape is an image with a nonempty,
+             * not-all-whitespace caption, returns the caption.
+             * Otherwise, returns "".
+             */
+            private string special_case_caption()
+            {
+                if(shapes == null) return "";
+
+                // Test the existing markup.  This has the convenient side
+                // effect that it keeps us from adding the caption to the
+                // text multiple times, if layout() is called more than once.
+                if(get_whole_markup() != OBJ_REPL_CHAR()) return "";
+
+                int nshapes = 0;
+                string caption = "";
+                foreach(Shape.Base shape in shapes) {
+                    if(++nshapes > 1) return "";
+                    var image = shape as Shape.Image;
+                    if(image == null) return "";
+                    caption = image.caption;
+                    caption._strip();
+                    if(caption == "") return "";    // no need to keep looping
+                }
+
+                return caption;     // if we get here, it's the special case
+            }
+
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                // Special case images
+                var caption = special_case_caption();
+                if(caption != "") {
+                    post_markup += "\n" + Markup.escape_text(caption);
+                    recalc_whole_markup();
+
+                    // Make a new layout with the attributes we need.
+                    // This is in case layout() is called multiple times.
+                    layout = layout.copy();
+                    layout.set_alignment(CENTER);
+                    llogo(this, "Image special case");
+                    lmemdumpo(this, "modified markup", get_whole_markup(),
+                        get_whole_markup().length);
+                }
+
+                // Render
+                return render_layout(cr, layout, rightP, bottomP);
+            }
+
+        }     // class ParaBlk
 
         /**
          * A block that renders a bullet and a text block
@@ -1091,7 +1188,7 @@ namespace My {
 
                 double xC, yC, leftC, topC;
                 cr.get_current_point(out leftC, out topC);
-                if(lenabled(DEBUG)) { // DEBUG
+                if(lenabled(DEBUG)) {     // DEBUG
                     llogo(this, "Pre-render at (%f, %f)", c2i(leftC), c2i(topC));
                 }
 
@@ -1112,14 +1209,14 @@ namespace My {
                 var result = render_layout(cr, layout, rightP, bottomP);
 
                 // Move back to where the next block will start
-                cr.get_current_point(out xC, out yC); // where the copy left us
+                cr.get_current_point(out xC, out yC);     // where the copy left us
                 cr.move_to(leftC, yC);
 
-                if(!is_first_chunk) { // Nothing more to do
+                if(!is_first_chunk) {     // Nothing more to do
                     return result;
                 }
-                if(result == NONE) { // None of the block fit on the page
-                    return result;
+                if(result == NONE) {     // None of the block fit on the page
+                    return result;      // TODO use result.rendered()?
                 }
 
                 // Something rendered on the first page, so render the bullet.
@@ -1135,9 +1232,9 @@ namespace My {
                 cr.move_to(leftC, yC);
                 ldebugo(this, "Rendered bullet - now at (%f, %f)", c2i(leftC), c2i(yC));
 
-                return result; // COMPLETE or PARTIAL from render_layout()
+                return result;     // COMPLETE or PARTIAL from render_layout()
             }
-        } // class BulletBlk
+        }     // class BulletBlk
 
         /**
          * A block that renders a horizontal rule
@@ -1148,7 +1245,7 @@ namespace My {
             private int leftP = 0;
 
             /** The amount of vertical space the rule occupies */
-            private int heightP = c2p(12); // 12 pt --- assumes points for Cairo units
+            private int heightP = c2p(12);     // 12 pt --- assumes points for Cairo units
 
             public HRBlk(Pango.Layout layout, int leftP)
             {
@@ -1165,8 +1262,8 @@ namespace My {
             public override RenderResult render(Cairo.Context cr,
                 int rightP, int bottomP)
             {
-                double xC, yC; // Cairo current points (Cairo.PdfSurface units are pts)
-                double leftC; // left margin
+                double xC, yC;     // Cairo current points (Cairo.PdfSurface units are pts)
+                double leftC;     // left margin
                 double heightC = heightP/Pango.SCALE;
 
                 cr.get_current_point(out xC, out yC);
@@ -1189,7 +1286,7 @@ namespace My {
                 // render the rule
                 cr.save();
                 cr.set_source_rgb(0,0,0);
-                cr.set_line_width(0.75); // pt, I think
+                cr.set_line_width(0.75);     // pt, I think
                 cr.move_to(leftC + p2c(leftP), yC + heightC*0.5);
                 cr.line_to(p2c(rightP), yC + heightC*0.5);
                 cr.stroke();
@@ -1201,7 +1298,7 @@ namespace My {
                 // ldebugo(this, "Render rule\n");
                 return RenderResult.COMPLETE;
             }
-        } // class HRBlk
+        }     // class HRBlk
 
         /**
          * A block that renders a block quote
@@ -1223,6 +1320,11 @@ namespace My {
                 this.text_leftP = text_leftP;
             }
 
+            public override bool is_void()
+            {
+                return (get_whole_markup() == "");
+            }
+
             /**
              * Render the text and a sidebar.
              */
@@ -1233,8 +1335,8 @@ namespace My {
                     return RenderResult.COMPLETE;
                 }
 
-                double x1C, y1C; // Starting points
-                double x2C, y2C; // Ending points of the text block
+                double x1C, y1C;     // Starting points
+                double x2C, y2C;     // Ending points of the text block
 
                 cr.get_current_point(out x1C, out y1C);
 
@@ -1249,7 +1351,7 @@ namespace My {
                 // Try to render the markup
                 cr.move_to(x1C + p2c(text_leftP), y1C);
                 var result = render_layout(cr, layout, rightP, bottomP);
-                if(result != COMPLETE) {
+                if(result != COMPLETE) {        // TODO use result.rendered()?
                     return result;
                 }
 
@@ -1269,7 +1371,91 @@ namespace My {
 
                 return COMPLETE;
             }
-        } // class QuoteBlk
+        }     // class QuoteBlk
 
-    } // namespace Blocks
-} // namespace My
+        /**
+         * A block that renders a code block
+         */
+        public class CodeBlk : Blk
+        {
+
+            /**
+             * The width of the gray area around the code block
+             */
+            private int gray_widthP;
+
+            public CodeBlk(Pango.Layout layout, int gray_widthP)
+            {
+                base(layout);
+
+                this.parskip_category = OTHER;
+                this.gray_widthP = gray_widthP;
+            }
+
+            public override bool is_void()
+            {
+                return (get_whole_markup() == "");
+            }
+
+            /**
+             * Render the text and a background.
+             */
+            public override RenderResult render(Cairo.Context cr,
+                int rightP, int bottomP)
+            {
+                if(get_whole_markup() == "") {
+                    return RenderResult.COMPLETE;
+                }
+
+                double x1C, y1C;     // Starting points
+                double x2C, y2C;     // Ending points of the text block
+
+                cr.get_current_point(out x1C, out y1C);
+
+                // Out of range
+                if((c2p(y1C) + 2*gray_widthP) >= bottomP) {
+                    return RenderResult.NONE;
+                }
+                if((c2p(x1C) + gray_widthP) >= rightP) {
+                    return RenderResult.ERROR;
+                }
+
+                // Try to render the markup.
+                // Shift to add the top and left margins.
+                cr.move_to(x1C + p2c(gray_widthP), y1C + p2c(gray_widthP));
+                cr.push_group();
+                var result = render_layout(cr, layout,
+                        rightP - gray_widthP,                    // right margin
+                        bottomP);
+                if(!result.rendered()) {
+                    cr.pop_group();
+                    return result;
+                }
+
+                // Save the text
+                var text = cr.pop_group();
+                cr.get_current_point(out x2C, out y2C);
+                y2C += p2c(gray_widthP);    // bottom margin
+
+                // Render a gray background behind where the text is going to go
+                cr.save();
+                cr.set_source_rgb(0.9,0.9,0.9);
+                cr.rectangle(x1C, y1C, p2c(rightP)-x1C, y2C-y1C);
+                cr.fill();
+                cr.restore();
+
+                // Render the text
+                cr.save();
+                cr.set_source(text);
+                cr.rectangle(x1C, y1C, x2C-x1C, y2C-y1C);
+                cr.paint();
+                cr.restore();
+
+                // Finish
+                cr.move_to(x1C, y2C);
+                return result;
+            }
+        }     // class CodeBlk
+
+    }     // namespace Blocks
+}     // namespace My

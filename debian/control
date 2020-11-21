@@ -1,0 +1,13 @@
+Source: pfft
+Priority: optional
+Maintainer: Christopher White <cxwembedded@gmail.com>
+Build-Depends: debhelper (>= 9), devscripts
+Standards-Version: 4.1.0
+Section: utils
+
+Package: pfft
+Priority: optional
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Lightweight markdown-to-PDF converter
+ Makes PDFs from Markdown files.

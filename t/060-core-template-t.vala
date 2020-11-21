@@ -22,6 +22,8 @@ void test_load_file()
         var ver = template.data.get_integer("pfft", "version");
         assert_true(ver==1);
 
+        assert_true(template.bw);
+
         // Note: direct float comparisons since these are ints in the file
         assert_true(template.paperheightI == 21);
         assert_true(template.paperwidthI == 22);
@@ -196,6 +198,8 @@ void test_empty_file()
             }   // LCOV_EXCL_STOP
 
             // Check the default values.
+            assert_false(template.bw);
+
             // Caution: direct float comparisons
             assert_true(template.paperheightI == 11);
             assert_true(template.paperwidthI == 8.5);

@@ -1,5 +1,5 @@
 dnl === Basic setup =======================================================
-AC_INIT([pfft markdown-to-PDF converter], [0.0.4], [], [pfft], [https://github.com/cxw42/pfft])
+AC_INIT([pfft markdown-to-PDF converter], [0.0.5], [], [pfft], [https://github.com/cxw42/pfft])
 AC_PREREQ([2.65])
 AC_COPYRIGHT([Copyright (C) 2020 Christopher White])
 AC_CONFIG_SRCDIR([rules.mk])    dnl make sure the srcdir is correctly specified
@@ -117,6 +117,8 @@ AC_CONFIG_FILES([
     src/writer/Makefile
     t/Makefile
 ])
+AC_CONFIG_FILES([t/071-core-writer-emit.sh],
+    [chmod a+x t/071-core-writer-emit.sh])
 
 AM_SILENT_RULES([yes])
 AC_OUTPUT

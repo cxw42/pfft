@@ -4,6 +4,9 @@
 [pfft]
 version = 1
 
+[render]
+bw = true
+
 [page]
 # TODO support units.  For now, everything is in inches.
 # Maybe https://github.com/orangeduck/mpc ?

@@ -25,16 +25,23 @@ Fork and clone this repo.  Then:
 
        $ sudo apt install -y build-essential valac valadoc graphviz-dev help2man
 
-2. Install the latest stable version of Vala:
+2. Install development dependencies for pfft:
+
+       $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl lcov
+
+3. Install Vala 0.48 or higher.  The easiest way is to use the
+   [Vala Next PPA](https://launchpad.net/~vala-team/+archive/ubuntu/next):
+
+       $ sudo add-apt-repository -y ppa:vala-team/next
+       $ sudo apt update
+       $ sudo install valac
+
+   Alternatively, you can build from source:
 
        $ git clone https://gitlab.gnome.org/GNOME/vala.git
        $ cd vala
        $ git checkout 0.48.6   # or whatever the latest stable is
        $ ./autogen.sh && make -j4 && sudo make install
-
-3. Install development dependencies for pfft:
-
-       $ sudo apt install -y libpango1.0-dev libgee-0.8-dev libgstreamer1.0-dev autotools-dev uncrustify perl lcov
 
 4. In your clone of this repo, initialize submodules:
 
@@ -72,6 +79,13 @@ open `pfft-coverage/index.html` in a Web browser.
 
 This will build `pfft-VERSION.tar.gz` and check it.
 
+### Building a Debian package
+
+1. Install build dependencies (one-time step):
+   `sudo apt install -y debhelper devscripts`
+2. After cloning, run `dpkg-buildpackage -us -uc` in the source directory.
+   The package will be left in the parent directory.
+
 ## Pull requests
 
 PRs are welcome!  I prefer PRs with one commit that adds tests and a subsequent
@@ -82,6 +96,7 @@ Before submitting a PR, please run `make prep`.  This will:
 - `make prettyprint` (conform to the coding style)
 - `make check` (must pass the tests!)
 - `make all build-tests && prove -v` (runs the tests a different way)
+- `make html` (make sure there are no valadoc errors)
 - `make distcheck` (make sure the tarball will build)
 
 ## Notes on compiling Vala sources

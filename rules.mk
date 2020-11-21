@@ -22,7 +22,7 @@ MY_core_VALA = el.vala reader.vala registry.vala template.vala units.vala util.v
 MY_core_EXTRASOURCES = registry-impl.cpp
 
 # src/logging
-MY_logging_VALA = logging.vala
+MY_logging_VALA = logging.vala strings.vala
 MY_logging_EXTRASOURCES = logging-c.h logging-c.c
 
 # src/reader
@@ -64,10 +64,15 @@ MY_vala_TESTS = \
 	055-core-units-t \
 	060-core-template-t \
 	070-core-writer-t \
+	071-core-writer-emit-t \
 	100-logging-t \
 	200-md4c-reader-t \
 	300-pango-markup-writer-t \
 	305-pango-markup-utils-t \
+	$(EOL)
+
+MY_script_TESTS = \
+	071-core-writer-emit.sh \
 	$(EOL)
 
 # Vala dependencies

@@ -29,14 +29,18 @@ namespace My {
 
         // --- Accessors for the template's contents ---
 
+        // Rendering parameters
+        [Description(nick = "Black & white", blurb = "If set, output monochrome")]
+        public bool bw { get; set; default = false; }
+
         // Page parameters (unit suffixes: Inches, Cairo, Pango, poinT)
         [Description(nick = "Paper width (in.)", blurb = "Paper width, in inches")]
         public double paperwidthI { get; set; default = 8.5; }
         [Description(nick = "Paper height (in.)", blurb = "Paper height, in inches")]
         public double paperheightI { get; set; default = 11.0; }
-        [Description(nick = "Left margin (in.)", blurb = "Left margin, in inches")]
 
         // Margin parameters
+        [Description(nick = "Left margin (in.)", blurb = "Left margin, in inches")]
         public double lmarginI { get; set; default = 1.0; }
         [Description(nick = "Top margin (in.)", blurb = "Top margin, in inches")]
         public double tmarginI { get; set; default = 1.0; }
@@ -253,6 +257,11 @@ namespace My {
             }
 
             // Load whatever data we have
+            if(data.has_group("render")) {
+                set_from_file("bw", "render", "bw");
+                ldebugo(this, "render in %s", bw ? "black & white" : "color");
+            }
+
             if(data.has_group("page")) {
                 set_from_file("paperheightI", "page", "height", dimension);
                 ldebugo(this, "paper height %f in", paperheightI);

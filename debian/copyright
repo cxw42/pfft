@@ -1,0 +1,501 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pfft
+Source: <url://github.com/cxw42/pfft>
+#
+# Please double check copyright with the licensecheck(1) command.
+
+Files:     .editorconfig
+           .gitignore
+           .gitmodules
+           .travis.yml
+           .uncrustifyrc
+           CONTRIBUTING.md
+           Makefile.am
+           README.md
+           aminclude_static.am
+           bootstrap
+           config.h
+           config.h.in
+           configure.ac
+           coverage.sh
+           debian/.editorconfig
+           debian/control
+           doc/.gitignore
+           doc/Makefile.am
+           glib-tap.mk
+           m4/.gitignore
+           m4/glibtests.m4
+           rules.mk
+           src/.gitignore
+           src/Makefile.am
+           src/app/.gitignore
+           src/app/Makefile.am
+           src/app/pfft-app.h
+           src/app/pfft-app.vapi
+           src/core/.gitignore
+           src/core/Makefile.am
+           src/core/pfft-core-most.h
+           src/core/pfft-core.h
+           src/core/pfft-core.vapi
+           src/logging/.gitignore
+           src/logging/Makefile.am
+           src/logging/README.md
+           src/logging/dummy.c
+           src/logging/pfft-logging.h
+           src/logging/pfft-logging.vapi
+           src/md4c/.gitignore
+           src/md4c/.travis.yml
+           src/md4c/CHANGELOG.md
+           src/md4c/CMakeLists.txt
+           src/md4c/README.md
+           src/md4c/appveyor.yml
+           src/md4c/codecov.yml
+           src/md4c/md2html/CMakeLists.txt
+           src/md4c/md2html/md2html.1
+           src/md4c/scripts/build_folding_map.py
+           src/md4c/scripts/build_punct_map.py
+           src/md4c/scripts/build_whitespace_map.py
+           src/md4c/scripts/coverity.sh
+           src/md4c/scripts/run-tests.sh
+           src/md4c/src/CMakeLists.txt
+           src/md4c/src/md4c-html.pc.in
+           src/md4c/src/md4c.pc.in
+           src/md4c/test/cmark.py
+           src/md4c/test/coverage.txt
+           src/md4c/test/fuzz-input/commonmark.md
+           src/md4c/test/fuzz-input/gfm.md
+           src/md4c/test/fuzz-input/latex-math.md
+           src/md4c/test/fuzz-input/wiki.md
+           src/md4c/test/latex-math.txt
+           src/md4c/test/normalize.py
+           src/md4c/test/pathological_tests.py
+           src/md4c/test/permissive-email-autolinks.txt
+           src/md4c/test/permissive-url-autolinks.txt
+           src/md4c/test/permissive-www-autolinks.txt
+           src/md4c/test/spec_tests.py
+           src/md4c/test/strikethrough.txt
+           src/md4c/test/tables.txt
+           src/md4c/test/tasklists.txt
+           src/md4c/test/underline.txt
+           src/md4c/test/wiki-links.txt
+           src/nop.cpp
+           src/reader/.gitignore
+           src/reader/Makefile.am
+           src/reader/pfft-reader.h
+           src/reader/pfft-reader.vapi
+           src/writer/.gitignore
+           src/writer/Makefile.am
+           src/writer/pfft-writer.h
+           src/writer/pfft-writer.vapi
+           t/.gitignore
+           t/060-bad-values.pfft
+           t/060-bad-version.pfft
+           t/060-both-headleft.pfft
+           t/060-core-template.pfft
+           t/060-empty-groups.pfft
+           t/060-empty.pfft
+           t/060-no-magic.pfft
+           t/200-image-bad.md
+           t/200-image.md
+           t/Makefile.am
+           t/README.md
+           t/basic.md
+           t/basic2para.md
+           t/complex.md
+           t/image.md
+           t/linux.png
+           tap-test
+Copyright: __NO_COPYRIGHT_NOR_LICENSE__
+License:   __NO_COPYRIGHT_NOR_LICENSE__
+
+Files:     debian/rules
+           src/app/myconfig.vapi
+           src/app/pfft-shim.c
+           src/app/pfft.c
+           src/app/pfft.vala
+           src/core/el.c
+           src/core/logging.c
+           src/core/reader.c
+           src/core/reader.vala
+           src/core/registry-impl.cpp
+           src/core/registry.c
+           src/core/registry.h
+           src/core/registry.vala
+           src/core/template.c
+           src/core/template.vala
+           src/core/units.c
+           src/core/units.vala
+           src/core/util.c
+           src/core/util.vala
+           src/core/writer.c
+           src/core/writer.vala
+           src/main.c
+           src/pfft.c
+           src/reader/markdown-snapd.c
+           src/reader/md4c-reader.c
+           src/reader/md4c-reader.vala
+           src/reader/md4c.c
+           src/reader/reader-shim.c
+           src/reader/reader-shim.h
+           src/reader/register.c
+           src/writer/dumper.c
+           src/writer/dumper.vala
+           src/writer/pango-blocks.c
+           src/writer/pango-blocks.vala
+           src/writer/pango-markup.c
+           src/writer/pango-markup.vala
+           src/writer/register.c
+           t/001-basic-t.c
+           t/001-sanity-t.c
+           t/001-sanity-t.vala
+           t/010-core-util-t.c
+           t/010-core-util-t.vala
+           t/020-registry-t.c
+           t/020-registry-t.vala
+           t/021-registry-classmap-t.c
+           t/021-registry-classmap-t.vala
+           t/050-core-el-t.c
+           t/050-core-el-t.vala
+           t/055-core-units-t.c
+           t/055-core-units-t.vala
+           t/060-core-template-t.c
+           t/060-core-template-t.vala
+           t/070-core-writer-t.c
+           t/070-core-writer-t.vala
+           t/100-logging-t.c
+           t/100-logging-t.vala
+           t/200-md4c-reader-t.c
+           t/200-md4c-reader-t.vala
+           t/300-pango-markup-writer-t.c
+           t/300-pango-markup-writer-t.vala
+           t/305-pango-markup-utils-t.c
+           t/305-pango-markup-utils-t.vala
+Copyright: 2020 Christopher White <cxwembedded@gmail.com> SPDX-License-Identifier: BSD-3-Clause
+           2020 Christopher White. SPDX-License-Identifier: BSD-3-Clause
+License:   BSD-3-Clause
+
+Files:     src/logging/logging-c.c
+           src/logging/logging.c
+           src/logging/logging.vala
+Copyright: 2020 Christopher White. SPDX-License-Identifier: LGPL-2.0-or-later
+           2020 Christopher White. SPDX-License-Identifier: LGPL-2.1-or-later
+License:   LGPL
+
+Files:     Makefile.in
+           aclocal.m4
+           build-aux/compile
+           build-aux/depcomp
+           build-aux/install-sh
+           build-aux/missing
+           build-aux/test-driver
+           configure
+           doc/Makefile.in
+           m4/ax_ac_append_to_file.m4
+           m4/ax_ac_print_to_file.m4
+           m4/ax_add_am_macro_static.m4
+           m4/ax_am_macros_static.m4
+           m4/ax_check_gnu_make.m4
+           m4/ax_file_escapes.m4
+           m4/pkg.m4
+           src/Makefile.in
+           src/app/Makefile.in
+           src/core/Makefile.in
+           src/logging/Makefile.in
+           src/reader/Makefile.in
+           src/writer/Makefile.in
+           t/Makefile.in
+Copyright: 1992-2018 Free Software Foundation, Inc.
+           1994 X Consortium
+           2004 Scott James Remnant <scott@netsplit.com>.
+           2008 John Darrington <j.darrington@elvis.murdoch.edu.au>
+           2008-2009 Tom Howard <tomhoward@users.sf.net>
+           2009 Allan Caffee <allan.caffee@gmail.com>
+           2012-2015 Dan Nicholson <dbn.lists@gmail.com>
+           2015 Enrico M. Crisostomo <enrico.m.crisostomo@gmail.com>
+           2020 Christopher White
+License:   __AUTO_PERMISSIVE__
+ Autogenerated files with permissive licenses.
+
+Files:     src/md4c/LICENSE.md
+           src/md4c/md2html/cmdline.c
+           src/md4c/md2html/cmdline.h
+           src/md4c/md2html/md2html.c
+           src/md4c/src/entity.c
+           src/md4c/src/entity.h
+           src/md4c/src/md4c-html.c
+           src/md4c/src/md4c-html.h
+           src/md4c/src/md4c.c
+           src/md4c/src/md4c.h
+Copyright: 2016-2020 Martin Mitas
+           2016-2020 Martin Mitáš
+License:   Expat
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the “Software”),
+ to deal in the Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ and/or sell copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included
+ in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ IN THE SOFTWARE.
+
+Files:     Makefile
+           doc/Makefile
+           src/Makefile
+           src/app/Makefile
+           src/core/Makefile
+           src/logging/Makefile
+           src/reader/Makefile
+           src/writer/Makefile
+           t/Makefile
+Copyright: 1994-2018 Free Software Foundation, Inc.
+License:   PERMISSIVE
+ This Makefile.in is free software; the Free Software Foundation
+ gives unlimited permission to copy and/or distribute it,
+ with or without modifications, as long as this notice is preserved.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+ even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE.
+ .
+ common rules
+
+Files:     src/reader/md4c-shim.c
+           src/reader/md4c-shim.h
+           src/reader/md4c.vapi
+Copyright: 2020 Christopher White. SPDX-License-Identifier: BSD-3-Clause
+License:   BSD-3-Clause
+ See md4c.h license at end
+
+Files:     src/md4c/scripts/unicode/CaseFolding.txt
+           src/md4c/scripts/unicode/DerivedGeneralCategory.txt
+Copyright: 2019 Unicode®, Inc.
+License:   __UNKNOWN__
+ Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
+
+Files:     src/logging/logging-c.h
+Copyright: 2000 Red Hat, Inc.
+           2020 Christopher White. SPDX-License-Identifier: LGPL-2.1-or-later
+License:   LGPL-2.0+
+ This file uses code from gstinfo.h, licensed as follows:
+ GStreamer
+ Copyright (C) 1999,2000 Erik Walthinsen <omega@cse.ogi.edu>
+ 2000 Wim Taymans <wtay@chello.be>
+ 2003 Benjamin Otte <in7y118@public.uni-hamburg.de>
+ .
+ gstinfo.h: debugging functions
+ .
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public
+ License along with this library; if not, write to the
+ Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ Boston, MA 02110-1301, USA.
+ .
+ and from glib/gfileutils.c, licensed as follows:
+ gfileutils.c - File utility functions
+ .
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this library; if not, see <http://www.gnu.org/licenses/>.
+ .
+ and from glib/gtestutils.h, licensed as follows:
+ GLib testing utilities
+ Copyright (C) 2007 Imendio AB
+ Authors: Tim Janik
+ .
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ .
+ and from glib/gmacros.h, licensed as follows:
+ GLIB - Library of useful routines for C programming
+ Copyright (C) 1995-1997  Peter Mattis, Spencer Kimball and Josh MacDonald
+ .
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU Library General Public License
+ Version 2 can be found in `/usr/share/common-licenses/LGPL-2'.
+
+Files:     m4/ax_code_coverage.m4
+Copyright: 2012 Christian Persch
+           2012 Dan Winship
+           2012 Paolo Borelli
+           2012 Xan Lopez
+           2012-2016 Philip Withnall
+           2015-2018 Bastien ROUCARIES
+License:   LGPL-2.1+
+ This library is free software; you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation; either version 2.1 of the License, or (at
+ your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+ General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program. If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public License
+ Version 2.1 can be found in `/usr/share/common-licenses/LGPL-2.1'.
+
+Files:     LGPL-2.1
+Copyright: 1991-1999 Free Software Foundation, Inc.
+License:   __NO_LICENSE__
+
+Files:     t/elements-of-geology.md
+           t/pg4204.txt
+Copyright: __NO_COPYRIGHT__ in: t/elements-of-geology.md
+License:   Public domain
+ We encourage you to keep this file, exactly as it is, on your
+ own disk, thereby keeping an electronic path open for future
+ readers.  Please do not remove this.
+ .
+ This header should be the first thing seen when anyone starts to
+ view the etext. Do not change or edit it without written permission.
+ The words are carefully chosen to provide users with the
+ information they need to understand what they may and may not
+ do with the etext.
+ .
+ **Welcome To The World of Free Plain Vanilla Electronic Texts**
+ .
+ **Etexts Readable By Both Humans and By Computers, Since 1971**
+ .
+ *****These Etexts Are Prepared By Thousands of Volunteers!*****
+ .
+ Information on contacting Project Gutenberg to get etexts, and
+ further information, is included below.  We need your donations.
+ .
+ The Project Gutenberg Literary Archive Foundation is a 501(c)(3)
+ organization with EIN [Employee Identification Number] 64-6221541
+ .
+ Title: The Elements of Geology
+ .
+ Release Date: July, 2003 [Etext #4204]
+ Release Date: July, 2003 (Etext #4204) (Yes, we are more than one year ahead of
+ schedule) (This file was first posted on December 01, 2001)
+ .
+ Edition: 10
+ .
+ Language: English
+
+Files:     config.status
+Copyright: 2012 Free Software Foundation, Inc.
+License:   __UNKNOWN__
+ This config.status script is free software; the Free Software Foundation
+ gives unlimited permission to copy, distribute and modify it."
+
+Files:     src/md4c/test/spec.txt
+Copyright: __NO_COPYRIGHT__ in: src/md4c/test/spec.txt
+License:   __UNKNOWN__
+ # Introduction
+
+Files:     src/core/el.vala
+Files:     src/main.vala
+Copyright: 2020 Christopher White. SPDX-License-Identifier: BSD-3-Clause
+License:   BSD-3-Clause
+
+Files:     src/pfft.1
+           src/pfft.pod
+Copyright: 2020 Christopher White.
+License:   BSD-3-Clause
+
+Files:     m4/gtk-doc.m4
+Copyright: 2003 James Henstridge
+           2007-2017 Stefan Sauer
+License:   GPL-3.0+ with unknown exception
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ As a special exception, the above copyright owner gives unlimited
+ permission to copy, distribute and modify the configure scripts that
+ are the output of Autoconf when processing the Macro. You need not
+ follow the terms of the GNU General Public License when using or
+ distributing such scripts, even though portions of the text of the
+ Macro appear in them. The GNU General Public License (GPL) does govern
+ all other use of the material that constitutes the Autoconf Macro.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ Version 3 can be found in `/usr/share/common-licenses/GPL-3'.
+
+Files:     tap-driver.sh
+Copyright: 2011-2013 Free Software Foundation, Inc.
+License:   GPL-2.0+ with autoconf exception
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2, or (at your option)
+ any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ As a special exception to the GNU General Public License, if you
+ distribute this file as part of a program that contains a
+ configuration script generated by Autoconf, you may include it under
+ the same distribution terms that you use for the rest of that program.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ Version 2 can be found in `/usr/share/common-licenses/GPL-2'.

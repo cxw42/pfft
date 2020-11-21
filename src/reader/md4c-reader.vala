@@ -25,11 +25,25 @@ namespace My
 
         /**
          * Read a document.
+         * @param   filename    The file to read
          * @return A node tree of the document
          */
         public Doc read_document(string filename) throws FileError, MarkupError
         {
-            make_tree_for(filename);
+            // Read it in
+            string contents;
+            FileUtils.get_contents(filename, out contents);
+            return read_string(contents);
+        }
+
+        /**
+         * Produce a document for a string.
+         * @param   contents    The string to parse
+         * @return A node tree of the document
+         */
+        public Doc read_string(string contents) throws MarkupError
+        {
+            make_tree_for(contents);
             return new Doc((owned)root_);
         }
 
@@ -60,6 +74,9 @@ namespace My
 
         /** The current node */
         private unowned GLib.Node<Elem> node_;
+
+        /** Tag for special blocks */
+        private static string SBTAG = "pfft:";
 
         /**
          * md4c callback for entering blocks.
@@ -107,10 +124,32 @@ namespace My
                 break;
 
             case CODE:
-                newnode = node_of_ty(BLOCK_CODE);
-                newnode.data.info_string = get_info_string(detail);
-                newnode.data.info_string._chomp();
-                ldebugo(self, "Info string -%s-",  newnode.data.info_string);
+                var infostr = get_info_string(detail);
+                infostr._chomp();
+
+                // Check for a special block
+                if(substr(infostr, 0, SBTAG.length) == SBTAG) {
+                    newnode = node_of_ty(BLOCK_SPECIAL);
+
+                    var command = substr(infostr, SBTAG.length);
+                    if(command == null) {
+                        command = "";
+                    } else {
+                        command._strip();
+                    }
+
+                    if(command == "") {
+                        lwarningo(newnode, "Special block with no command after '%s'", SBTAG);
+                    }
+
+                    newnode.data.info_string = command;
+
+                } else {    // normal code block
+                    newnode = node_of_ty(BLOCK_CODE);
+                    newnode.data.info_string = infostr;
+                }
+                llogo(newnode, "%s, info string -%s-", newnode.data.ty.to_string(),
+                    newnode.data.info_string);
                 break;
 
             case P:
@@ -174,6 +213,7 @@ namespace My
                 get_img_detail(detail, out href, out title);
                 newnode.data.href = href;
                 newnode.data.info_string = title;
+                llog("%sImage href=`%s', title=`%s'", self.indent_, href, title);
                 break;
             case CODE: newnode = node_of_ty(SPAN_CODE); break;
             case DEL: newnode = node_of_ty(SPAN_STRIKE); break;
@@ -195,7 +235,7 @@ namespace My
         private static int leave_span_(SpanType span_type, void *detail, void *userdata)
         {
             var self = (MarkdownMd4cReader)userdata;
-            llog("left span %s", span_type.to_string());
+            llog("%sleft span %s", self.indent_, span_type.to_string());
 
             // Move back into the parent span
             self.node_ = self.node_.parent;
@@ -230,12 +270,8 @@ namespace My
          *
          * Fills in root_.
          */
-        private void make_tree_for(string filename) throws FileError, MarkupError
+        private void make_tree_for(string contents) throws MarkupError
         {
-            // Read it in
-            string contents;
-            FileUtils.get_contents(filename, out contents);
-
             // Set up the parse
 
             root_ = node_of_ty(Elem.Type.ROOT);
@@ -244,6 +280,7 @@ namespace My
             // Processing functions.  NOTE: no closure in the current binding.
 
             Md4c.Parser parser = new Parser();
+            parser.flags = Dialect.GitHub | UNDERLINE;
             parser.enter_block = enter_block_;
             parser.leave_block = leave_block_;
             parser.enter_span = enter_span_;

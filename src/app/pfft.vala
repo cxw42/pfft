@@ -188,10 +188,10 @@ namespace My {
                     template_ = new Template.from_file(opt_templatefn);
                     ldebugo(this, "--- success");
                 } catch(KeyFileError e) {
-                    warning("Error processing template file %s: %s", opt_templatefn, e.message);
+                    printerr("Error processing template file %s: %s", opt_templatefn, e.message);
                     return 1;
                 } catch(FileError e) {
-                    warning("Error loading template file %s: %s", opt_templatefn, e.message);
+                    printerr("Error loading template file %s: %s", opt_templatefn, e.message);
                     return 1;
                 }
             }
@@ -301,7 +301,7 @@ namespace My {
             }
 
             int oldlevel = Log.category.get_threshold();
-            int newlevel = int.max(oldlevel, Gst.DebugLevel.ERROR);
+            int newlevel = int.max(oldlevel, Gst.DebugLevel.WARNING);
 
             if(opt_verbose == 1) {
                 newlevel = int.max(newlevel, Gst.DebugLevel.INFO);

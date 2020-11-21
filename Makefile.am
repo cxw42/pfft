@@ -35,6 +35,7 @@ prep:
 	uncrustify -c $(top_srcdir)/.uncrustifyrc --check \
 		$(foreach fn, $(MY_all_VALA), $(top_srcdir)/src/$(fn))
 	+$(MAKE) check
+	+$(MAKE) html
 	+$(MAKE) all build-tests && prove -v
 	+$(MAKE) distcheck
 
