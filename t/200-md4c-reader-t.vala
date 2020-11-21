@@ -4,6 +4,7 @@
 // TODO find or write a deep-comparison library for Vala!
 
 using My;
+using My.Cmp;
 
 // === Helpers =============================================================
 
@@ -60,43 +61,69 @@ private void default_node_checker(GLib.Node<Elem> node)
 }
 
 /**
- * Parse a string that contains exactly one block, and check its children
+ * Parse a string that contains exactly one block, and check its first child
  * @param   text            See is_contents
  * @param   is_contents     If false, text is a filename with respect to the
  *                          same directory as this file.
  *                          If true, text is the contents themselves.
  * @param   block_type      What type the block must be
- * @param   span_type       What type the span must be
+ * @param   child_type      What type the child (usually a span) must be
  * @param   block_checker   Function to check the block
- * @param   span_checker    Function to check the span
+ * @param   child_checker   Function to check the child
  */
-void test_block_span(string text, bool is_contents,
-    Elem.Type block_type, Elem.Type span_type,
+void test_block_child(string text, bool is_contents,
+    Elem.Type block_type, Elem.Type child_type,
 
     NodeChecker block_checker = default_node_checker,
-    NodeChecker span_checker = default_node_checker)
+    NodeChecker child_checker = default_node_checker)
 {
+    diag(GLib.Log.METHOD);
     read_and_test(text, (doc)=> {
         unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
-        assert_true(node0.n_children() >= 1);
+        assert_nonnull(node0);
+        if(node0 == null) {
+            return; // can't test anything else
+        }
+        assert_cmpuint(node0.n_children(), GE, 1);
         assert_true(node0.data.ty == block_type);
         block_checker(node0);
         unowned GLib.Node<Elem> node1 = node0.nth_child(0);
-        assert_true(node1.n_children() < 2);
-        assert_true(node1.data.ty == span_type);
-        span_checker(node1);
+        assert_nonnull(node1);
+        if(node1 != null) {
+            assert_cmpuint(node1.n_children(), LT, 2);
+            assert_true(node1.data.ty == child_type);
+            child_checker(node1);
+        }
     }, is_contents);
 }
+
+/**
+ * Check for a single child span.
+ *
+ * For use in {NodeChecker} functions.
+ */
+void assert_has_one_span_child(GLib.Node<Elem> node, Elem.Type span_type,
+    string span_text)
+{
+    assert_cmpuint(node.n_children(), EQ, 1);
+    unowned GLib.Node<Elem> snode = node.nth_child(0);
+    assert_true(snode.data.ty == span_type);
+    assert_true(snode.data.text == span_text);
+    assert_cmpuint(snode.n_children(), EQ, 0);
+}
+
 // === General tests =======================================================
 
 void test_misc()
 {
+    diag(GLib.Log.METHOD);
     var md = new MarkdownMd4cReader();
     assert_true(!md.meta);  // for coverage
 }
 
 void test_loadfile()
 {
+    diag(GLib.Log.METHOD);
     read_and_test("basic.md", (doc)=> {
         assert_true(doc.root.n_children() == 2);
 
@@ -147,7 +174,8 @@ void test_image_bad()
 
 void test_header()
 {
-    test_block_span("# H1", true, BLOCK_HEADER, SPAN_PLAIN,
+    diag(GLib.Log.METHOD);
+    test_block_child("# H1", true, BLOCK_HEADER, SPAN_PLAIN,
         (bnode)=> { assert_true(bnode.data.header_level == 1); },
         (snode)=> { assert_true(snode.data.text == "H1"); }
     );
@@ -155,6 +183,7 @@ void test_header()
 
 void test_quote()
 {
+    diag(GLib.Log.METHOD);
     read_and_test("> Raven", (doc)=> {
         unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
         assert_true(node0.n_children() >= 1);
@@ -174,27 +203,45 @@ void test_quote()
 
 void test_codeblock()
 {
-    test_block_span("200-codeblock.md", false, BLOCK_CODE, SPAN_PLAIN,
+    diag(GLib.Log.METHOD);
+    test_block_child("200-codeblock.md", false, BLOCK_CODE, SPAN_PLAIN,
         (bnode)=> { assert_true(bnode.data.info_string == ""); },
-        (snode)=> {
-        assert_true(substr(snode.data.text, 0, "Line 1".length) == "Line 1");
-    }
+        (snode)=> { assert_true(substr(snode.data.text, 0, "Line 1".length) == "Line 1"); }
     );
 }
 
 void test_special()
 {
-    test_block_span("200-special.md", false, BLOCK_SPECIAL, SPAN_PLAIN,
+    diag(GLib.Log.METHOD);
+    test_block_child("200-special.md", false, BLOCK_SPECIAL, BLOCK_COPY,
         (bnode)=> { assert_true(bnode.data.info_string == "specialblock"); },
-        (snode)=> { assert_true(snode.data.text == "Hello"); }
+        (cnode)=> { assert_has_one_span_child(cnode, SPAN_PLAIN, "Hello"); }
     );
 }
 
 void test_special_nocmd()
 {
-    test_block_span("200-special-nocmd.md", false, BLOCK_SPECIAL, SPAN_PLAIN,
+    diag(GLib.Log.METHOD);
+    test_block_child("200-special-nocmd.md", false, BLOCK_SPECIAL, BLOCK_COPY,
         (bnode)=> { assert_true(bnode.data.info_string == ""); },
-        (snode)=> { assert_true(snode.data.text == "No command"); }
+        (cnode)=> {
+        assert_has_one_span_child(cnode, SPAN_PLAIN, "No command");
+    }
+    );
+}
+
+void test_special_with_formatting()
+{
+    diag(GLib.Log.METHOD);
+    test_block_child("```pfft:specialblock\n**Formatted**\n```", true,
+        BLOCK_SPECIAL, BLOCK_COPY,
+        (bnode)=> { assert_true(bnode.data.info_string == "specialblock"); },
+        (copy_node)=> {
+        assert_true(copy_node.n_children() == 1);
+        unowned GLib.Node<Elem> snode = copy_node.nth_child(0);
+        assert_true(snode.data.ty == SPAN_STRONG);
+        assert_has_one_span_child(snode, SPAN_PLAIN, "Formatted");
+    }
     );
 }
 
@@ -202,86 +249,63 @@ void test_special_nocmd()
 
 void test_italics()
 {
-    test_block_span("*Italics*", true, BLOCK_COPY, SPAN_EM,
+    diag(GLib.Log.METHOD);
+    test_block_child("*Italics*", true, BLOCK_COPY, SPAN_EM,
         default_node_checker,
-        (snode)=>{
-        assert_true(snode.n_children() == 1);
-        unowned GLib.Node<Elem> node1 = snode.nth_child(0);
-        assert_true(node1.n_children() == 0);
-        assert_true(node1.data.ty == SPAN_PLAIN);
-        assert_true(node1.data.text == "Italics");
-    }
+        (cnode)=>{ assert_has_one_span_child(cnode, SPAN_PLAIN, "Italics"); }
     );
 }
 
 void test_bold()
 {
-    test_block_span("**Bold**", true, BLOCK_COPY, SPAN_STRONG,
+    diag(GLib.Log.METHOD);
+    test_block_child("**Bold**", true, BLOCK_COPY, SPAN_STRONG,
         default_node_checker,
-        (snode)=>{
-        assert_true(snode.n_children() == 1);
-        unowned GLib.Node<Elem> node1 = snode.nth_child(0);
-        assert_true(node1.n_children() == 0);
-        assert_true(node1.data.ty == SPAN_PLAIN);
-        assert_true(node1.data.text == "Bold");
-    }
+        (cnode)=>{ assert_has_one_span_child(cnode, SPAN_PLAIN, "Bold"); }
     );
 }
 
 void test_inline_code()
 {
-    test_block_span("`31337`", true, BLOCK_COPY, SPAN_CODE,
+    diag(GLib.Log.METHOD);
+    test_block_child("`31337`", true, BLOCK_COPY, SPAN_CODE,
         default_node_checker,
-        (snode)=>{
-        assert_true(snode.n_children() == 1);
-        unowned GLib.Node<Elem> node1 = snode.nth_child(0);
-        assert_true(node1.n_children() == 0);
-        assert_true(node1.data.ty == SPAN_PLAIN);
-        assert_true(node1.data.text == "31337");
-    }
+        (cnode)=>{ assert_has_one_span_child(cnode, SPAN_PLAIN, "31337"); }
     );
 }
 
 void test_strike()
 {
-    test_block_span("~not really~", true, BLOCK_COPY, SPAN_STRIKE,
+    diag(GLib.Log.METHOD);
+    test_block_child("~not really~", true, BLOCK_COPY, SPAN_STRIKE,
         default_node_checker,
-        (snode)=>{
-        assert_true(snode.n_children() == 1);
-        unowned GLib.Node<Elem> node1 = snode.nth_child(0);
-        assert_true(node1.n_children() == 0);
-        assert_true(node1.data.ty == SPAN_PLAIN);
-        assert_true(node1.data.text == "not really");
-    }
+        (cnode)=>{ assert_has_one_span_child(cnode, SPAN_PLAIN, "not really"); }
     );
 }
 
 void test_underline()
 {
-    test_block_span("_NZ_", true, BLOCK_COPY, SPAN_UNDERLINE,
+    diag(GLib.Log.METHOD);
+    test_block_child("_NZ_", true, BLOCK_COPY, SPAN_UNDERLINE,
         default_node_checker,
-        (snode)=>{
-        assert_true(snode.n_children() == 1);
-        unowned GLib.Node<Elem> node1 = snode.nth_child(0);
-        assert_true(node1.n_children() == 0);
-        assert_true(node1.data.ty == SPAN_PLAIN);
-        assert_true(node1.data.text == "NZ");
-    }
+        (cnode)=>{ assert_has_one_span_child(cnode, SPAN_PLAIN, "NZ"); }
     );
 }
 
 void test_image()
 {
+    diag(GLib.Log.METHOD);
     NodeChecker scheck = (snode)=>{assert_true(snode.data.href == "image.png");};
-    test_block_span("200-image.md", false, BLOCK_COPY, SPAN_IMAGE,
+    test_block_child("200-image.md", false, BLOCK_COPY, SPAN_IMAGE,
         default_node_checker, scheck);
-    test_block_span("![](image.png)", true, BLOCK_COPY, SPAN_IMAGE,
+    test_block_child("![](image.png)", true, BLOCK_COPY, SPAN_IMAGE,
         default_node_checker, scheck);
 }
 
 public static int main (string[] args)
 {
     // run the tests
+    My.App.init_before_run();
     Test.init (ref args);
     Test.set_nonfatal_assertions();
     Test.add_func("/200-md4c-reader/misc", test_misc);
@@ -294,6 +318,7 @@ public static int main (string[] args)
     Test.add_func("/200-md4c-reader/codeblock", test_codeblock);
     Test.add_func("/200-md4c-reader/special", test_special);
     Test.add_func("/200-md4c-reader/special_nocmd", test_special_nocmd);
+    Test.add_func("/200-md4c-reader/special_with_formatting", test_special_with_formatting);
     Test.add_func("/200-md4c-reader/italics", test_italics);
     Test.add_func("/200-md4c-reader/bold", test_bold);
     Test.add_func("/200-md4c-reader/inline_code", test_inline_code);

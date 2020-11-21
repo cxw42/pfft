@@ -1,5 +1,5 @@
 ```pfft: header
-Hello, world!
+_Hello, world!_
 ```
 # H1
 
@@ -8,7 +8,7 @@ Body paragraph 1.
 Body paragraph 2.
 Second line, para. 2.
 
-Text with some **bold and _bold italic_ words** (and now back to normal).
+Text with some **bold and *bold italic* words** (and now back to normal).
 
 On separate lines:
 
