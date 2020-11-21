@@ -30,6 +30,8 @@ For the HTML documentation, run `make html`, then open
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+The version history is in [CHANGELOG.md](CHANGELOG.md).
+
 ## Thanks
 
 - <https://github.com/stefantalpalaru/vala-skeleton-autotools>
