@@ -1,6 +1,6 @@
 # PDF From Formatted Text: markdown to PDF with fewer dependencies
 
-[![Build Status](https://travis-ci.org/cxw42/pfft.svg?branch=master)](https://travis-ci.org/cxw42/pfft)
+[![Build Status](https://travis-ci.com/cxw42/pfft.svg?branch=master)](https://travis-ci.com/cxw42/pfft)
 [![codecov](https://codecov.io/gh/cxw42/pfft/branch/master/graph/badge.svg)](https://codecov.io/gh/cxw42/pfft)
 
 I think TeX, LaTeX, and Pandoc are fantastic tools!  However, I sometimes
