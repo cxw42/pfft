@@ -594,13 +594,12 @@ namespace My {
                 break;
 
             case BLOCK_COPY:
+            case BLOCK_SPECIAL: // TODO treat BLOCK_SPECIAL differently
                 blk.markup += text_markup;
                 // Do not create a new blk here since there may be other
                 // nodes that have yet to contribute to blk.
                 complete = true;
                 break;
-
-            // TODO case BLOCK_SPECIAL
 
             case BLOCK_QUOTE:
                 commit(blk, retval);

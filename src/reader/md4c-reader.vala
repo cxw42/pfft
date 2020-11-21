@@ -11,6 +11,7 @@ namespace My
      * g_strndup() available to the public!
      *
      * The VAPI for GLib doesn't currently expose this function directly.
+     * TODO merge with src/logging/strings.vala:pfft_strnlen()
      */
     [CCode (cheader_filename = "reader-shim.h", cname = "g_strndup_shim")]
     public extern string strndup (char* str, size_t n);
@@ -45,6 +46,60 @@ namespace My
         {
             make_tree_for(contents);
             return new Doc((owned)root_);
+        }
+
+        // === Internal helpers ============================================
+
+        /**
+         * Render a node tree inside a fenced block as markdown.
+         *
+         * For use in {leave_block_}.
+         *
+         * NOTE: this assumes that special blocks only have spans in them.
+         *
+         * @param node      The node to render
+         * @return The resulting markdown source.
+         */
+        private string render_as_markdown_(GLib.Node<Elem> node)
+        {
+            var sb = new StringBuilder();
+            var elem = node.data;
+
+            ltraceo(node, "%s: ---%s---", elem.ty.to_string(), elem.text);
+
+            switch(elem.ty) {
+            case SPAN_PLAIN: sb.append(elem.text); break;
+            case SPAN_EM: sb.append_printf("*%s*", elem.text); break;
+            case SPAN_STRONG: sb.append_printf("**%s**", elem.text); break;
+            case SPAN_CODE: sb.append_printf("`%s`", elem.text); break;
+            case SPAN_STRIKE: sb.append_printf("~%s~", elem.text); break;
+            case SPAN_UNDERLINE: sb.append_printf("_%s_", elem.text); break;
+            case SPAN_IMAGE:
+                if(elem.info_string != null && elem.info_string != "") {
+                    sb.append_printf("![](%s \"%s\")", elem.text, elem.info_string);
+                } else {
+                    sb.append_printf("![](%s)", elem.text);
+                }
+                break;
+            default:
+                lwarningo(node, "Unknown type %s", elem.ty.to_string());
+                break;
+            }
+
+            return sb.str + render_kids_as_markdown_(node);
+        }
+
+        /**
+         * Render a node's children as markdown.
+         */
+        private string render_kids_as_markdown_(GLib.Node<Elem> node)
+        {
+            var sb = new StringBuilder();
+            ltraceo(node, "%s", node.data.ty.to_string());
+            node.children_foreach(ALL, (kid)=> {
+                sb.append(render_as_markdown_(kid));
+            });
+            return sb.str;
         }
 
         // === Parser callbacks and data ===================================
@@ -128,7 +183,7 @@ namespace My
                 infostr._chomp();
 
                 // Check for a special block
-                if(substr(infostr, 0, SBTAG.length) == SBTAG) {
+                if(infostr.has_prefix(SBTAG)) {
                     newnode = node_of_ty(BLOCK_SPECIAL);
 
                     var command = substr(infostr, SBTAG.length);
@@ -183,7 +238,47 @@ namespace My
                 self.node_ = self.node_.parent;
             }
 
-            // TODO? check here that the block we are leaving has the type we expect?
+            // Postprocess special blocks
+            while(self.node_.data.ty == BLOCK_SPECIAL) {    // do once
+                // Render the block's contents back to Markdown.
+                // This is easy because special blocks are code blocks,
+                // which contain only text.
+                string inner_contents = self.render_kids_as_markdown_(self.node_);
+                ltraceo(self.node_, "inner_contents: ---%s---", inner_contents);
+
+                // Parse the Markdown
+                var inner_reader = new MarkdownMd4cReader();
+                // TODO copy reader options from this to inner_reader
+
+                Doc inner_doc = null;
+                try {
+                    inner_doc = inner_reader.read_string(inner_contents);
+                } catch(MarkupError e) {
+                    lwarningo(self.node_,
+                        "Could not parse special block's contents as Markdown: %s",
+                        e.message);
+                    break;
+                }
+                ltraceo(self.node_,"Got inner doc:\n%s\n", inner_doc.as_string());
+
+                // Replace the special block's children with the results
+                // of parsing the inner text
+                self.node_.children_foreach(ALL, (kid)=>{ kid.unlink(); });
+                inner_doc.root.children_foreach(ALL, (kid)=>{
+                    unowned var kidnode = (GLib.Node<Elem>)kid;
+                    ltraceo(kidnode, "Existing node of type %s ---%s---",
+                    kidnode.data.ty.to_string(), kidnode.data.text);
+
+                    GLib.Node<Elem> newnode = kidnode.copy_deep((e)=>{
+                        return e.clone();
+                    });
+                    ltraceo(newnode, "New node of type %s ---%s---",
+                    newnode.data.ty.to_string(), newnode.data.text);
+
+                    self.node_.append((owned)newnode);
+                });
+                break;
+            }
 
             // Leave the current block
             self.node_ = self.node_.parent;
@@ -263,7 +358,7 @@ namespace My
             return 0;
         }
 
-        // === Parser callbacks and data ===================================
+        // === Parser invoker ==============================================
 
         /**
          * Read a file and build a node tree for it.
