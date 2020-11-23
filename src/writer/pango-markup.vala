@@ -234,7 +234,7 @@ namespace My {
             linfoo(this, "Beginning rendering");
             foreach(var blk in blocks) {
                 if(blk.is_void()) {
-                    ldebugo(blk, "skipping void block");
+                    llogo(blk, "skipping void block");
                     continue;
                 }
 
@@ -255,12 +255,9 @@ namespace My {
                         "differs from prevblk category" : "no prev, or same as prev category"
                     );
 
-                    // FIXME: a document starting with a header gets parskip
-                    // before the header because of the empty block we left
-                    // right at the beginning.
-
                     if(!first_on_page_ && prev_blk != null &&
                         ( blk.parskip_category == COPY ||
+                          blk.parskip_category == HEADER ||
                         prev_blk.parskip_category != blk.parskip_category)
                     ) {
                         llogo(blk, "Applying parskip %f in.", parskipI);

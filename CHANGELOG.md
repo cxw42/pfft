@@ -24,18 +24,22 @@ Categories are:
 - Special blocks are now supported in core (#7)
 - md4c-reader: special blocks can themselves include Markdown (#23)
 
+### Fixed
+
+- pango-markup: Consecutive headers have whitespace between them (#29)
+
 ## [0.0.5] - 2020-11-21
 
 ### Added
 
-- Any image in a paragraph by itself, with a caption, will be rendered as a centered figure with that caption (#22)
-- Accept GitHub-flavored Markdown and underlines.  Now `*italics*` and `_underline_`, instead of `_italics_`.
+- pango-markup: Any image in a paragraph by itself, with a caption, will be rendered as a centered figure with that caption (#22)
+- md4c-reader: Accept GitHub-flavored Markdown and underlines.  Now `*italics*` and `_underline_`, instead of `_italics_`.
 - (DEV) Can now generate Debian packages (#12)
 
 ### Changed
 
-- 12-point fonts are actually 12 points now (they were larger before) (8cbb1be5a221168bab6f48dc98d06af53d6cc3a5)
-- Code blocks now have light-gray backgrounds so they stand out more (#3)
+- pango-markup: 12-point fonts are actually 12 points now (they were larger before) (8cbb1be5a221168bab6f48dc98d06af53d6cc3a5)
+- pango-markup: Code blocks now have light-gray backgrounds so they stand out more (#3)
 - (DEV) Minimum valac now 0.48
   - Use valac from the [Vala Next PPA](https://launchpad.net/~vala-team/+archive/ubuntu/next) on Travis
 
@@ -48,7 +52,7 @@ Categories are:
 
 ### Changed
 
-- Paragraphs of body text now have whitespace between them.
+- pango-markup: Paragraphs of body text now have whitespace between them.
 
 ## [0.0.3] - 2020-09-26
 
