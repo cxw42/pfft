@@ -7,6 +7,10 @@
  */
 namespace My {
 
+    // Known info strings for special blocks
+    public const string INFOSTR_HTML = "html";
+    public const string INFOSTR_NOP = "nop";
+
     /**
      * Our own definition for gst_value_deserialize().
      *
