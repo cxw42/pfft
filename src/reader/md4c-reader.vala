@@ -50,6 +50,13 @@ namespace My
 
         // === Internal helpers ============================================
 
+        private delegate string NodeRenderer(GLib.Node<Elem> node);
+
+        private static string render_as_plain_(GLib.Node<Elem> node)
+        {
+            return node.data.text;
+        }
+
         /**
          * Render a node tree inside a fenced block as markdown.
          *
@@ -60,12 +67,10 @@ namespace My
          * @param node      The node to render
          * @return The resulting markdown source.
          */
-        private string render_as_markdown_(GLib.Node<Elem> node)
+        private static string render_as_markdown_(GLib.Node<Elem> node)
         {
             var sb = new StringBuilder();
             var elem = node.data;
-
-            ltraceo(node, "%s: ---%s---", elem.ty.to_string(), elem.text);
 
             switch(elem.ty) {
             case SPAN_PLAIN: sb.append(elem.text); break;
@@ -86,20 +91,27 @@ namespace My
                 break;
             }
 
-            return sb.str + render_kids_as_markdown_(node);
+            return sb.str;
         }
 
         /**
-         * Render a node's children as markdown.
+         * Render a node's children as text.
          */
-        private string render_kids_as_markdown_(GLib.Node<Elem> node)
+        private static string render_kids_as_(GLib.Node<Elem> node, NodeRenderer renderer)
         {
             var sb = new StringBuilder();
             ltraceo(node, "%s", node.data.ty.to_string());
             node.children_foreach(ALL, (kid)=> {
-                sb.append(render_as_markdown_(kid));
+                sb.append(render_node_(kid, renderer));
             });
             return sb.str;
+        }
+
+        private static string render_node_(GLib.Node<Elem> node, NodeRenderer renderer)
+        {
+            ltraceo(node, "%s: ---%s---", node.data.ty.to_string(), node.data.text);
+
+            return renderer(node) + render_kids_as_(node, renderer);
         }
 
         // === Parser callbacks and data ===================================
@@ -211,6 +223,11 @@ namespace My
                 newnode = node_of_ty(BLOCK_COPY);
                 break;
 
+            case HTML:
+                newnode = node_of_ty(BLOCK_SPECIAL);
+                newnode.data.info_string = INFOSTR_HTML;
+                break;
+
             default:
                 printerr("I don't yet know how to process block type %s\n".printf(block_type.to_string()));
                 newnode = node_of_ty(BLOCK_COPY);
@@ -239,45 +256,73 @@ namespace My
             }
 
             // Postprocess special blocks
-            while(self.node_.data.ty == BLOCK_SPECIAL) {    // do once
-                // Render the block's contents back to Markdown.
-                // This is easy because special blocks are code blocks,
-                // which contain only text.
-                string inner_contents = self.render_kids_as_markdown_(self.node_);
-                ltraceo(self.node_, "inner_contents: ---%s---", inner_contents);
+            if(self.node_.data.ty == BLOCK_SPECIAL &&
+                self.node_.data.info_string == INFOSTR_HTML) {
 
-                // Parse the Markdown
-                var inner_reader = new MarkdownMd4cReader();
-                // TODO copy reader options from this to inner_reader
+                // For now, drop HTML.
 
-                Doc inner_doc = null;
-                try {
-                    inner_doc = inner_reader.read_string(inner_contents);
-                } catch(MarkupError e) {
-                    lwarningo(self.node_,
-                        "Could not parse special block's contents as Markdown: %s",
-                        e.message);
-                    break;
+                string inner_contents = render_kids_as_(self.node_, render_as_plain_);
+                inner_contents._strip();
+
+                // If the text isn't a single HTML comment, warn that we're
+                // dropping it.  It's a single HTML comment unless: it doesn't
+                // start with a start-comment marker, it doesn't end with an
+                // end-comment marker, or there's an end-comment marker before
+                // the end of the string.
+                if(substr(inner_contents, 0,4) != "<!--" ||
+                    substr(inner_contents, -3) != "-->" ||
+                    inner_contents.index_of("-->") != inner_contents.length - 3
+                ) {
+
+                    lwarningo(self.node_, "Ignoring HTML block:\n%s\n",
+                        self.node_.data.as_string());
+                    lmemdumpo(self.node_, "Block contents", inner_contents,
+                        inner_contents.length);
                 }
-                ltraceo(self.node_,"Got inner doc:\n%s\n", inner_doc.as_string());
 
-                // Replace the special block's children with the results
-                // of parsing the inner text
+                self.node_.data.info_string = INFOSTR_NOP;
                 self.node_.children_foreach(ALL, (kid)=>{ kid.unlink(); });
-                inner_doc.root.children_foreach(ALL, (kid)=>{
-                    unowned var kidnode = (GLib.Node<Elem>)kid;
-                    ltraceo(kidnode, "Existing node of type %s ---%s---",
-                    kidnode.data.ty.to_string(), kidnode.data.text);
 
-                    GLib.Node<Elem> newnode = kidnode.copy_deep((e)=>{
-                        return e.clone();
+            } else if(self.node_.data.ty == BLOCK_SPECIAL) {
+                do { // once
+                    // Render the block's contents back to Markdown.
+                    // This is easy because special blocks are code blocks,
+                    // which contain only text.
+                    string inner_contents = render_kids_as_(self.node_, render_as_markdown_);
+                    ltraceo(self.node_, "inner_contents: ---%s---", inner_contents);
+
+                    // Parse the Markdown
+                    var inner_reader = new MarkdownMd4cReader();
+                    // TODO copy reader options from this to inner_reader
+
+                    Doc inner_doc = null;
+                    try {
+                        inner_doc = inner_reader.read_string(inner_contents);
+                    } catch(MarkupError e) {
+                        lwarningo(self.node_,
+                            "Could not parse special block's contents as Markdown: %s",
+                            e.message);
+                        break;
+                    }
+                    ltraceo(self.node_,"Got inner doc:\n%s\n", inner_doc.as_string());
+
+                    // Replace the special block's children with the results
+                    // of parsing the inner text
+                    self.node_.children_foreach(ALL, (kid)=>{ kid.unlink(); });
+                    inner_doc.root.children_foreach(ALL, (kid)=>{
+                        unowned var kidnode = (GLib.Node<Elem>)kid;
+                        ltraceo(kidnode, "Existing node of type %s ---%s---",
+                        kidnode.data.ty.to_string(), kidnode.data.text);
+
+                        GLib.Node<Elem> newnode = kidnode.copy_deep((e)=>{
+                            return e.clone();
+                        });
+                        ltraceo(newnode, "New node of type %s ---%s---",
+                        newnode.data.ty.to_string(), newnode.data.text);
+
+                        self.node_.append((owned)newnode);
                     });
-                    ltraceo(newnode, "New node of type %s ---%s---",
-                    newnode.data.ty.to_string(), newnode.data.text);
-
-                    self.node_.append((owned)newnode);
-                });
-                break;
+                } while(false);
             }
 
             // Leave the current block

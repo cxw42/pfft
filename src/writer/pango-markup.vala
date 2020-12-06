@@ -777,11 +777,17 @@ namespace My {
                 blk.markup._chomp();
             }
 
-            // TODO move command parsing into core, and just respond to cmds here
+            // Respond to commands from special blocks
             switch(cmd) {
             case "":
                 // not a command
                 break;
+
+            case INFOSTR_NOP:   // Drop the block
+                blk = new ParaBlk(layout_);
+                complete = true;
+                break;
+
             default:
                 lwarningo(this, "Ignoring unknown command '%s'", cmd);
                 break;
