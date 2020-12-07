@@ -1,9 +1,11 @@
-# Changelog
+# Changelog for pfft
 
-All notable changes to this project will be documented in this file.
+All notable changes to the [pfft] lightweight Markdown-to-PDF converter will be
+documented in this file.
 
-The format of this changelog is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format of this changelog is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 The notation "(DEV)" marks changes of interest primarily to developers
 as opposed to users.
@@ -17,15 +19,19 @@ Categories are:
 - "Fixed": bug fixes.
 - "Security": updates fixing vulnerabilities.
 
-## [Unreleased]
+## [0.0.6] - 2020-12-06
 
 ### Added
 
+- This file!
 - Special blocks are now supported in core (#7)
 - md4c-reader: special blocks can themselves include Markdown (#23)
+- You can now use HTML comments in your Markdown files --- md4c-reader
+  and pango-markup cooperate to remove those comments from the output (#28)
 
 ### Fixed
 
+- pango-markup: Code blocks within bulleted or numbered lists are indented
 - pango-markup: Consecutive headers have whitespace between them (#29)
 
 ## [0.0.5] - 2020-11-21
@@ -33,7 +39,7 @@ Categories are:
 ### Added
 
 - pango-markup: Any image in a paragraph by itself, with a caption, will be rendered as a centered figure with that caption (#22)
-- md4c-reader: Accept GitHub-flavored Markdown and underlines.  Now `*italics*` and `_underline_`, instead of `_italics_`.
+- md4c-reader: Accept GitHub-flavored Markdown and underlines.  Now `*italics*` and `_underline_`, instead of `_italics_`
 - (DEV) Can now generate Debian packages (#12)
 
 ### Changed
@@ -52,14 +58,14 @@ Categories are:
 
 ### Changed
 
-- pango-markup: Paragraphs of body text now have whitespace between them.
+- pango-markup: Paragraphs of body text now have whitespace between them
 
 ## [0.0.3] - 2020-09-26
 
 ### Added
 
 - You can now set the font size
-- You can use dimensions in templates, e.g., `210mm` instead of `8.2677` (inches).
+- You can use dimensions in templates, e.g., `210mm` instead of `8.2677` (inches)
 
 ### Changed
 
@@ -87,9 +93,12 @@ Categories are:
 - Read Markdown files containing headers, code blocks, images, lists
 - Render PDFs
 
-[Unreleased]: https://github.com/cxw42/pfft/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/cxw42/pfft/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/cxw42/pfft/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/cxw42/pfft/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/cxw42/pfft/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/cxw42/pfft/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/cxw42/pfft/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/cxw42/pfft/compare/cc7632e090218a32fb631734d1eb0e39adfdf173...v0.0.1
+
+[pfft]: https://github.com/cxw42/pfft
