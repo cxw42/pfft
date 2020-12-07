@@ -19,6 +19,8 @@ Categories are:
 - "Fixed": bug fixes.
 - "Security": updates fixing vulnerabilities.
 
+## [Unreleased]
+
 ## [0.0.6] - 2020-12-06
 
 ### Added
