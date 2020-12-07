@@ -91,6 +91,10 @@ This will build `pfft-VERSION.tar.gz` and check it.
 PRs are welcome!  I prefer PRs with one commit that adds tests and a subsequent
 commit that adds the code (TDD).  However, that is not required.
 
+With the commit that adds the code, please also include an update to
+[CHANGELOG.md](CHANGELOG.md) describing the change in the "Unreleased"
+section.
+
 Before submitting a PR, please run `make prep`.  This will:
 
 - `make prettyprint` (conform to the coding style)
@@ -120,4 +124,3 @@ Before submitting a PR, please run `make prep`.  This will:
 ## Other notes
 
 - All files are UTF-8, no BOM.
-

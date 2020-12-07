@@ -302,6 +302,32 @@ void test_image()
         default_node_checker, scheck);
 }
 
+void test_html_comment()
+{
+    diag(GLib.Log.METHOD);
+    read_and_test("200-html-comment.md", (doc)=> {
+        unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
+        assert_nonnull(node0);
+        if(node0 == null) {
+            return; // can't test anything else
+        }
+        assert_true(node0.n_children() == 0);
+    }, false);
+}
+
+// NOTE: if md4c-reader ever learns how to process HTML, change this test.
+void test_html_comment_and_text()
+{
+    diag(GLib.Log.METHOD);
+    read_and_test("200-html-comment-and-text.md", (doc)=> {
+        unowned GLib.Node<Elem> node0 = doc.root.nth_child(0);
+        assert_nonnull(node0);
+        if(node0 == null) {
+            return; // can't test anything else
+        }
+        assert_true(node0.n_children() == 0);
+    }, false);
+}
 public static int main (string[] args)
 {
     // run the tests
@@ -325,6 +351,8 @@ public static int main (string[] args)
     Test.add_func("/200-md4c-reader/strike", test_strike);
     Test.add_func("/200-md4c-reader/underline", test_underline);
     Test.add_func("/200-md4c-reader/image", test_image);
+    Test.add_func("/200-md4c-reader/html_comment", test_html_comment);
+    Test.add_func("/200-md4c-reader/html_comment_and_text", test_html_comment_and_text);
 
     return Test.run();
 }

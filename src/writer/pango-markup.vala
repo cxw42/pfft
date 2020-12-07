@@ -234,7 +234,7 @@ namespace My {
             linfoo(this, "Beginning rendering");
             foreach(var blk in blocks) {
                 if(blk.is_void()) {
-                    ldebugo(blk, "skipping void block");
+                    llogo(blk, "skipping void block");
                     continue;
                 }
 
@@ -255,12 +255,9 @@ namespace My {
                         "differs from prevblk category" : "no prev, or same as prev category"
                     );
 
-                    // FIXME: a document starting with a header gets parskip
-                    // before the header because of the empty block we left
-                    // right at the beginning.
-
                     if(!first_on_page_ && prev_blk != null &&
                         ( blk.parskip_category == COPY ||
+                        blk.parskip_category == HEADER ||
                         prev_blk.parskip_category != blk.parskip_category)
                     ) {
                         llogo(blk, "Applying parskip %f in.", parskipI);
@@ -464,7 +461,7 @@ namespace My {
         };
 
         /** Get the type to use for a list item at a particular level */
-        private IndentType get_indent_for_level(uint level, bool is_bullet)
+        private IndentType get_indent_type_for_level(uint level, bool is_bullet)
         {
             unowned IndentType[] defns = is_bullet ? indentation_levels_bullets :
                 indentation_levels_numbers;
@@ -472,7 +469,12 @@ namespace My {
             return defns[level];
         }
 
-        /** The rendering state */
+        /**
+         * The rendering state.
+         *
+         * TODO move the per-level items into a helper class, and add a
+         * current_level accessor.
+         */
         private class State {
             /** Do not change \n to ' ' if true */
             public bool obeylines = false;
@@ -490,11 +492,27 @@ namespace My {
              */
             public uint[] last_numbers = {};
 
+            /**
+             * Left margins of content, in Pango units.
+             *
+             * The left margin of content in each level, or 0 if none.
+             */
+            public int[] content_lmarginsP = {};
+
+            /**
+             * Left margins of bullets/numbers, in Pango units.
+             *
+             * The left margin of the bullet/number in each level, or 0 if none.
+             */
+            public int[] bullet_lmarginsP = {};
+
             public State clone() {
                 var retval = new State();
                 retval.obeylines = obeylines;
                 retval.levels = levels;     // duplicates the array
                 retval.last_numbers = last_numbers;
+                retval.content_lmarginsP = content_lmarginsP;
+                retval.bullet_lmarginsP = bullet_lmarginsP;
                 return retval;
             }
         } // class State
@@ -603,7 +621,12 @@ namespace My {
 
             case BLOCK_QUOTE:
                 commit(blk, retval);
-                blk = new QuoteBlk(layout_, i2p(0.5));
+                int marginP = i2p(0.5); // text is indented 0.5" past marker
+                if(state.levels.length > 0) {
+                    var lidx = state.levels.length - 1;
+                    marginP += state.content_lmarginsP[lidx];
+                }
+                blk = new QuoteBlk(layout_, marginP);
                 sb.append(text_markup);
                 complete = true;
                 break;
@@ -617,10 +640,20 @@ namespace My {
                 state = state.clone();
 
                 // Add the indentation level
-                var indent = get_indent_for_level(state.levels.length,
-                        el.ty == BLOCK_BULLET_LIST);
-                state.levels += indent;
+                var is_bullet = el.ty == BLOCK_BULLET_LIST;
+                var indent_type = get_indent_type_for_level(state.levels.length,
+                        is_bullet);
+                state.levels += indent_type;
+                var lidx = state.levels.length - 1;
                 state.last_numbers += 0;
+
+                // TODO? change this?
+                int marginC = is_bullet ? 18 : 36;
+                state.content_lmarginsP += c2p((lidx+1)*marginC);
+                state.bullet_lmarginsP += c2p(lidx*marginC);
+                llogo(blk, "Now in lidx %d with indent type %s, bullet lmarg %f, content lmarg %f",
+                    lidx, indent_type.to_string(), p2i(state.bullet_lmarginsP[lidx]),
+                    p2i(state.content_lmarginsP[lidx]));
                 break;
 
             case BLOCK_LIST_ITEM:
@@ -628,15 +661,12 @@ namespace My {
                 var lidx = state.levels.length - 1;
                 state.last_numbers[lidx]++;
 
-                // TODO? change this?
-                int margin = state.levels[lidx].is_bullet() ? 18 : 36;
-
                 blk = new BulletBlk(layout_, bullet_layout_, "%s%s".printf(
                             state.levels[lidx].render(state.last_numbers[lidx]),
                             state.levels[lidx].is_bullet() ? "" : "."
                         ),
-                        Pango.SCALE * (lidx*margin),   // bullet_leftP
-                        Pango.SCALE * (lidx*margin + margin) // text_leftP
+                        state.bullet_lmarginsP[lidx],
+                        state.content_lmarginsP[lidx]
                 );
                 sb.append(text_markup);
 
@@ -652,7 +682,13 @@ namespace My {
 
             case BLOCK_CODE:
                 commit(blk, retval);
-                blk = new CodeBlk(layout_, i2p(0.25));
+
+                int marginP = 0;
+                if(state.levels.length > 0) {
+                    var lidx = state.levels.length - 1;
+                    marginP = state.content_lmarginsP[lidx];
+                }
+                blk = new CodeBlk(layout_, marginP, i2p(0.25));
 
                 state = state.clone();
 
@@ -741,11 +777,17 @@ namespace My {
                 blk.markup._chomp();
             }
 
-            // TODO move command parsing into core, and just respond to cmds here
+            // Respond to commands from special blocks
             switch(cmd) {
             case "":
                 // not a command
                 break;
+
+            case INFOSTR_NOP:   // Drop the block
+                blk = new ParaBlk(layout_);
+                complete = true;
+                break;
+
             default:
                 lwarningo(this, "Ignoring unknown command '%s'", cmd);
                 break;

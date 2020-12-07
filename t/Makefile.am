@@ -32,8 +32,10 @@ dist_test_data = \
 	060-headfoot-markup.pfft \
 	060-no-magic.pfft \
 	200-codeblock.md \
-	200-image.md \
+	200-html-comment-and-text.md \
+	200-html-comment.md \
 	200-image-bad.md \
+	200-image.md \
 	200-special.md \
 	200-special-nocmd.md \
 	basic.md \

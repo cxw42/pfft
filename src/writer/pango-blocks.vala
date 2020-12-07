@@ -751,9 +751,8 @@ namespace My {
              * This is a helper for child classes.  If whole_markup is empty,
              * this is a no-op.  Parameters are as in render().
              *
-             * Requires the layout already be initialized.
-             * If any shapes are present, requires fill_shape_attrs() already have
-             * been called.
+             * Requires the layout already be initialized.  If any shapes are
+             * present, requires fill_shape_attrs() already have been called.
              *
              * Sets nlines_rendered.
              *
@@ -1359,6 +1358,7 @@ namespace My {
 
                 // render the sidebar
                 double xsC = x1C + p2c(text_leftP)*0.5;
+                llogo(this, "sidebar (%f, %f->%f)", xsC, y1C, y2C);
                 cr.save();
                 cr.set_source_rgb(0.7,0.7,0.7);
                 cr.set_line_width(6.0);
@@ -1374,7 +1374,9 @@ namespace My {
         }     // class QuoteBlk
 
         /**
-         * A block that renders a code block
+         * A block that renders a code block.
+         *
+         * TODO also accept and use a left margin.
          */
         public class CodeBlk : Blk
         {
@@ -1382,14 +1384,20 @@ namespace My {
             /**
              * The width of the gray area around the code block
              */
-            private int gray_widthP;
+            private int padding_widthP;
 
-            public CodeBlk(Pango.Layout layout, int gray_widthP)
+            /**
+             * The left edge of the code block, w.r.t. the left margin.
+             */
+            private int block_leftP;
+
+            public CodeBlk(Pango.Layout layout, int block_leftP, int padding_widthP)
             {
                 base(layout);
 
                 this.parskip_category = OTHER;
-                this.gray_widthP = gray_widthP;
+                this.block_leftP = block_leftP;
+                this.padding_widthP = padding_widthP;
             }
 
             public override bool is_void()
@@ -1407,25 +1415,27 @@ namespace My {
                     return RenderResult.COMPLETE;
                 }
 
-                double x1C, y1C;     // Starting points
-                double x2C, y2C;     // Ending points of the text block
+                double x1C, y1C;    // Starting points
+                double leftC;       // Offset by the left margin
+                double x2C, y2C;    // Ending points of the text block
 
                 cr.get_current_point(out x1C, out y1C);
+                leftC = x1C + p2c(block_leftP);
 
                 // Out of range
-                if((c2p(y1C) + 2*gray_widthP) >= bottomP) {
+                if((c2p(y1C) + 2*padding_widthP) >= bottomP) {
                     return RenderResult.NONE;
                 }
-                if((c2p(x1C) + gray_widthP) >= rightP) {
+                if((c2p(leftC) + 2*padding_widthP) >= rightP) {
                     return RenderResult.ERROR;
                 }
 
                 // Try to render the markup.
                 // Shift to add the top and left margins.
-                cr.move_to(x1C + p2c(gray_widthP), y1C + p2c(gray_widthP));
+                cr.move_to(leftC + p2c(padding_widthP), y1C + p2c(padding_widthP));
                 cr.push_group();
                 var result = render_layout(cr, layout,
-                        rightP - gray_widthP,                    // right margin
+                        rightP - padding_widthP,                    // right margin
                         bottomP);
                 if(!result.rendered()) {
                     cr.pop_group();
@@ -1435,20 +1445,21 @@ namespace My {
                 // Save the text
                 var text = cr.pop_group();
                 cr.get_current_point(out x2C, out y2C);
-                y2C += p2c(gray_widthP);    // bottom margin
+                y2C += p2c(padding_widthP);    // bottom margin
 
                 // Render a gray background behind where the text is going to go
                 cr.save();
                 cr.set_source_rgb(0.9,0.9,0.9);
-                cr.rectangle(x1C, y1C, p2c(rightP)-x1C, y2C-y1C);
+                cr.rectangle(leftC, y1C, p2c(rightP)-leftC, y2C-y1C);
                 cr.fill();
                 cr.restore();
 
                 // Render the text
                 cr.save();
                 cr.set_source(text);
-                cr.rectangle(x1C, y1C, x2C-x1C, y2C-y1C);
+                cr.rectangle(leftC, y1C, x2C-leftC, y2C-y1C);
                 cr.paint();
+                cr.new_path();  // because cr.paint() doesn't clear the current path
                 cr.restore();
 
                 // Finish
