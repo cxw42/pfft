@@ -588,9 +588,6 @@ namespace My {
                 shapes.add(shape);
             }     // add_shape()
 
-            /** Attributes representing the shapes */
-            protected Pango.AttrList shape_attrs = null;
-
             /**
              * Whether the block is "void", i.e., has no effect on the page.
              *
@@ -602,19 +599,21 @@ namespace My {
             }
 
             /**
-             * Initialize shape_attrs.
+             * Make shape attributes for a given paragraph.
              *
              * Call only when the markup for the block has been finalized and
              * all add_shape() calls have been made.
              *
-             * @param text  The actual text in the layout --- NOT the markup
+             * @param text      The actual text in the layout --- NOT the markup
+             * @param widthP    The width of the layout (Pango units)
+             * @return Null if there are no shapes, or else the attr list.
              */
-            protected void fill_shape_attrs(string text)
+            protected Pango.AttrList? make_shape_attrs(string text, int widthP)
             {
-                shape_attrs = new Pango.AttrList();
                 if(shapes == null || shapes.is_empty) {
-                    return;
+                    return null;
                 }
+                var shape_attrs = new Pango.AttrList();
 
                 // check if the number of OBJ_REPL_CHARs in whole_markup
                 // is the same as the number of shapes
@@ -663,10 +662,12 @@ namespace My {
                     shape_attrs.insert((owned)attr);
                 }
 
-            }     // fill_shape_attrs()
+                return shape_attrs;
+            }     // make_shape_attrs()
 
             /** Add shape_attrs to the list of attributes for a layout */
-            private void append_shape_attrs_to(Pango.Layout layout)
+            private void append_shape_attrs_to(Pango.Layout layout,
+                Pango.AttrList? shape_attrs)
             {
                 var old_attributes = layout.get_attributes();
                 if(old_attributes == null) {
@@ -751,8 +752,7 @@ namespace My {
              * This is a helper for child classes.  If whole_markup is empty,
              * this is a no-op.  Parameters are as in render().
              *
-             * Requires the layout already be initialized.  If any shapes are
-             * present, requires fill_shape_attrs() already have been called.
+             * Requires the layout already be initialized.
              *
              * Sets nlines_rendered.
              *
@@ -818,9 +818,9 @@ namespace My {
                     // Rather than parsing the markup ourselves, just get the text
                     // the layout is actually using.
 
-                    fill_shape_attrs(layout.get_text());
+                    var shape_attrs = make_shape_attrs(layout.get_text(), layout.get_width());
 
-                    append_shape_attrs_to(layout);
+                    append_shape_attrs_to(layout, shape_attrs);
                     Pango.cairo_context_set_shape_renderer(
                         layout.get_context(),
                         (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
