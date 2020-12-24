@@ -12,13 +12,37 @@ namespace My {
     public const string INFOSTR_NOP = "nop";
 
     /**
-     * Our own definition for gst_value_deserialize().
+     * Deserialize a GLib.Value.
      *
-     * Per [[https://gitlab.gnome.org/GNOME/vala/-/issues/1014]], older
-     * valac versions have an incorrect binding for gst_value_deserialize().
+     * This function deserializes using {@link Gst.Structure.from_string}.
+     * The caller is responsible for quoting {{{src}}} if necessary.
+     * See [[https://gstreamer.freedesktop.org/documentation/gstreamer/gststructure.html]]
+     * for details of the input format.
+     *
+     * @param dest  The Value to fill in.  Must be initialized with a type.
+     * @param src   The string source, which may start with a "(foo)"
+     *              type annotation.
+     * @return True on success; false on failure
      */
-    [CCode (cheader_filename = "gst/gst.h", cname = "gst_value_deserialize")]
-    public extern bool deserialize_value (ref GLib.Value dest, string src);
+    public bool deserialize_value (ref GLib.Value dest, string src)
+    {
+        // Make a serialized structure using a dummy structure name `n`
+        // and a dummy key `k`.
+        var serialized_struc = "a,k=%s".printf(src);
+        var struc = new Gst.Structure.from_string(serialized_struc, null);
+        if(struc == null) {
+            return false;
+        }
+        if(!struc.has_field("k")) {
+            return false;
+        }
+        var val = struc.get_value("k");
+        if(val == null) {
+            return false;
+        }
+
+        return val.transform(ref dest);
+    }
 
     /**
      * Data of a node in the Markdown tree.
