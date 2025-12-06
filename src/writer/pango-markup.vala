@@ -666,6 +666,8 @@ namespace My {
                             state.levels[lidx].is_bullet() ? "" : "."
                         ),
                         state.bullet_lmarginsP[lidx],
+                        // NOTE: `fontsizeT/5` on the next line is empirical.
+                        state.levels[lidx].is_bullet() ? c2p(fontsizeT/5) : 0,
                         state.content_lmarginsP[lidx]
                 );
                 sb.append(text_markup);

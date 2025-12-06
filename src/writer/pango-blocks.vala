@@ -1240,6 +1240,9 @@ namespace My {
             /** The left edge of the bullet, w.r.t. the left margin */
             private int bullet_leftP;
 
+            /** The top edge of the bullet, w.r.t. the top of the line */
+            private int bullet_topP;
+
             /**
              * The left edge of the text, w.r.t. the left margin.
              *
@@ -1248,7 +1251,8 @@ namespace My {
             private int text_leftP;
 
             public BulletBlk(Pango.Layout layout, Pango.Layout bullet_layout,
-                string bullet_markup, int bullet_leftP, int text_leftP)
+                string bullet_markup, int bullet_leftP, int bullet_topP,
+                int text_leftP)
             requires(text_leftP > bullet_leftP)
             {
                 base(layout);
@@ -1257,6 +1261,7 @@ namespace My {
                 this.bullet_layout = bullet_layout;
                 this.bullet_markup = bullet_markup;
                 this.bullet_leftP = bullet_leftP;
+                this.bullet_topP = bullet_topP;
                 this.text_leftP = text_leftP;
             }
 
@@ -1304,11 +1309,10 @@ namespace My {
                 }
 
                 // Something rendered on the first page, so render the bullet.
-                // TODO shift the bullet down so it is centered on the first
-                // line of the text.
                 ldebugo(this, "Rendering bullet from layout %p - post-render at (%f, %f)",
                     bullet_layout, c2i(xC), c2i(yC));
-                cr.move_to(leftC + p2c(bullet_leftP), topC);
+                double bulletYC = topC + p2c(bullet_topP);
+                cr.move_to(leftC + p2c(bullet_leftP), bulletYC);
                 bullet_layout.set_width(text_leftP - bullet_leftP);
                 bullet_layout.set_markup(bullet_markup, -1);
                 Pango.cairo_show_layout(cr, bullet_layout);
