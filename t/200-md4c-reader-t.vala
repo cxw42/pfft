@@ -84,13 +84,13 @@ void test_block_child(string text, bool is_contents,
         if(node0 == null) {
             return; // can't test anything else
         }
-        assert_cmpuint(node0.n_children(), GE, 1);
+        assert_cmpuint(node0.n_children(), GLib.CompareOperator.GE, 1);
         assert_true(node0.data.ty == block_type);
         block_checker(node0);
         unowned GLib.Node<Elem> node1 = node0.nth_child(0);
         assert_nonnull(node1);
         if(node1 != null) {
-            assert_cmpuint(node1.n_children(), LT, 2);
+            assert_cmpuint(node1.n_children(), GLib.CompareOperator.LT, 2);
             assert_true(node1.data.ty == child_type);
             child_checker(node1);
         }
@@ -105,11 +105,11 @@ void test_block_child(string text, bool is_contents,
 void assert_has_one_span_child(GLib.Node<Elem> node, Elem.Type span_type,
     string span_text)
 {
-    assert_cmpuint(node.n_children(), EQ, 1);
+    assert_cmpuint(node.n_children(), GLib.CompareOperator.EQ, 1);
     unowned GLib.Node<Elem> snode = node.nth_child(0);
     assert_true(snode.data.ty == span_type);
     assert_true(snode.data.text == span_text);
-    assert_cmpuint(snode.n_children(), EQ, 0);
+    assert_cmpuint(snode.n_children(), GLib.CompareOperator.EQ, 0);
 }
 
 // === General tests =======================================================

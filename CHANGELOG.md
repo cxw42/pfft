@@ -19,6 +19,12 @@ Categories are:
 - "Fixed": bug fixes.
 - "Security": updates fixing vulnerabilities.
 
+## [Unreleased]
+
+### Fixed
+
+- Images that are too wide for the page will be scaled down to fit (#32)
+
 ## [0.0.6] - 2020-12-06
 
 ### Added

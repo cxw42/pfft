@@ -120,23 +120,6 @@ namespace My {
     public extern string canonicalize_filename (string filename,
         string? relative_to = null);
 
-    /* GLib test functions present in Bionic */
-    [CCode(cheader_filename="glib.h", cname="g_assert_cmpstr")]
-    public extern void assert_cmpstr(string? a, string op, string? b);
-    [CCode(cheader_filename="glib.h", cname="g_assert_cmpint")]
-    public extern void assert_cmpint(int a, string op, int b);
-    [CCode(cheader_filename="glib.h", cname="g_assert_cmpuint")]
-    public extern void assert_cmpuint(uint a, string op, uint b);
-    [CCode(cheader_filename="glib.h", cname="g_assert_cmphex")]
-    public extern void assert_cmphex(uint a, string op, uint b);
-
-    // [CCode(cheader_filename="glib.h", cname="g_assert_cmpvariant")]
-    // [Version(since="2.60")]
-    // public extern void assert_cmpvariant(Variant a, Variant b);
-    // [CCode(cheader_filename="glib.h", cname="g_assert_no_errno")]
-    // [Version(since="2.66")]
-    // public extern void assert_no_errno(int expr);
-
     /**
      * A copy of g_assert_cmpfloat(), which was added to GLib after Bionic.
      */

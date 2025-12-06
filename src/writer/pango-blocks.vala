@@ -65,6 +65,16 @@ namespace My {
             public abstract Pango.Rectangle get_logicalP();
 
             /**
+             * Shrink the shape, if necessary, to fit within the given width.
+             *
+             * @return true on success (subclasses may override)
+             */
+            public virtual bool fit_within_width(int widthP)
+            {
+                return true;
+            }
+
+            /**
              * Render this shape at the current position.
              *
              * Leaves the current position at the right side of the rendering.
@@ -84,34 +94,45 @@ namespace My {
         /**
          * An image.
          *
+         * The image is rendered with padding on the top, left, and right.
+         * The bottom of the image sits on the baseline, and there is no
+         * bottom padding.
+         *
          * This class is based on C code by Mike Birch, which code he kindly
          * placed in the public domain.  [[https://immortalsofar.com/PangoDemo/]].
          */
         public class Image : Base {
+            // === Data ===
+
             /**
              * The ink rectangle, in Pango units.
              */
-            private Pango.Rectangle? inkP = null;
+            private Pango.Rectangle? inkP_ = null;
 
             /** Backing store for the paddingP property */
-            private int paddingP_stg;
-
-            /** The size of the padding */
-            public int paddingP {
-                get {
-                    return paddingP_stg;
-                }
-                set {
-                    paddingP_stg = value;
-                    populate_rects();
-                }
-            }
+            private int paddingP_stg_;
 
             /** Default padding */
             public const double DEFAULT_PADDING_IN = 0.05;
 
+            /**
+             * The logical rectangle, including padding
+             *
+             * The logical rectangle is the ink rectangle plus padding on
+             * the top, left, and right.
+             */
+            private Pango.Rectangle? logicalP_ = null;
+
+            /** The image */
+            private Cairo.ImageSurface image_;
+
+            /** Scale of the image when rendered (backing storage) */
+            private double scale_stg_ = 1.0;
+
             /** Backing storage for caption property */
-            private string caption_stg = "";
+            private string caption_stg_ = "";
+
+            // === Properties ===
 
             /**
              * Image caption, if any.
@@ -121,50 +142,94 @@ namespace My {
              * Blk and Image instances, or between Layout and Image instances.
              * See {@link My.Blocks.ParaBlk.render} for an example of caption rendering.
              */
-            public string caption { get { return caption_stg; } }
+            public string caption { get { return caption_stg_; } }
 
             /**
-             * The logical rectangle, including padding
+             * Scale of the image when rendered.
              *
-             * The logical rectangle is the ink rectangle plus padding on
-             * the top, left, and right.
+             * Always recomputes the rectangles (using populate_rects())
+             * when assigned to.
              */
-            private Pango.Rectangle? logicalP = null;
+            private double scale {
+                get {
+                    return scale_stg_;
+                }
+                set {
+                    scale_stg_ = value;
+                    populate_rects();
+                }
+            }
 
-            private Cairo.ImageSurface image;
+            /** The size of the padding */
+            public int paddingP {
+                get {
+                    return paddingP_stg_;
+                }
+                set {
+                    paddingP_stg_ = value;
+                    populate_rects();
+                }
+            }
+
+            // === Methods ===
 
             private void populate_rects()
             {
-                int wdP = c2p(image.get_width());
-                int htP = c2p(image.get_height());
-                logicalP = Pango.Rectangle();
-                logicalP.x = 0;
-                logicalP.y = -(htP + paddingP);
-                logicalP.width = wdP + 2*paddingP;
-                logicalP.height = htP + paddingP;
+                int wdP = c2p(scale * image_.get_width());
+                int htP = c2p(scale * image_.get_height());
+                logicalP_ = Pango.Rectangle();
+                logicalP_.x = 0;
+                logicalP_.y = -(htP + paddingP);
+                logicalP_.width = wdP + 2*paddingP;
+                logicalP_.height = htP + paddingP;
 
-                inkP = Pango.Rectangle();
-                inkP.x = paddingP;
-                inkP.y = -htP;     // Bottom of the image sits on the baseline
-                inkP.width = wdP;
-                inkP.height = htP;
-
+                inkP_ = Pango.Rectangle();
+                inkP_.x = paddingP;
+                inkP_.y = -htP;     // Bottom of the image sits on the baseline
+                inkP_.width = wdP;
+                inkP_.height = htP;
             }
 
             public override Pango.Rectangle get_inkP()
             {
-                if(inkP == null) {
+                if(inkP_ == null) {
                     populate_rects();
                 }
-                return inkP;
+                return inkP_;
             }
 
             public override Pango.Rectangle get_logicalP()
             {
-                if(inkP == null) {
+                if(inkP_ == null) {
                     populate_rects();
                 }
-                return logicalP;
+                return logicalP_;
+            }
+
+            /**
+             * Shrink the shape, if necessary, to fit within the given width.
+             *
+             * TODO?  Handle logicalP.x?
+             *
+             * @return true on success; false on failure
+             */
+            public override bool fit_within_width(int widthP)
+            {
+                scale = 1.0;
+                var logicalP = get_logicalP();
+                var availP = widthP - (2*paddingP);
+                if(logicalP.width <= availP) {
+                    return true;
+                }
+                if(availP <= 0) {
+                    return false;
+                }
+
+                scale = (double)availP/(double)logicalP.width;
+                llogo(this, "Set scale to %f", scale);
+                ltraceo(this, "scale: layout width %f, padding %f, avail %f, image width %f",
+                    p2i(widthP), p2i(paddingP), p2i(availP), p2i(logicalP.width));
+                return true;
             }
 
             public override void render(Cairo.Context cr, bool do_path)
@@ -190,18 +255,34 @@ namespace My {
 
                 // Render the image
                 cr.save();
-                cr.set_antialias(NONE);
+                cr.set_antialias(NONE); // TODO change?
 
-                cr.set_source_surface(image, img_leftC, img_topC);
+                if(scale == 1.0) {
+                    cr.set_source_surface(image_, img_leftC, img_topC);
+                } else {
+                    cr.push_group();
+                    cr.translate(img_leftC, img_topC);
+                    cr.scale(scale, scale);     // scale before set_source_surface()
+                    cr.set_source_surface(image_, 0, 0);
+                    cr.paint();
+                    cr.pop_group_to_source();
+                }
+
                 cr.rectangle(img_leftC, img_topC, img_wC, img_hC);
                 cr.fill();
 
+                // Tracing
                 cr.set_line_width(0.5);
                 if(lenabled(TRACE)) {     // ink
                     cr.set_source_rgb(1,0.5,0.5);
                     cr.rectangle(leftC + p2c(inkP.x), topC + p2c(inkP.y), p2c(inkP.width), p2c(inkP.height));
                     cr.stroke();
+
+                    ltraceo(this, "ink %s; log %s",
+                        prect_to_string(inkP),
+                        prect_to_string(logP));
                 }
+
                 if(lenabled(DEBUG)) {     // logical
                     cr.set_source_rgb(1,0,0);
                     cr.rectangle(leftC + p2c(logP.x), topC + p2c(logP.y), p2c(logP.width), p2c(logP.height));
@@ -213,7 +294,9 @@ namespace My {
 
             public override Shape.Base clone()
             {
-                Image retval = new Image(this.image, this.caption, this.paddingP);
+                Image retval = new Image(this.image_, this.caption, this.paddingP);
+                retval.scale_stg_ = scale;
+                retval.populate_rects();
                 return retval;
             }
 
@@ -226,9 +309,10 @@ namespace My {
              */
             public Image(Cairo.ImageSurface image, string caption = "", int paddingP = -1)
             {
-                this.image = image;
-                this.caption_stg = caption;
+                this.image_ = image;
+                this.caption_stg_ = caption;
                 this.paddingP = (paddingP == -1) ? i2p(DEFAULT_PADDING_IN) : paddingP;
+                populate_rects();
             }     // ctor
 
             // constructors that load from files
@@ -260,7 +344,7 @@ namespace My {
 
                 llogo(this, "Loaded %s (%s relative to %s): %p, %f x %f, caption `%s'",
                     imgfn, href, doc_path, s,
-                    c2i(image.get_width()), c2i(image.get_height()),
+                    c2i(image_.get_width()), c2i(image_.get_height()),
                     this.caption
                 );
             }     // Image.from_href()
@@ -588,9 +672,6 @@ namespace My {
                 shapes.add(shape);
             }     // add_shape()
 
-            /** Attributes representing the shapes */
-            protected Pango.AttrList shape_attrs = null;
-
             /**
              * Whether the block is "void", i.e., has no effect on the page.
              *
@@ -602,19 +683,21 @@ namespace My {
             }
 
             /**
-             * Initialize shape_attrs.
+             * Make shape attributes for a given paragraph.
              *
              * Call only when the markup for the block has been finalized and
              * all add_shape() calls have been made.
              *
-             * @param text  The actual text in the layout --- NOT the markup
+             * @param text      The actual text in the layout --- NOT the markup
+             * @param widthP    The width of the layout (Pango units)
+             * @return Null if there are no shapes, or else the attr list.
              */
-            protected void fill_shape_attrs(string text)
+            protected Pango.AttrList? make_shape_attrs(string text, int widthP)
             {
-                shape_attrs = new Pango.AttrList();
                 if(shapes == null || shapes.is_empty) {
-                    return;
+                    return null;
                 }
+                var shape_attrs = new Pango.AttrList();
 
                 // check if the number of OBJ_REPL_CHARs in whole_markup
                 // is the same as the number of shapes
@@ -650,6 +733,7 @@ namespace My {
 
                 shapeidx = -1;
                 foreach(var shape in shapes) {
+                    shape.fit_within_width(widthP);
                     ++shapeidx;
                     var attr = new Pango.AttrShape<Shape.Base>.with_data(
                         shape.get_inkP(), shape.get_logicalP(), shape,
@@ -663,10 +747,12 @@ namespace My {
                     shape_attrs.insert((owned)attr);
                 }
 
-            }     // fill_shape_attrs()
+                return shape_attrs;
+            }     // make_shape_attrs()
 
             /** Add shape_attrs to the list of attributes for a layout */
-            private void append_shape_attrs_to(Pango.Layout layout)
+            private void append_shape_attrs_to(Pango.Layout layout,
+                Pango.AttrList? shape_attrs)
             {
                 var old_attributes = layout.get_attributes();
                 if(old_attributes == null) {
@@ -751,8 +837,7 @@ namespace My {
              * This is a helper for child classes.  If whole_markup is empty,
              * this is a no-op.  Parameters are as in render().
              *
-             * Requires the layout already be initialized.  If any shapes are
-             * present, requires fill_shape_attrs() already have been called.
+             * Requires the layout already be initialized.
              *
              * Sets nlines_rendered.
              *
@@ -818,9 +903,9 @@ namespace My {
                     // Rather than parsing the markup ourselves, just get the text
                     // the layout is actually using.
 
-                    fill_shape_attrs(layout.get_text());
+                    var shape_attrs = make_shape_attrs(layout.get_text(), layout.get_width());
 
-                    append_shape_attrs_to(layout);
+                    append_shape_attrs_to(layout, shape_attrs);
                     Pango.cairo_context_set_shape_renderer(
                         layout.get_context(),
                         (cr, attr, do_path)=>{ render_shape(cr, attr, do_path); }
@@ -1155,6 +1240,9 @@ namespace My {
             /** The left edge of the bullet, w.r.t. the left margin */
             private int bullet_leftP;
 
+            /** The top edge of the bullet, w.r.t. the top of the line */
+            private int bullet_topP;
+
             /**
              * The left edge of the text, w.r.t. the left margin.
              *
@@ -1163,7 +1251,8 @@ namespace My {
             private int text_leftP;
 
             public BulletBlk(Pango.Layout layout, Pango.Layout bullet_layout,
-                string bullet_markup, int bullet_leftP, int text_leftP)
+                string bullet_markup, int bullet_leftP, int bullet_topP,
+                int text_leftP)
             requires(text_leftP > bullet_leftP)
             {
                 base(layout);
@@ -1172,6 +1261,7 @@ namespace My {
                 this.bullet_layout = bullet_layout;
                 this.bullet_markup = bullet_markup;
                 this.bullet_leftP = bullet_leftP;
+                this.bullet_topP = bullet_topP;
                 this.text_leftP = text_leftP;
             }
 
@@ -1219,11 +1309,10 @@ namespace My {
                 }
 
                 // Something rendered on the first page, so render the bullet.
-                // TODO shift the bullet down so it is centered on the first
-                // line of the text.
                 ldebugo(this, "Rendering bullet from layout %p - post-render at (%f, %f)",
                     bullet_layout, c2i(xC), c2i(yC));
-                cr.move_to(leftC + p2c(bullet_leftP), topC);
+                double bulletYC = topC + p2c(bullet_topP);
+                cr.move_to(leftC + p2c(bullet_leftP), bulletYC);
                 bullet_layout.set_width(text_leftP - bullet_leftP);
                 bullet_layout.set_markup(bullet_markup, -1);
                 Pango.cairo_show_layout(cr, bullet_layout);

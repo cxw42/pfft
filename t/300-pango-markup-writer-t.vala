@@ -81,7 +81,8 @@ void test_badcall()
     bool ok = true;
     try {
         FileUtils.close(FileUtils.open_tmp("pfft-t-XXXXXX", out destfn));
-    } catch {   // LCOV_EXCL_START - unreached if tests pass
+    } catch(FileError e) {   // LCOV_EXCL_START - unreached if tests pass
+        warning("file error: %s", e.message);
         ok = false;
         assert_not_reached();
     }
