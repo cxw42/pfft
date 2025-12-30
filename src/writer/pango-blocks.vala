@@ -966,7 +966,7 @@ namespace My {
                         ++lineno;
                         if(!iter.next_line()) {
                             // TODO can this happen?
-                            lerroro(this, "Ran of the end of iter %p", iter);
+                            lerroro(this, "Ran off the end of iter %p", iter);
                             return RenderResult.ERROR;     // ???
                         }
 
@@ -1056,21 +1056,15 @@ namespace My {
                         cr.restore();
                     }
 
-                    // Render this line
                     // Move vertically to the baseline, which is the vertical
                     // reference for the line.
                     int this_xP = net_logicalP.x;
-                    int this_yP = net_logicalP.y;
-
-                    // get_line_extents gives us bounding rectangles, but not
-                    // the baseline.  We have to get the baseline from the
-                    // line's extents.
-                    curr_line.get_extents(out line_inkP, out line_logicalP);
-                    this_yP -= line_logicalP.y;
+                    int this_yP = net_baseline_yP;
 
                     ldebugo(this, "  - Rendering line %d, UL corner y %f", lineno, p2i(yP));
                     llogo(this, "    Rendering at (%f, %f)", p2i(this_xP), p2i(this_yP));
 
+                    // Render this line
                     cr.move_to(p2c(this_xP), p2c(this_yP));
                     Pango.cairo_show_layout_line(cr, curr_line);     // UNSETS the current point
                     did_render = true;
