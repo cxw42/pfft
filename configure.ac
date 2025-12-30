@@ -65,10 +65,10 @@ PKG_PROG_PKG_CONFIG([0.24])
 
 dnl use fewer variables for terser Makefiles.
 
-dnl pango: 1.18+ for pango_layout_set_justify()
+dnl pango: 1.44+ for pango_layout_set_line_spacing()
 PKG_CHECK_MODULES([RENDER],[
     pangocairo
-    pango >= 1.18
+    pango >= 1.44
     cairo
 ])
 
