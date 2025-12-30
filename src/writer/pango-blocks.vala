@@ -1069,8 +1069,16 @@ namespace My {
                     Pango.cairo_show_layout_line(cr, curr_line);     // UNSETS the current point
                     did_render = true;
 
-                    // Advance to the next line
-                    yP += (int)(line_logicalP.height * layout.get_line_spacing()); // XXX
+                    // XXX HACK: get line spacing.
+                    // (in the future, use layout-relative y instead of
+                    // tracking yP ourselves.)
+                    double line_spacing = layout.get_line_spacing();
+                    if(line_spacing <= 0.0) {
+                        line_spacing = 1.0;
+                    }
+
+                    // Advance to the next line.
+                    yP += (int)(line_logicalP.height * line_spacing); // XXX
                     cr.move_to(leftC, p2c(yP));
 
                     if(lenabled(DEBUG)) {
