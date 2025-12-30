@@ -539,10 +539,13 @@ namespace My {
          * @param fontsizeT The font size to use, in points.
          * @param align     The alignment of the text in the layout
          * @param justify   If true, block-justify the text in the layout.
+         * @param line_spacing  The line spacing.  See
+         *                      Pango.Layout.set_line_spacing() for values.
          */
         public static Pango.Layout new_layout(Cairo.Context cr,
             string fontname, double fontsizeT, My.Alignment align = LEFT,
-            bool justify = false)
+            bool justify = false,
+            double line_spacing = 0.0)
         {
             var layout = Pango.cairo_create_layout(cr);
             layout.set_wrap(Pango.WrapMode.WORD_CHAR);
@@ -576,6 +579,7 @@ namespace My {
             }
             layout.set_alignment(palign);
             layout.set_justify(justify);
+            layout.set_line_spacing((float)line_spacing);
 
             return layout;
         }     // new_layout()

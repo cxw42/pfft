@@ -144,6 +144,8 @@ namespace My {
         public bool justify { get; set; default = false; }
         [Description(nick = "Paragraph skip (in.)", blurb = "Space between paragraphs, in inches")]
         public double parskipI { get; set; default = 12.0/72.0; }
+        [Description(nick = "Line spacing (0=use default)", blurb = "Line spacing, e.g., 2.0=double-space")]
+        public double linespacing { get; set; default = 0.0; }
 
         /** Used in process_node_into() */
         private Regex re_newline = null;
@@ -204,11 +206,12 @@ namespace My {
 
             // Prepare to render
             cr_ = new Cairo.Context(surf);
-            layout_ = Blocks.new_layout(cr_, fontname, fontsizeT, paragraphalign,
-                    justify);                     // Layout for the copy
-            bullet_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT);
 
-            pageno_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT); // Layout for page numbers
+            // Create layouts
+            layout_ = Blocks.new_layout(cr_, fontname, fontsizeT, paragraphalign,
+                    justify, linespacing);
+            bullet_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT);
+            pageno_layout_ = Blocks.new_layout(cr_, fontname, fontsizeT);
 
             cr_.move_to(i2c(lmarginI), i2c(tmarginI));
             // over, down (respectively) from the UL corner
