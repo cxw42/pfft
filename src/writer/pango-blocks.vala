@@ -980,10 +980,12 @@ namespace My {
                     // Can we fit this line?
                     llogo(this, "Trying line %d", lineno);
 
+                    int baseline_yP = iter.get_baseline();
                     iter.get_line_extents(out line_inkP, out line_logicalP);
                     if(lenabled(DEBUG)) {
                         ltraceo(this, "  ink: %s", prect_to_string(line_inkP));
                         ldebugo(this, "  log: %s", prect_to_string(line_logicalP));
+                        ldebugo(this, "  baseline: %f", p2i(baseline_yP));
                     }
 
                     if(yP + line_logicalP.height > bottomP) {
@@ -1009,6 +1011,7 @@ namespace My {
                     // Similarly, the shift from layout to page X.
                     int xleftP = c2p(leftC);
 
+                    int net_baseline_yP = ytopP + baseline_yP;
                     net_logicalP.x = xleftP + line_logicalP.x;
                     net_logicalP.y = ytopP + line_logicalP.y;
                     net_logicalP.width = line_logicalP.width;
@@ -1033,7 +1036,8 @@ namespace My {
                             );
                             cr.stroke();
                         }
-                        if(lenabled(DEBUG)) {     // logical: more-saturated blue
+                        if(lenabled(DEBUG)) {
+                            // logical: more-saturated blue
                             cr.set_source_rgb(0,0,1);
                             cr.rectangle(
                                 p2c(net_logicalP.x),
@@ -1041,6 +1045,12 @@ namespace My {
                                 p2c(net_logicalP.width),
                                 p2c(net_logicalP.height)
                             );
+                            cr.stroke();
+
+                            // baseline: light purple
+                            cr.set_source_rgb(1,0.4,1);
+                            cr.move_to(p2c(net_logicalP.x), p2c(net_baseline_yP));
+                            cr.line_to(p2c(net_logicalP.x+net_logicalP.width), p2c(net_baseline_yP));
                             cr.stroke();
                         }
                         cr.restore();
@@ -1066,7 +1076,7 @@ namespace My {
                     did_render = true;
 
                     // Advance to the next line
-                    yP += line_logicalP.height;
+                    yP += (int)(line_logicalP.height * layout.get_line_spacing()); // XXX
                     cr.move_to(leftC, p2c(yP));
 
                     if(lenabled(DEBUG)) {
